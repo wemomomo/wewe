@@ -557,7 +557,7 @@
 
     document.getElementById('generateCardBtn').addEventListener('click', function() {
       var nameVal = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
-      if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('墨墨，请在第一栏写下姓名哦'); return; }
+      if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
       saveFormDataToCur(cur);
       saveCurrentToDB(function() { renderArchiveShell(); });
     });
