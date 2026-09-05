@@ -411,7 +411,7 @@
 }
 
 .t1-left-rail {
-  width: 18px;
+  width: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -493,7 +493,7 @@
 .t1-photo-empty span { font-size: 11.5px; font-weight: 500; }
 
 .t1-right-rail {
-  width: 16px;
+  width: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -582,7 +582,7 @@
   height: 8px;
   background: #cbd5e1 !important;
   border-radius: 4px;
-  margin: 0 auto 6px !important; 
+  margin: 0 auto 4px !important; 
   box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.25) !important;
   position: relative;
   flex-shrink: 0;
@@ -593,7 +593,7 @@
 }
 .t2-frame {
   position: relative; border: 1px solid rgba(30, 36, 45, 0.15);
-  background: #ffffff; border-radius: 20px; padding: 6px 16px;
+  background: #ffffff; border-radius: 20px; padding: 6px 18px;
   display: flex; flex-direction: column; gap: 4px; overflow: hidden;
 }
 .t2-cross {
@@ -610,12 +610,11 @@
 
 .t2-photo-stage {
   width: 100%;
-  height: 360px;
+  height: 370px;
   border-radius: 14px;
   position: relative;
   overflow: hidden;
   background: #edf2f7;
-  border: 1.2px solid #1e242d;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -895,7 +894,6 @@
 }
 
 .t5-frame-stage {
-  flex: 1;
   height: 340px !important; 
   width: 100%;
   position: relative;
@@ -1302,7 +1300,15 @@
 .seal-star { font-size: 8px; line-height: 1; }
 
 /* ========== 用户/角色档案抽屉（2500/2600 盖住所有底层内容） ========== */
-.user-drawer-mask, .char-drawer-mask { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 2500; display: none; }
+.user-drawer-mask, .char-drawer-mask {
+  position: fixed;
+  inset: 0;
+  background: transparent !important; /* 彻底去掉黑灰色阴影，完全透明 */
+  backdrop-filter: none !important;    /* 彻底去掉毛玻璃模糊 */
+  -webkit-backdrop-filter: none !important;
+  z-index: 2500;
+  display: none;
+}
 .user-drawer-mask.show, .char-drawer-mask.show { display: block; }
 .user-drawer-card, .char-drawer-card { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 18px 18px calc(20px + var(--safe-bottom)); z-index: 2600; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 65vh; display: flex; flex-direction: column; }
 .user-drawer-card.show, .char-drawer-card.show { transform: translateY(0); }
@@ -1311,7 +1317,7 @@
 .drawer-close-btn, .char-drawer-close { background: none; border: none; font-size: 15px; color: #94a3b8; cursor: pointer; padding: 3px; }
 .drawer-list, .char-drawer-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 4px; }
 .drawer-user-item, .char-drawer-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: #f8fafc; border: 1px solid rgba(0,0,0,0.04); cursor: pointer; }
-.drawer-user-item.active, .char-drawer-item.active { background: #f1f5f9; border-color: #18191c; }
+.drawer-user-item.active, .char-drawer-item.active { background: #f1f5f9; border-color: #cbd5e1; }
 .drawer-avatar, .char-drawer-avatar { width: 38px; height: 38px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b; overflow: hidden; font-size: 13px; flex-shrink: 0; }
 .drawer-avatar img, .char-drawer-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .drawer-user-info, .char-drawer-info { flex: 1; min-width: 0; }
@@ -1522,6 +1528,18 @@
   stroke: #1e242d !important;
   stroke-width: 2.4 !important;
   fill: none !important;
+}
+
+/* ========== 统一所有卡片上传立绘区域的底色为纯白 ========== */
+.t1-photo-stage,
+.t2-photo-stage,
+.t3-photo-stage,
+.t4-arch-stage,
+.t5-frame-stage,
+.arch-shared-photo-box,
+.char-photo-box,
+.photo-box {
+  background: #ffffff !important;
 }
 
 
