@@ -1498,7 +1498,13 @@
   opacity: 0.6;
 }
 
-/* ========== 抽屉内第 06 款：纯粹微白浮雕扣「+ 新建」 ========== */
+/* ========== 纯粹微白浮雕扣「+ 新建」 ========== */
+.drawer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 #drawerNewUserBtn,
 #drawerNewCharBtn {
   display: inline-flex !important;
@@ -1506,7 +1512,7 @@
   justify-content: center !important;
   gap: 4px !important;
   height: 28px !important;
-  padding: 0 11px !important;
+  padding: 0 12px !important;
   border-radius: 14px !important;
   background: #f8fafc !important;
   color: #1e242d !important;
@@ -1516,6 +1522,9 @@
   font-weight: 700 !important;
   letter-spacing: 0.5px !important;
   cursor: pointer !important;
+  white-space: nowrap !important; /* 重点：强制绝对不许上下折行 */
+  width: auto !important;          /* 重点：宽度随文字自适应撑开 */
+  flex-shrink: 0 !important;       /* 重点：绝对不许被两边挤压 */
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
