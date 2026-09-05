@@ -454,4 +454,55 @@
     bindNavigation();
   });
 
+  // ============ 全局高定双选确认弹窗 (替代系统丑陋原生 confirm) ============
+  var dialogMask = null, onDialogConfirmCb = null, onDialogCancelCb = null;
+  function setupAppDialog() {
+    dialogMask = document.createElement('div');
+    dialogMask.className = 'app-dialog-mask';
+    dialogMask.innerHTML = '<div class="app-dialog-card">'
+      + '<div class="app-dialog-title" id="appDialogTitle">提示</div>'
+      + '<div class="app-dialog-desc" id="appDialogDesc"></div>'
+      + '<div class="app-dialog-btns">'
+      + '<button class="app-dialog-btn cancel" id="appDialogCancel" type="button">取消</button>'
+      + '<button class="app-dialog-btn confirm" id="appDialogConfirm" type="button">确定</button>'
+      + '</div></div>';
+    document.body.appendChild(dialogMask);
+
+    document.getElementById('appDialogCancel').addEventListener('click', function() {
+      dialogMask.classList.remove('show');
+      if (onDialogCancelCb) onDialogCancelCb();
+    });
+    document.getElementById('appDialogConfirm').addEventListener('click', function() {
+      dialogMask.classList.remove('show');
+      if (onDialogConfirmCb) onDialogConfirmCb();
+    });
+    dialogMask.addEventListener('click', function(e) {
+      if (e.target === dialogMask) {
+        dialogMask.classList.remove('show');
+        if (onDialogCancelCb) onDialogCancelCb();
+      }
+    });
+  }
+
+  window.AppDialog = {
+    confirm: function(options, onConfirm, onCancel) {
+      if (!dialogMask) setupAppDialog();
+      var title = typeof options === 'string' ? '提示' : (options.title || '提示');
+      var desc = typeof options === 'string' ? options : (options.desc || '');
+      var confirmText = (options && options.confirmText) || '确定';
+      var isDanger = options && options.isDanger;
+
+      document.getElementById('appDialogTitle').textContent = title;
+      document.getElementById('appDialogDesc').textContent = desc;
+      var confirmBtn = document.getElementById('appDialogConfirm');
+      confirmBtn.textContent = confirmText;
+      if (isDanger) confirmBtn.className = 'app-dialog-btn danger';
+      else confirmBtn.className = 'app-dialog-btn confirm';
+
+      onDialogConfirmCb = onConfirm;
+      onDialogCancelCb = onCancel;
+      dialogMask.classList.add('show');
+    }
+  };
+
 })();
