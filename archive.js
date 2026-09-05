@@ -1,3 +1,4 @@
+
 (function(){
   'use strict';
 
@@ -80,13 +81,13 @@
         var activeUser = getCurrentUser();
         if (activeUser) {
           currentTplIdx = activeUser.tplIdx || 0;
-          renderStep3();
+          renderArchiveShell();
         } else if (userList.length > 0) {
           currentUserId = userList[0].id;
           currentTplIdx = userList[0].tplIdx || 0;
-          renderStep3();
+          renderArchiveShell();
         } else {
-          renderStep1();
+          renderArchiveShell();
         }
       });
     });
@@ -128,18 +129,129 @@
   }
 
   // ==========================================
-  // 步骤 1：空状态凝聚冰晶
+  // 总外壳架构：玄月星盘 + 单层合并顶栏
   // ==========================================
-  function renderStep1() {
-    container.className = 'app-content archive-page-wrap archive-panel-active';
-    container.innerHTML = '<div class="archive-page-screen screen-bg-0">'
-      + '<div class="archive-integrated-header">'
-      + '<div class="arch-header-left">'
-      + '<button class="arch-native-back" id="archBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-      + '<span class="arch-header-title">档案</span>'
+  function renderArchiveShell() {
+    container.className = 'app-content archive-page-wrap';
+    var bgClass = (currentTab === 'user') ? ('screen-bg-' + currentTplIdx) : 'screen-bg-0';
+
+    container.innerHTML = '<div class="archive-page-screen ' + bgClass + '" id="archiveScreenRoot">'
+      + '<div class="header-ornament-stage">'
+      + '<div class="ornament-artwork-layer">'
+      + '<div class="celestial-crescent-emblem">'
+      + '<svg viewBox="0 0 100 100">'
+      + '<circle cx="50" cy="50" r="44" stroke-width="0.7" stroke-dasharray="2 3.5" opacity="0.5"/>'
+      + '<circle cx="50" cy="50" r="38" stroke-width="0.5" opacity="0.35"/>'
+      + '<path d="M50 12 A38 38 0 1 0 88 50 A30 30 0 1 1 50 12 Z" stroke-width="1.1" opacity="0.85"/>'
+      + '<path d="M63 42.5 L64.8 47 L69.5 48.8 L64.8 50.5 L63 55 L61.2 50.5 L56.5 48.8 L61.2 47 Z" fill="currentColor" stroke-width="0.4" opacity="0.9"/>'
+      + '<circle cx="77" cy="29" r="1.3" fill="currentColor" opacity="0.65"/>'
+      + '<circle cx="71" cy="19" r="0.9" fill="currentColor" opacity="0.48"/>'
+      + '</svg>'
+      + '</div>'
+      + '<div class="astrolabe-poly"></div>'
+      + '<span class="art-star s1">✦</span><span class="art-star s2">✧</span><span class="art-star s3">✦</span>'
+      + '<span class="art-crosshair c1">+</span><span class="art-crosshair c2">+</span>'
+      + '</div>'
+
+      // 单层合并顶栏：左标题 + 中间滑动胶囊 + 右三横线图标
+      + '<div class="archive-header" style="width:100%; display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; position:relative; z-index:1;">'
+      + '<div class="archive-header-left" style="display:flex; align-items:center; gap:4px;">'
+      + '<button class="arch-native-back" id="archShellBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
+      + '<h1 class="archive-title" style="font-size:18px; font-weight:800; letter-spacing:0.5px; white-space:nowrap;">档案</h1>'
+      + '</div>'
+
+      // 中间小巧流体双段滑块
+      + '<div class="archive-nav-capsule" style="width:136px; height:34px; padding:2px; border-radius:18px; margin:0 4px;">'
+      + '<div class="nav-glider-pill" id="navGlider" style="border-radius:14px; transform: translateX(' + (currentTab === 'user' ? '0%' : '100%') + ');"></div>'
+      + '<button class="archive-nav-item' + (currentTab === 'user' ? ' active' : '') + '" id="tabUserBtn" type="button" style="font-size:11.5px;"><span>用户</span></button>'
+      + '<button class="archive-nav-item' + (currentTab === 'char' ? ' active' : '') + '" id="tabCharBtn" type="button" style="font-size:11.5px;"><span>角色</span></button>'
+      + '</div>'
+
+      // 右侧：三条横线的列表菜单图标按钮
+      + '<div class="archive-header-right" style="display:flex; align-items:center;">'
+      + '<button class="arch-tool-pill" id="actionMenuBtn" type="button" style="padding:6px; border-radius:50%; width:34px; height:34px; justify-content:center;">'
+      + '<svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke-width:2.2;"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>'
+      + '</button>'
       + '</div>'
       + '</div>'
-      + '<div class="archive-step-panel step-active" id="archStep1">'
+
+      + '</div>'
+
+      + '<div class="archive-showcase-wrap" id="archiveSubViewport"></div>'
+      + '</div>';
+
+    document.getElementById('archShellBackBtn').addEventListener('click', function() {
+      if (window.AppNav) AppNav.showPage('home');
+    });
+
+    var tabUserBtn = document.getElementById('tabUserBtn');
+    var tabCharBtn = document.getElementById('tabCharBtn');
+    var navGlider = document.getElementById('navGlider');
+
+    tabUserBtn.addEventListener('click', function() {
+      if (currentTab === 'user') return;
+      if (window.CharacterEngine) CharacterEngine.syncEdits();
+      currentTab = 'user';
+      tabUserBtn.classList.add('active');
+      tabCharBtn.classList.remove('active');
+      navGlider.style.transform = 'translateX(0%)';
+      renderSubContent();
+    });
+
+    tabCharBtn.addEventListener('click', function() {
+      if (currentTab === 'char') return;
+      var cur = getCurrentUser();
+      if (cur) syncDirectEdits(cur);
+      currentTab = 'char';
+      tabCharBtn.classList.add('active');
+      tabUserBtn.classList.remove('active');
+      navGlider.style.transform = 'translateX(100%)';
+      renderSubContent();
+    });
+
+    // 点击右上角三横线菜单：根据当前标签打开对应的抽屉
+    document.getElementById('actionMenuBtn').addEventListener('click', function() {
+      if (currentTab === 'user') {
+        var drawerMask = document.getElementById('userDrawerMask');
+        var drawerCard = document.getElementById('userDrawerCard');
+        if (drawerMask) drawerMask.classList.add('show');
+        if (drawerCard) drawerCard.classList.add('show');
+      } else {
+        if (window.CharacterEngine) CharacterEngine.openList();
+      }
+    });
+
+    renderSubContent();
+  }
+
+  function renderSubContent() {
+    var subViewport = document.getElementById('archiveSubViewport');
+    if (!subViewport) return;
+
+    if (currentTab === 'user') {
+      var cur = getCurrentUser();
+      if (cur) {
+        renderStep3(subViewport, cur);
+      } else if (userList.length > 0) {
+        currentUserId = userList[0].id;
+        renderStep3(subViewport, userList[0]);
+      } else {
+        renderStep1(subViewport);
+      }
+    } else {
+      if (window.CharacterEngine) {
+        CharacterEngine.render(subViewport);
+      } else {
+        subViewport.innerHTML = '<div style="padding:40px 0; text-align:center; color:#868e96; font-size:12px;">✦ 角色引擎正在连接 ✦</div>';
+      }
+    }
+  }
+
+  // ==========================================
+  // 步骤 1：用户空状态凝聚冰晶
+  // ==========================================
+  function renderStep1(subViewport) {
+    subViewport.innerHTML = '<div class="archive-step-panel step-active" id="archStep1">'
       + '<div class="empty-card-stage">'
       + '<div class="deco-cross tl">+</div><div class="deco-cross tr">+</div>'
       + '<div class="deco-cross bl">+</div><div class="deco-cross br">+</div>'
@@ -180,33 +292,26 @@
       + '<span>新建用户档案</span>'
       + '</button>'
       + '</div>'
-      + '</div>'
       + '</div>';
 
-    document.getElementById('archBackBtn').addEventListener('click', function() {
-      if (window.AppNav) AppNav.showPage('home');
-    });
-
-        // 凝聚冰晶页面：监听全屏容器，无论从屏幕哪里右滑都能丝滑返回桌面！
-    var s1Screen = container.querySelector('.archive-page-screen') || container;
-    if (s1Screen) {
+    var root = document.getElementById('archiveScreenRoot');
+    if (root) {
       var s1StartX = 0, s1StartY = 0, s1EndX = 0, s1EndY = 0;
-      s1Screen.addEventListener('touchstart', function(e) {
+      root.addEventListener('touchstart', function(e) {
         s1StartX = e.touches[0].clientX;
         s1StartY = e.touches[0].clientY;
         s1EndX = s1StartX;
         s1EndY = s1StartY;
       }, { passive: true });
 
-      s1Screen.addEventListener('touchmove', function(e) {
+      root.addEventListener('touchmove', function(e) {
         s1EndX = e.touches[0].clientX;
         s1EndY = e.touches[0].clientY;
       }, { passive: true });
 
-      s1Screen.addEventListener('touchend', function() {
+      root.addEventListener('touchend', function() {
         var diffX = s1EndX - s1StartX;
         var diffY = s1EndY - s1StartY;
-        // 只要向右滑超过 35px 且横向大于纵向，立刻返回桌面！
         if (diffX > 35 && Math.abs(diffX) > Math.abs(diffY)) {
           if (window.AppNav) AppNav.showPage('home');
         }
@@ -219,7 +324,7 @@
   }
 
   // ==========================================
-  // 步骤 2：手账录入填单
+  // 步骤 2：用户手账录入填单
   // ==========================================
   var step2BackHandler = null;
 
@@ -319,7 +424,6 @@
       + '</div>'
 
       + '<button class="action-trigger-btn" id="generateCardBtn" style="max-width:100%; height:44px; border-radius:12px;" type="button">'
-      + '<svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>'
       + '<span> ✥ ⋆ 铺万镜为卷 ⋆ ✥ </span>'
       + '</button>'
       + '</div>'
@@ -346,17 +450,8 @@
       + '</div>';
 
     var originalSnapshot = JSON.stringify({
-      name: cur.name || '',
-      gender: cur.gender || '',
-      age: cur.age || '',
-      height: cur.height || '',
-      birthday: cur.birthday || '',
-      zodiac: cur.zodiac || '',
-      appearance: cur.appearance || '',
-      personality: cur.personality || '',
-      tags: cur.tags || '',
-      hobbies: cur.hobbies || '',
-      background: cur.background || ''
+      name: cur.name || '', gender: cur.gender || '', age: cur.age || '', height: cur.height || '', birthday: cur.birthday || '', zodiac: cur.zodiac || '',
+      appearance: cur.appearance || '', personality: cur.personality || '', tags: cur.tags || '', hobbies: cur.hobbies || '', background: cur.background || ''
     });
 
     step2BackHandler = function() {
@@ -380,58 +475,46 @@
         background: (document.getElementById('fieldBackground') ? document.getElementById('fieldBackground').value : '')
       });
 
-      var isModified = (originalSnapshot !== currentSnapshot);
-
-      if (isModified) {
-        var shouldSave = confirm('检测到内容已修改，是否保存？');
-        if (shouldSave) {
+      if (originalSnapshot !== currentSnapshot) {
+        if (confirm('检测到内容已修改，是否保存？')) {
           var nameVal = (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, '');
-          if (!nameVal.trim()) {
-            AppNav.showToast('姓名不能为空哦');
-            return;
-          }
-          cur.name = nameVal;
-          cur.gender = document.getElementById('fieldGender').value || '女';
-          cur.age = document.getElementById('fieldAge').value || '18';
-          cur.height = document.getElementById('fieldHeight').value || '165cm';
-          cur.birthday = document.getElementById('fieldBirthday').value;
-          cur.zodiac = document.getElementById('fieldZodiac').value || '天秤座';
-          cur.appearance = document.getElementById('fieldAppearance').value;
-          cur.personality = document.getElementById('fieldPersonality').value;
-          cur.tags = document.getElementById('fieldTags').value;
-          cur.hobbies = document.getElementById('fieldHobbies').value;
-          cur.background = document.getElementById('fieldBackground').value;
-
-          if (cur.birthday) {
-            var cleanDigits = cur.birthday.replace(/[^0-9]/g, '');
-            cur.serial = 'NO. ' + (cleanDigits || cur.birthday) + '-NIVEOUS';
-          } else {
-            cur.serial = 'NO. 0000-NIVEOUS';
-          }
-
-          saveCurrentToDB(function() {
-            renderStep3();
-          });
+          if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('姓名不能为空哦'); return; }
+          saveFormDataToCur(cur);
+          saveCurrentToDB(function() { renderArchiveShell(); });
           return;
         }
       }
 
       if (userList.length > 0 && cur.name && cur.name !== '你') {
-        renderStep3();
+        renderArchiveShell();
       } else if (userList.length > 0) {
         userList = userList.filter(function(u) { return u.id !== cur.id; });
-        if (userList.length) {
-          currentUserId = userList[0].id;
-          renderStep3();
-        } else {
-          renderStep1();
-        }
+        if (userList.length) { currentUserId = userList[0].id; renderArchiveShell(); }
+        else { renderArchiveShell(); }
       } else {
-        renderStep1();
+        renderArchiveShell();
       }
     };
 
     document.getElementById('archBackBtn').addEventListener('click', step2BackHandler);
+
+    function saveFormDataToCur(target) {
+      target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
+      target.gender = document.getElementById('fieldGender').value || '女';
+      target.age = document.getElementById('fieldAge').value || '18';
+      target.height = document.getElementById('fieldHeight').value || '165cm';
+      target.birthday = document.getElementById('fieldBirthday').value;
+      target.zodiac = document.getElementById('fieldZodiac').value || '天秤座';
+      target.appearance = document.getElementById('fieldAppearance').value;
+      target.personality = document.getElementById('fieldPersonality').value;
+      target.tags = document.getElementById('fieldTags').value;
+      target.hobbies = document.getElementById('fieldHobbies').value;
+      target.background = document.getElementById('fieldBackground').value;
+      if (target.birthday) {
+        var cleanDigits = target.birthday.replace(/[^0-9]/g, '');
+        target.serial = 'NO. ' + (cleanDigits || target.birthday) + '-NIVEOUS';
+      }
+    }
 
     var currentTargetFieldId = '';
     var modalOverlay = document.getElementById('expandModalOverlay');
@@ -443,23 +526,16 @@
     var clearBtn = document.getElementById('expandClearBtn');
 
     function updateWordCount() {
-      if (wordCount && modalTextarea) {
-        wordCount.textContent = modalTextarea.value.length + ' 字';
-      }
+      if (wordCount && modalTextarea) wordCount.textContent = modalTextarea.value.length + ' 字';
     }
 
     function openExpandModal(fieldId, titleText) {
       currentTargetFieldId = fieldId;
       var targetInput = document.getElementById(fieldId);
       if (modalTitle) modalTitle.textContent = titleText || '深度手札编辑';
-      if (modalTextarea) {
-        modalTextarea.value = targetInput ? targetInput.value : '';
-        updateWordCount();
-      }
+      if (modalTextarea) { modalTextarea.value = targetInput ? targetInput.value : ''; updateWordCount(); }
       if (modalOverlay) modalOverlay.classList.add('show');
-      setTimeout(function() {
-        if (modalTextarea) modalTextarea.focus();
-      }, 300);
+      setTimeout(function() { if (modalTextarea) modalTextarea.focus(); }, 300);
     }
 
     function closeExpandModal() {
@@ -470,96 +546,37 @@
     document.querySelectorAll('.expand-edit-btn').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var targetId = this.dataset.expandTarget;
-        var title = this.dataset.expandTitle;
-        openExpandModal(targetId, title);
+        openExpandModal(this.dataset.expandTarget, this.dataset.expandTitle);
       });
     });
 
-    if (modalTextarea) {
-      modalTextarea.addEventListener('input', updateWordCount);
-    }
-
-    if (clearBtn) {
-      clearBtn.addEventListener('click', function() {
-        if (modalTextarea && confirm('确定要清空当前输入的内容吗？')) {
-          modalTextarea.value = '';
-          updateWordCount();
-          modalTextarea.focus();
-        }
-      });
-    }
-
-    if (modalDoneBtn) {
-      modalDoneBtn.addEventListener('click', function() {
-        if (currentTargetFieldId) {
-          var targetInput = document.getElementById(currentTargetFieldId);
-          if (targetInput && modalTextarea) {
-            targetInput.value = modalTextarea.value;
-          }
-        }
-        closeExpandModal();
-      });
-    }
-
-    if (modalCancelBtn) {
-      modalCancelBtn.addEventListener('click', closeExpandModal);
-    }
+    if (modalTextarea) modalTextarea.addEventListener('input', updateWordCount);
+    if (clearBtn) clearBtn.addEventListener('click', function() { if (modalTextarea && confirm('确定清空内容吗？')) { modalTextarea.value = ''; updateWordCount(); modalTextarea.focus(); } });
+    if (modalDoneBtn) modalDoneBtn.addEventListener('click', function() { if (currentTargetFieldId) { var targetInput = document.getElementById(currentTargetFieldId); if (targetInput && modalTextarea) targetInput.value = modalTextarea.value; } closeExpandModal(); });
+    if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeExpandModal);
 
     document.getElementById('generateCardBtn').addEventListener('click', function() {
-      var nameVal = document.getElementById('fieldName').value.replace(/[✞✟✠]/g, '');
-      if (!nameVal.trim()) {
-        AppNav.showToast('墨墨，请在第一栏写下姓名哦');
-        return;
-      }
-
-      cur.name = nameVal;
-      cur.gender = document.getElementById('fieldGender').value || '女';
-      cur.age = document.getElementById('fieldAge').value || '18';
-      cur.height = document.getElementById('fieldHeight').value || '165cm';
-      cur.birthday = document.getElementById('fieldBirthday').value;
-      cur.zodiac = document.getElementById('fieldZodiac').value || '天秤座';
-      cur.appearance = document.getElementById('fieldAppearance').value;
-      cur.personality = document.getElementById('fieldPersonality').value;
-      cur.tags = document.getElementById('fieldTags').value;
-      cur.hobbies = document.getElementById('fieldHobbies').value;
-      cur.background = document.getElementById('fieldBackground').value;
-
-      if (cur.birthday) {
-        var cleanDigits = cur.birthday.replace(/[^0-9]/g, '');
-        cur.serial = 'NO. ' + (cleanDigits || cur.birthday) + '-NIVEOUS';
-      } else {
-        cur.serial = 'NO. 0000-NIVEOUS';
-      }
-
-      saveCurrentToDB(function() {
-        renderStep3();
-      });
+      var nameVal = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
+      if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('墨墨，请在第一栏写下姓名哦'); return; }
+      saveFormDataToCur(cur);
+      saveCurrentToDB(function() { renderArchiveShell(); });
     });
   }
 
-  // ==========================================
-  // 全局捕获级拦截锁
-  // ==========================================
+  // 捕获级滑动拦截
   (function initGlobalSwipeInterceptor() {
     var touchStartX = 0, touchStartY = 0, touchCurX = 0, touchCurY = 0;
     var isIntercepting = false;
 
     window.addEventListener('touchstart', function(e) {
       var step2 = document.getElementById('archStep2');
-      if (!step2 || !step2.classList.contains('step-active')) {
-        isIntercepting = false;
-        return;
-      }
+      if (!step2 || !step2.classList.contains('step-active')) { isIntercepting = false; return; }
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       touchCurX = touchStartX;
       touchCurY = touchStartY;
       isIntercepting = true;
-      
-      if (touchStartX <= 60) {
-        e.stopPropagation();
-      }
+      if (touchStartX <= 60) e.stopPropagation();
     }, { capture: true, passive: true });
 
     window.addEventListener('touchmove', function(e) {
@@ -568,9 +585,7 @@
       touchCurY = e.touches[0].clientY;
       var diffX = touchCurX - touchStartX;
       var diffY = touchCurY - touchStartY;
-      if (diffX > 10 && diffX > Math.abs(diffY)) {
-        e.stopPropagation();
-      }
+      if (diffX > 10 && diffX > Math.abs(diffY)) e.stopPropagation();
     }, { capture: true, passive: true });
 
     window.addEventListener('touchend', function(e) {
@@ -580,69 +595,37 @@
       var diffY = touchCurY - touchStartY;
       if (diffX > 50 && diffX > Math.abs(diffY) * 1.2) {
         e.stopPropagation();
-        if (typeof step2BackHandler === 'function') {
-          step2BackHandler();
-        }
+        if (typeof step2BackHandler === 'function') step2BackHandler();
       }
     }, { capture: true, passive: true });
   })();
 
   // ==========================================
-  // 步骤 3：5 个专属底页容器展示
+  // 步骤 3：用户卡片展示与管理
   // ==========================================
-  function renderStep3() {
-    var cur = getCurrentUser();
-    if (!cur) {
-      renderStep1();
-      return;
-    }
-
+  function renderStep3(subViewport, cur) {
     if (cur.name) cur.name = cur.name.replace(/[✞✟✠]/g, '');
-
-    container.className = 'app-content archive-page-wrap';
     var hasPhotoClass = cur.photo ? ' has-img' : '';
 
-        var html = '<div class="archive-page-screen screen-bg-' + currentTplIdx + '">'
-      + '<div class="header-ornament-stage">'
-      + '<div class="ornament-artwork-layer">'
-      + '<div class="celestial-crescent-emblem">'
-      + '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" stroke-width="0.7" stroke-dasharray="2 3.5" opacity="0.5"/><circle cx="50" cy="50" r="38" stroke-width="0.5" opacity="0.35"/><path d="M50 12 A38 38 0 1 0 88 50 A30 30 0 1 1 50 12 Z" stroke-width="1.1" opacity="0.85"/><path d="M63 42.5 L64.8 47 L69.5 48.8 L64.8 50.5 L63 55 L61.2 50.5 L56.5 48.8 L61.2 47 Z" fill="currentColor" stroke-width="0.4" opacity="0.9"/><circle cx="77" cy="29" r="1.3" fill="currentColor" opacity="0.65"/><circle cx="71" cy="19" r="0.9" fill="currentColor" opacity="0.48"/></svg>'
-      + '</div>'
-      + '<div class="astrolabe-poly"></div>'
-      + '<span class="art-star s1">✦</span><span class="art-star s2">✧</span><span class="art-star s3">✦</span>'
-      + '<span class="art-crosshair c1">+</span><span class="art-crosshair c2">+</span>'
-      + '</div>'
-      + '<div class="archive-header">'
-      + '<div class="archive-header-left">'
-      + '<button class="arch-native-back" id="archBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-      + '<div><h1 class="archive-title">档案中心</h1></div>'
-      + '</div>'
-      + '<div class="archive-header-right">'
-      + '<button class="arch-tool-pill" id="actionNewBtn" type="button"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
-      + '<button class="arch-tool-pill" id="actionListBtn" type="button"><span>用户列表 (' + userList.length + ')</span></button>'
-      + '</div>'
-      + '</div>'
-      + '<div class="archive-nav-capsule">'
-      + '<div class="nav-glider-pill" id="navGlider" style="transform: translateX(0%);"></div>'
-      + '<button class="archive-nav-item active" id="tabUserBtn" type="button"><span>用户档案</span></button>'
-      + '<button class="archive-nav-item" id="tabCharBtn" type="button"><span>角色档案</span></button>'
-      + '</div>'
-      + '</div>'
-      + '<div class="archive-showcase-wrap">'
-
-      + '<div class="archive-full-card-box" id="cardContainerBox">'
+    subViewport.innerHTML = '<div class="archive-full-card-box" id="cardContainerBox">'
       + renderCardTemplateHtml(cur, currentTplIdx, hasPhotoClass)
       + '</div>'
-
       + '<div class="archive-bottom-dock">'
       + '<button class="dock-arrow-btn" id="prevTplBtn" type="button"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>'
       + '<button class="dock-edit-btn" id="dockEditBtn" type="button"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>编辑资料</span></button>'
       + '<button class="dock-arrow-btn" id="nextTplBtn" type="button"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>'
       + '</div>'
 
+      // 用户抽屉（内置新建按钮）
       + '<div class="user-drawer-mask" id="userDrawerMask"></div>'
       + '<div class="user-drawer-card" id="userDrawerCard">'
-      + '<div class="drawer-header"><div class="drawer-title">用户档案库</div><button class="drawer-close-btn" id="drawerCloseBtn" type="button">✕</button></div>'
+      + '<div class="drawer-header" style="display:flex; justify-content:space-between; align-items:center;">'
+      + '<div class="drawer-title">用户档案库 (' + userList.length + ')</div>'
+      + '<div style="display:flex; align-items:center; gap:8px;">'
+      + '<button class="arch-tool-pill" id="drawerNewUserBtn" type="button" style="padding:4px 10px; font-size:11px;"><svg viewBox="0 0 24 24" style="width:11px; height:11px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
+      + '<button class="drawer-close-btn" id="drawerCloseBtn" type="button">✕</button>'
+      + '</div>'
+      + '</div>'
       + '<div class="drawer-list">'
       + userList.map(function(u) {
           var isActive = u.id === cur.id;
@@ -653,21 +636,17 @@
             + '</div>';
         }).join('')
       + '</div>'
-      + '</div>'
-
-      + '</div>'
       + '</div>';
 
-    container.innerHTML = html;
+    // 动态同步底页背景类名
+    var root = document.getElementById('archiveScreenRoot');
+    if (root) root.className = 'archive-page-screen screen-bg-' + currentTplIdx;
+
     bindStep3Events(cur);
   }
 
-  // ==========================================
-  // 渲染 5 种模板
-  // ==========================================
   function renderCardTemplateHtml(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
-      // 01. 冰蓝票根
       return '<div class="arch-card-wrapper t1-wrapper">'
         + '<div class="t1-inner">'
         + '<div class="t1-header"><div><div class="t1-serial" id="cardSerial" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.serial) + '</div><div class="t1-title" contenteditable="true" spellcheck="false"><span>MEMORIES</span><span>✦</span></div></div><div class="t1-stamp" contenteditable="true" spellcheck="false">★ SPECIAL</div></div>'
@@ -682,7 +661,6 @@
         + '<div class="t1-tags"><span class="t1-tag primary" id="cardTag1" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tag1) + '</span><span class="t1-tag" id="cardTag2" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tag2) + '</span><span class="t1-tag" id="cardTag3" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tag3) + '</span></div>'
         + '</div></div></div>';
     } else if (tplIdx === 1) {
-      // 02. 缎带亚克力
       return '<div class="arch-card-wrapper t2-wrapper">'
         + '<div class="t2-ribbon-tr" contenteditable="true" spellcheck="false">✦ SPECIAL</div><div class="t2-ribbon-bl" contenteditable="true" spellcheck="false">✦ MEMORIES</div><div class="t2-top-ring"></div>'
         + '<div class="t2-frame"><div class="t2-cross tl">+</div><div class="t2-cross tr">+</div><div class="t2-cross bl">+</div><div class="t2-cross br">+</div>'
@@ -693,7 +671,6 @@
         + '<div class="t2-barcode-deck"><div class="t2-barcode-wrap"><div class="t2-graphic"><div class="t2-bar w2"></div><div class="t2-bar"></div><div class="t2-bar w3"></div><div class="t2-bar"></div><div class="t2-bar w2"></div><div class="t2-bar"></div></div><span class="t2-digits" contenteditable="true" spellcheck="false">4 892019 330219</span></div><div class="t2-tag" contenteditable="true" spellcheck="false"><span>SPECIAL EDITION</span></div></div>'
         + '</div></div></div>';
     } else if (tplIdx === 2) {
-      // 03. 燕麦火漆
       return '<div class="arch-card-wrapper t3-wrapper">'
         + '<div class="t3-perfs-left"><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div></div>'
         + '<div class="t3-perfs-right"><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div></div>'
@@ -704,7 +681,6 @@
         + '<div class="t3-bottom-deck"><div class="t3-french-tags"><span class="t3-french-quote" contenteditable="true" spellcheck="false">« Pour toujours et à jamais »</span><div class="t3-chips"><span class="t3-chip" contenteditable="true" spellcheck="false">燕麦手作</span><span class="t3-chip" contenteditable="true" spellcheck="false">典藏信笺</span></div></div><div class="t3-wax-seal"><div class="t3-wax-inner" contenteditable="true" spellcheck="false">✦</div></div></div>'
         + '</div></div></div>';
     } else if (tplIdx === 3) {
-      // 04. 粉晶圣殿
       return '<div class="arch-card-wrapper t4-wrapper">'
         + '<div class="t4-inner-frame"><div class="t4-cross tl">✟</div><div class="t4-cross tr">✟</div><div class="t4-cross bl">✟</div><div class="t4-cross br">✟</div>'
         + '<div class="t4-header"><div class="t4-title-wrap"><span>✠</span><span class="t4-title" contenteditable="true" spellcheck="false">SANCTUARY</span></div><div class="t4-stamp" contenteditable="true" spellcheck="false">ROSE · ' + esc(cur.birthday || '0000') + '</div></div>'
@@ -715,7 +691,6 @@
         + '<div class="t4-stats-matrix"><div class="t4-stat-box"><span class="t4-stat-label" contenteditable="true" spellcheck="false">DEVOTION</span><span class="t4-stat-val" contenteditable="true" spellcheck="false">纯粹</span></div><div class="t4-stat-box"><span class="t4-stat-label" contenteditable="true" spellcheck="false">BOUND</span><span class="t4-stat-val" contenteditable="true" spellcheck="false">灵魂共鸣</span></div><div class="t4-stat-box"><span class="t4-stat-label" contenteditable="true" spellcheck="false">STATUS</span><span class="t4-stat-val" contenteditable="true" spellcheck="false">永恒</span></div></div>'
         + '</div></div></div>';
     } else {
-      // 05. 白金胶片
       return '<div class="arch-card-wrapper t5-wrapper">'
         + '<div class="t5-sprockets"><div class="t5-hole"></div><div class="t5-hole"></div><span class="t5-sprocket-code" contenteditable="true" spellcheck="false">▶ NIVEOUS 35mm</span><div class="t5-hole"></div><div class="t5-hole"></div></div>'
         + '<div class="t5-header-bar"><div class="t5-scene"><span class="t5-dot"></span><span contenteditable="true" spellcheck="false">SCENE 01</span></div><span class="t5-fps" contenteditable="true" spellcheck="false">ISO 400 · 24 FPS</span></div>'
@@ -730,47 +705,12 @@
   }
 
   function bindStep3Events(cur) {
-    var tabUserBtn = document.getElementById('tabUserBtn');
-    var tabCharBtn = document.getElementById('tabCharBtn');
-    
-    // 点击切到角色档案
-    if (tabCharBtn) {
-      tabCharBtn.addEventListener('click', function() {
-        if (window.CharacterEngine) {
-          syncDirectEdits(cur);
-          saveCurrentToDB(function() {
-            var subViewport = container.querySelector('.archive-showcase-wrap');
-            var glider = document.getElementById('navGlider');
-            if (glider) glider.style.transform = 'translateX(100%)';
-            if (tabUserBtn) tabUserBtn.classList.remove('active');
-            tabCharBtn.classList.add('active');
-            CharacterEngine.render(subViewport);
-          });
-        }
-      });
-    }
-
-    // 点击切回用户档案
-    if (tabUserBtn) {
-      tabUserBtn.addEventListener('click', function() {
-        if (window.CharacterEngine) CharacterEngine.syncEdits();
-        renderStep3();
-      });
-    }
-
-    document.getElementById('archBackBtn').addEventListener('click', function() {
-      syncDirectEdits(cur);
-      saveCurrentToDB(function() {
-        if (window.AppNav) AppNav.showPage('home');
-      });
-    });
-
     document.getElementById('prevTplBtn').addEventListener('click', function() {
       syncDirectEdits(cur);
       currentTplIdx = (currentTplIdx - 1 + 5) % 5;
       cur.tplIdx = currentTplIdx;
       saveCurrentToDB();
-      renderStep3();
+      renderSubContent();
     });
 
     document.getElementById('nextTplBtn').addEventListener('click', function() {
@@ -778,71 +718,67 @@
       currentTplIdx = (currentTplIdx + 1) % 5;
       cur.tplIdx = currentTplIdx;
       saveCurrentToDB();
-      renderStep3();
+      renderSubContent();
     });
-
-    // 彻底移除滑动切卡冲突，全力支持右滑丝滑返回桌面首页！
-    var screenWrapper = container.querySelector('.archive-page-screen') || container;
-    var touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
-
-    screenWrapper.addEventListener('touchstart', function(e) {
-      var activeEl = document.activeElement;
-      if (activeEl && (activeEl.isContentEditable || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
-      if (e.target.closest('[contenteditable="true"]')) return;
-
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-      touchEndX = touchStartX;
-      touchEndY = touchStartY;
-    }, { passive: true });
-
-    screenWrapper.addEventListener('touchmove', function(e) {
-      touchEndX = e.touches[0].clientX;
-      touchEndY = e.touches[0].clientY;
-    }, { passive: true });
-
-    screenWrapper.addEventListener('touchend', function() {
-      var diffX = touchEndX - touchStartX;
-      var diffY = touchEndY - touchStartY;
-      if (diffX > 45 && Math.abs(diffX) > Math.abs(diffY)) {
-        syncDirectEdits(cur);
-        saveCurrentToDB(function() {
-          if (window.AppNav) AppNav.showPage('home');
-        });
-      }
-    }, { passive: true });
 
     document.getElementById('dockEditBtn').addEventListener('click', function() {
       syncDirectEdits(cur);
       renderStep2();
     });
 
-    var newBtn = document.getElementById('actionNewBtn');
-    if (newBtn) {
-      newBtn.addEventListener('click', function() {
-        syncDirectEdits(cur);
-        createNewUser();
-      });
+    // 右滑返回桌面
+    var root = document.getElementById('archiveScreenRoot');
+    var touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
+
+    if (root) {
+      root.addEventListener('touchstart', function(e) {
+        var activeEl = document.activeElement;
+        if (activeEl && (activeEl.isContentEditable || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+        if (e.target.closest('[contenteditable="true"]')) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchEndX = touchStartX;
+        touchEndY = touchStartY;
+      }, { passive: true });
+
+      root.addEventListener('touchmove', function(e) {
+        touchEndX = e.touches[0].clientX;
+        touchEndY = e.touches[0].clientY;
+      }, { passive: true });
+
+      root.addEventListener('touchend', function() {
+        var diffX = touchEndX - touchStartX;
+        var diffY = touchEndY - touchStartY;
+        if (diffX > 45 && Math.abs(diffX) > Math.abs(diffY)) {
+          syncDirectEdits(cur);
+          saveCurrentToDB(function() {
+            if (window.AppNav) AppNav.showPage('home');
+          });
+        }
+      }, { passive: true });
     }
 
-    var listBtn = document.getElementById('actionListBtn');
-    var drawerMask = document.getElementById('userDrawerMask');
+    // 抽屉管理与抽屉内新建
     var drawerCard = document.getElementById('userDrawerCard');
     var drawerCloseBtn = document.getElementById('drawerCloseBtn');
-
-    function openDrawer() {
-      if (drawerMask) drawerMask.classList.add('show');
-      if (drawerCard) drawerCard.classList.add('show');
-    }
+    var drawerMask = document.getElementById('userDrawerMask');
+    var drawerNewUserBtn = document.getElementById('drawerNewUserBtn');
 
     function closeDrawer() {
       if (drawerMask) drawerMask.classList.remove('show');
       if (drawerCard) drawerCard.classList.remove('show');
     }
 
-    if (listBtn) listBtn.addEventListener('click', openDrawer);
     if (drawerCloseBtn) drawerCloseBtn.addEventListener('click', closeDrawer);
     if (drawerMask) drawerMask.addEventListener('click', closeDrawer);
+
+    if (drawerNewUserBtn) {
+      drawerNewUserBtn.addEventListener('click', function() {
+        closeDrawer();
+        syncDirectEdits(cur);
+        createNewUser();
+      });
+    }
 
     if (drawerCard) {
       drawerCard.querySelectorAll('.drawer-user-item').forEach(function(item) {
@@ -854,7 +790,7 @@
           if (selected) currentTplIdx = selected.tplIdx || 0;
           saveCurrentToDB(function() {
             closeDrawer();
-            renderStep3();
+            renderSubContent();
           });
         });
       });
@@ -868,8 +804,8 @@
             currentUserId = userList.length ? userList[0].id : null;
           }
           saveCurrentToDB(function() {
-            if (userList.length) renderStep3();
-            else renderStep1();
+            if (userList.length) renderSubContent();
+            else renderStep1(document.getElementById('archiveSubViewport'));
             if (window.AppNav) AppNav.showToast('✦ 档案已成功删除 ✦');
           });
         });
@@ -895,16 +831,12 @@
               AppCropper.open(e.target.result, { aspectRatio: 1 / 1.35 }, function(croppedData) {
                 syncDirectEdits(cur);
                 cur.photo = croppedData;
-                saveCurrentToDB(function() {
-                  renderStep3();
-                });
+                saveCurrentToDB(function() { renderSubContent(); });
               });
             } else {
               syncDirectEdits(cur);
               cur.photo = e.target.result;
-              saveCurrentToDB(function() {
-                renderStep3();
-              });
+              saveCurrentToDB(function() { renderSubContent(); });
             }
           };
           reader.readAsDataURL(file);
@@ -918,21 +850,11 @@
     bindLiveEdits(cur);
   }
 
-  // ============ iOS WebKit 专用的全无损换行与空格提取器 ============
   function getHtmlWithBreaks(node) {
     if (!node) return '';
     var clone = node.cloneNode(true);
-
-    var breaks = clone.querySelectorAll('br');
-    breaks.forEach(function(br) {
-      br.parentNode.replaceChild(document.createTextNode('\n'), br);
-    });
-
-    var blocks = clone.querySelectorAll('div, p');
-    blocks.forEach(function(b) {
-      b.appendChild(document.createTextNode('\n'));
-    });
-
+    clone.querySelectorAll('br').forEach(function(br) { br.parentNode.replaceChild(document.createTextNode('\n'), br); });
+    clone.querySelectorAll('div, p').forEach(function(b) { b.appendChild(document.createTextNode('\n')); });
     var raw = clone.textContent || '';
     raw = raw.replace(/\u00a0/g, ' ');
     return raw.replace(/\n+$/, '');
@@ -959,24 +881,13 @@
   function bindLiveEdits(cur) {
     var editables = document.querySelectorAll('.arch-card-wrapper [contenteditable="true"]');
     editables.forEach(function(el) {
-      el.addEventListener('input', function() {
-        syncDirectEdits(cur);
-      });
-      el.addEventListener('blur', function() {
-        syncDirectEdits(cur);
-        saveCurrentToDB();
-      });
+      el.addEventListener('input', function() { syncDirectEdits(cur); });
+      el.addEventListener('blur', function() { syncDirectEdits(cur); saveCurrentToDB(); });
     });
 
-    window.addEventListener('pagehide', function() {
-      syncDirectEdits(cur);
-      saveCurrentToDB();
-    });
+    window.addEventListener('pagehide', function() { syncDirectEdits(cur); saveCurrentToDB(); });
     document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'hidden') {
-        syncDirectEdits(cur);
-        saveCurrentToDB();
-      }
+      if (document.visibilityState === 'hidden') { syncDirectEdits(cur); saveCurrentToDB(); }
     });
   }
 
@@ -994,4 +905,3 @@
   }
 
 })();
-
