@@ -39,10 +39,10 @@
 /* 1. 左上角玄月星芒圣盘 */
 .celestial-crescent-emblem {
   position: absolute;
-  top: -18px;
-  left: -16px;
-  width: 120px;
-  height: 120px;
+  top: -24px;
+  left: -22px;
+  width: 155px;  /* 尺寸放大 */
+  height: 155px; /* 尺寸放大 */
   color: rgba(20, 22, 25, 0.16);
 }
 .char-screen-bg-3 .celestial-crescent-emblem { color: rgba(136, 171, 218, 0.22); }
