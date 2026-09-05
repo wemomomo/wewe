@@ -345,8 +345,8 @@
       + '</div>'
       + '<span class="brand-serial">创檔日期：' + esc(cur.createDate || getTodayDateStr()) + '</span>'
       + '</div>'
-      + '<h1 class="journal-main-title">照见录入手札</h1>'
-      + '<p class="journal-desc-text">✥ 墨已研就，且借一纸素白，晕作众生相 ✥</p>'
+      + '<h1 class="journal-main-title">《录入手札》</h1>'
+      + '<p class="journal-desc-text"> 墨已研就，且借一纸素白，写作众生相 </p>'
       + '<div class="journal-header-divider"><span class="divider-line"></span><span class="divider-star">✦</span><span class="divider-line"></span></div>'
       + '</div>'
 
@@ -426,7 +426,7 @@
       + '</div>'
 
       + '<button class="action-trigger-btn save-seal-btn" id="generateCardBtn" type="button">'
-      + '<span> 铺万镜为卷 </span>'
+      + '<span> 照见万镜绘卷 </span>'
       + '</button>'
       + '</div>'
       + '</div>'
