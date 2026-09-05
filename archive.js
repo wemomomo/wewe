@@ -152,23 +152,23 @@
       + '<span class="art-crosshair c1">+</span>'
       + '</div>'
 
-      // 单层合并顶栏：左标题 + 中间滑动胶囊 + 右三横线图标
+      // 单层合并顶栏
       + '<div class="archive-header">'
       + '<div class="archive-header-left">'
       + '<button class="arch-native-back" id="archShellBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
       + '<h1 class="archive-title">档案</h1>'
       + '</div>'
 
-      // 中间小巧流体双段滑块
+      // 中间滑动胶囊
       + '<div class="archive-nav-capsule">'
-      + '<div class="nav-glider-pill" id="navGlider" style="transform: translateX(' + (currentTab === 'user' ? '0%' : '100%') + ');"></div>'
+      + '<div class="nav-glider-pill" id="navGlider"></div>'
       + '<button class="archive-nav-item' + (currentTab === 'user' ? ' active' : '') + '" id="tabUserBtn" type="button"><span>用户</span></button>'
       + '<button class="archive-nav-item' + (currentTab === 'char' ? ' active' : '') + '" id="tabCharBtn" type="button"><span>角色</span></button>'
       + '</div>'
 
-      // 右侧：三条横线的列表菜单图标按钮
+      // 右侧三横线菜单按钮
       + '<div class="archive-header-right">'
-      + '<button class="arch-tool-pill" id="actionMenuBtn" type="button">'
+      + '<button class="arch-tool-pill menu-btn" id="actionMenuBtn" type="button">'
       + '<svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>'
       + '</button>'
       + '</div>'
@@ -187,13 +187,17 @@
     var tabCharBtn = document.getElementById('tabCharBtn');
     var navGlider = document.getElementById('navGlider');
 
+    if (navGlider) {
+      navGlider.style.transform = (currentTab === 'user') ? 'translateX(0%)' : 'translateX(100%)';
+    }
+
     tabUserBtn.addEventListener('click', function() {
       if (currentTab === 'user') return;
       if (window.CharacterEngine) CharacterEngine.syncEdits();
       currentTab = 'user';
       tabUserBtn.classList.add('active');
       tabCharBtn.classList.remove('active');
-      navGlider.style.transform = 'translateX(0%)';
+      if (navGlider) navGlider.style.transform = 'translateX(0%)';
       renderSubContent();
     });
 
@@ -204,11 +208,10 @@
       currentTab = 'char';
       tabCharBtn.classList.add('active');
       tabUserBtn.classList.remove('active');
-      navGlider.style.transform = 'translateX(100%)';
+      if (navGlider) navGlider.style.transform = 'translateX(100%)';
       renderSubContent();
     });
 
-    // 点击右上角三横线菜单：根据当前标签打开对应的抽屉
     document.getElementById('actionMenuBtn').addEventListener('click', function() {
       if (currentTab === 'user') {
         var drawerMask = document.getElementById('userDrawerMask');
@@ -241,7 +244,7 @@
       if (window.CharacterEngine) {
         CharacterEngine.render(subViewport);
       } else {
-        subViewport.innerHTML = '<div style="padding:40px 0; text-align:center; color:#868e96; font-size:12px;">✦ 角色引擎正在连接 ✦</div>';
+        subViewport.innerHTML = '<div class="engine-connecting-hint">✦ 角色引擎正在连接 ✦</div>';
       }
     }
   }
@@ -364,7 +367,7 @@
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">02.</span><span>长相与外貌特征</span></div>'
-      + '<div style="display:flex; align-items:center; gap:6px;">'
+      + '<div class="section-lead-right">'
       + '<span class="section-tag-en">APPEARANCE</span>'
       + '<button class="expand-edit-btn" data-expand-target="fieldAppearance" data-expand-title="02. 长相与外貌特征" type="button" title="扩大编辑">'
       + '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
@@ -378,14 +381,14 @@
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">03.</span><span>性格特质与语气习惯</span></div>'
-      + '<div style="display:flex; align-items:center; gap:6px;">'
+      + '<div class="section-lead-right">'
       + '<span class="section-tag-en">PERSONALITY</span>'
       + '<button class="expand-edit-btn" data-expand-target="fieldPersonality" data-expand-title="03. 性格特质与语气习惯" type="button" title="扩大编辑">'
       + '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
       + '</button>'
       + '</div>'
       + '</div>'
-      + '<div class="ruled-item" style="margin-bottom:6px;"><span class="ruled-label">性格标签</span><input type="text" class="ruled-input" id="fieldTags" value="' + esc(cur.tags) + '" placeholder="多个关键词用空格或逗号分隔"></div>'
+      + '<div class="ruled-item compact-item"><span class="ruled-label">性格标签</span><input type="text" class="ruled-input" id="fieldTags" value="' + esc(cur.tags) + '" placeholder="多个关键词用空格或逗号分隔"></div>'
       + '<textarea class="ruled-textarea" id="fieldPersonality" rows="2" placeholder="日常性格表现、说话习惯、专属的互动方式与情绪特点...">' + esc(cur.personality) + '</textarea>'
       + '</div>'
 
@@ -393,7 +396,7 @@
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">04.</span><span>兴趣爱好与日常偏好</span></div>'
-      + '<div style="display:flex; align-items:center; gap:6px;">'
+      + '<div class="section-lead-right">'
       + '<span class="section-tag-en">HOBBIES & LIKES</span>'
       + '<button class="expand-edit-btn" data-expand-target="fieldHobbies" data-expand-title="04. 兴趣爱好与日常偏好" type="button" title="扩大编辑">'
       + '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
@@ -407,7 +410,7 @@
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">05.</span><span>深度背景渊源与人设</span></div>'
-      + '<div style="display:flex; align-items:center; gap:6px;">'
+      + '<div class="section-lead-right">'
       + '<span class="section-tag-en">BACKGROUND & LORE</span>'
       + '<button class="expand-edit-btn" data-expand-target="fieldBackground" data-expand-title="05. 深度背景渊源与人设" type="button" title="扩大编辑">'
       + '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
@@ -422,7 +425,7 @@
       + '<div class="journal-seal-stamp"><span>NIVEOUS</span><span>OFFICIAL</span></div>'
       + '</div>'
 
-      + '<button class="action-trigger-btn" id="generateCardBtn" style="max-width:100%; height:44px; border-radius:12px;" type="button">'
+      + '<button class="action-trigger-btn save-seal-btn" id="generateCardBtn" type="button">'
       + '<span> 铺万镜为卷 </span>'
       + '</button>'
       + '</div>'
@@ -655,13 +658,13 @@
       + '<button class="dock-arrow-btn" id="nextTplBtn" type="button"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>'
       + '</div>'
 
-      // 用户抽屉（内置新建按钮，强制不换行）
+      // 用户抽屉
       + '<div class="user-drawer-mask" id="userDrawerMask"></div>'
       + '<div class="user-drawer-card" id="userDrawerCard">'
-      + '<div class="drawer-header" style="display:flex; justify-content:space-between; align-items:center;">'
+      + '<div class="drawer-header">'
       + '<div class="drawer-title">用户档案库 (' + userList.length + ')</div>'
-      + '<div style="display:flex; align-items:center; gap:8px;">'
-      + '<button id="drawerNewUserBtn" type="button" style="display:inline-flex; align-items:center; justify-content:center; gap:4px; height:28px; padding:0 12px; border-radius:14px; background:#f8fafc; color:#1e242d; border:1px solid rgba(0,0,0,0.08); box-shadow:0 2px 6px rgba(0,0,0,0.04), inset 0 1px 1px #fff; font-size:11px; font-weight:700; letter-spacing:0.5px; cursor:pointer; white-space:nowrap; width:auto; flex-shrink:0;"><svg viewBox="0 0 24 24" style="width:10px; height:10px; stroke:#1e242d; stroke-width:2.4; fill:none;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
+      + '<div class="drawer-header-actions">'
+      + '<button class="drawer-new-btn" id="drawerNewUserBtn" type="button"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
       + '<button class="drawer-close-btn" id="drawerCloseBtn" type="button">✕</button>'
       + '</div>'
       + '</div>'
@@ -714,7 +717,7 @@
         + '<div class="t3-perfs-left"><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div></div>'
         + '<div class="t3-perfs-right"><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div></div>'
         + '<div class="t3-inner-box"><div class="t3-header-row"><div class="t3-postmark"><div class="t3-pm-circle" contenteditable="true" spellcheck="false">PARIS</div><div class="t3-pm-lines"><div class="t3-pm-line"></div><div class="t3-pm-line"></div></div></div><div class="t3-tag-text" contenteditable="true" spellcheck="false"><span>LETTRE D\'AMOUR</span></div></div>'
-        + '<div class="t3-photo-stage' + hasPhotoClass + '" id="cardPhotoBtn"><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="t1-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>上传立绘</span></div><div class="t3-photo-tag" contenteditable="true" spellcheck="false"><span>NO. ' + esc(cur.birthday || '0000') + '</span></div></div>'
+        + '<div class="t3-photo-stage' + hasPhotoClass + '" id="cardPhotoBtn"><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="t1-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>上传立绘</span></div><div class="t3-photo-tag" contenteditable="true" spellcheck="false"><span>NO. ' + esc(cur.birthday || '0000') + '</span></div></div>'
         + '<div class="t3-footer-body"><div style="display:flex; justify-content:space-between; align-items:baseline;"><div class="t3-username" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="t3-serial">POSTAGE</div></div>'
         + '<div class="t3-bio" id="cardBio" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.bio2 || DEFAULT_BIOS[2]) + '</div>'
         + '<div class="t3-bottom-deck"><div class="t3-french-tags"><span class="t3-french-quote" contenteditable="true" spellcheck="false">« Pour toujours et à jamais »</span><div class="t3-chips"><span class="t3-chip" contenteditable="true" spellcheck="false">燕麦手作</span><span class="t3-chip" contenteditable="true" spellcheck="false">典藏信笺</span></div></div><div class="t3-wax-seal"><div class="t3-wax-inner" contenteditable="true" spellcheck="false">✦</div></div></div>'
