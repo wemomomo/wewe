@@ -1,12 +1,20 @@
 
+:root {
+  --safe-top: env(safe-area-inset-top, 20px);
+  --safe-bottom: env(safe-area-inset-bottom, 20px);
+  --bg-pure: #f4f5f8;
+  --dark-pure: #141619;
+  --text-muted: #868e96;
+}
+
 /* =========================================================
-   顶部高定艺术图案舞台（融入背景·绝无半透明方块外框）
+   顶部高定艺术图案舞台（融入背景·单层紧凑横排）
 ========================================================= */
 .header-ornament-stage {
   width: 100%;
   max-width: 370px;
   position: relative;
-  padding: 0 4px 6px; /* 顶部 padding 改为 0，彻底贴近顶部 */
+  padding: 2px 2px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -91,13 +99,13 @@
 .art-crosshair.c1 { top: 36px; left: 10px; }
 .art-crosshair.c2 { top: 34px; right: 12px; }
 
-/* 标题区域 */
+/* 标题区域（单层三等分横向对齐） */
 .archive-header {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px; /* 之前是 10px~12px，大幅缩减到 4px */
+  margin-bottom: 0px;
   padding: 0 2px;
   position: relative;
   z-index: 1;
@@ -106,7 +114,8 @@
 .archive-header-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .arch-native-back {
@@ -131,45 +140,36 @@
   stroke-linejoin: round;
 }
 
-.archive-subtitle {
-  font-size: 8px;
-  font-family: monospace;
-  font-weight: 700;
-  letter-spacing: 2.5px;
-  color: var(--text-muted, #868e96);
-  text-transform: uppercase;
-}
-
 .archive-title {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   color: #141619;
+  line-height: 1;
 }
 .char-screen-bg-3 .archive-title { color: #ffffff; }
 
 .archive-header-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-shrink: 0;
 }
 
+/* 顶部三横线图标圆形胶囊按钮 */
 .arch-tool-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(20, 22, 25, 0.12);
-  padding: 5px 10px;
-  border-radius: 16px;
-  font-size: 11px;
-  font-weight: 700;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
   color: #18191c;
   cursor: pointer;
   font-family: inherit;
-  white-space: nowrap !important;
   box-shadow: 0 2px 6px rgba(0,0,0,0.03);
   transition: all 0.15s ease;
 }
@@ -179,20 +179,20 @@
   border-color: rgba(255, 255, 255, 0.18);
 }
 .arch-tool-pill:active { background: #e2e6ea; transform: scale(0.96); }
-.arch-tool-pill svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.2; fill: none; }
+.arch-tool-pill svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.2; fill: none; }
 
-/* 悬浮分段双滑块导航栏 */
+/* 悬浮分段双滑块导航栏（单层紧凑版） */
 .archive-nav-capsule {
   display: flex;
-  width: 100%;
-  height: 42px;
+  width: 136px;
+  height: 34px;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  padding: 3px;
-  border-radius: 15px;
+  padding: 2.5px;
+  border-radius: 18px;
   border: 1px solid rgba(20, 22, 25, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), inset 0 1px 1px #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04), inset 0 1px 1px #ffffff;
   position: relative;
   overflow: hidden;
   z-index: 1;
@@ -204,13 +204,13 @@
 
 .nav-glider-pill {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc(50% - 3px);
+  top: 2.5px;
+  bottom: 2.5px;
+  left: 2.5px;
+  width: calc(50% - 2.5px);
   background: linear-gradient(135deg, #22252a 0%, #111214 100%);
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(18, 20, 23, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  box-shadow: 0 2px 8px rgba(18, 20, 23, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15);
   transition: transform 0.35s cubic-bezier(0.25, 1, 0.3, 1);
   z-index: 1;
   pointer-events: none;
@@ -220,9 +220,9 @@
   flex: 1;
   height: 100%;
   border: none;
-  border-radius: 12px;
+  border-radius: 15px;
   background: transparent;
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #6c757d;
   cursor: pointer;
@@ -240,11 +240,14 @@
   font-weight: 700;
 }
 
+/* ======================================================== */
+/* 墨墨最初 100% 满血完美的卡片与手账排版（完全不动）        */
+/* ======================================================== */
 .arch-card-wrapper [contenteditable="true"],
 .t1-bio, .t2-bio, .t3-bio, .t4-bio, .t5-sub-cn {
-  white-space: pre-wrap !important; /* 开启严密空格与换行支持 */
+  white-space: pre-wrap !important;
 }
-/* ========== 彻底消灭所有可编辑文字的蓝色外框与背景 ========== */
+
 .arch-card-wrapper [contenteditable="true"],
 [contenteditable="true"] {
   outline: none !important;
@@ -255,17 +258,15 @@
 .arch-card-wrapper [contenteditable="true"]:focus,
 [contenteditable="true"]:focus {
   outline: none !important;
-  background: transparent !important; /* 彻底移除蓝色背景块 */
+  background: transparent !important;
   box-shadow: none !important;
   border-color: inherit !important;
 }
 
-/* ========== 彻底隐藏全局 app-header ========== */
 [data-page="archive"] .app-header {
   display: none !important;
 }
 
-/* 外壳容器实心纯白兜底，严禁透出桌面 */
 .page[data-page="archive"] {
   background: #ffffff !important;
   z-index: 200 !important;
@@ -273,7 +274,6 @@
   inset: 0 !important;
 }
 
-/* ========== 档案页面滚动容器 ========== */
 .archive-page-wrap {
   width: 100%;
   height: 100%;
@@ -284,7 +284,6 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* ========== 5 个真正的独立实心底页容器 (100% 满屏实心铺满) ========== */
 .archive-page-screen {
   width: 100%;
   min-height: 100%;
@@ -294,26 +293,19 @@
   box-sizing: border-box;
 }
 
-/* 第 1 个底页：纯粹高级冷浅灰（彻底去除偏蓝光晕） */
 .archive-page-screen.screen-bg-0 {
   background-color: #f2f4f7 !important;
   background-image: linear-gradient(180deg, #f7f9fb 0%, #ebedf0 100%) !important;
 }
-
-/* 第 2 个底页：浅灰光晕背景 */
 .archive-page-screen.screen-bg-1 {
   background-color: #eef2f7 !important;
   background-image: 
     radial-gradient(circle at 20% 15%, rgba(176, 204, 232, 0.45) 0%, transparent 40%),
     radial-gradient(circle at 80% 85%, rgba(136, 171, 218, 0.35) 0%, transparent 40%) !important;
 }
-
-/* 第 3 个底页：实心纯白色 */
 .archive-page-screen.screen-bg-2 {
   background: #ffffff !important;
 }
-
-/* 第 4 个底页：实心灰粉色 */
 .archive-page-screen.screen-bg-3 {
   background-color: #f2e8eb !important;
   background-image: 
@@ -321,10 +313,15 @@
     radial-gradient(#e2d3d8 1.2px, transparent 1.2px) !important;
   background-size: 100% 100%, 16px 16px !important;
 }
-
-/* 第 5 个底页：实心纯白色 */
 .archive-page-screen.screen-bg-4 {
   background: #ffffff !important;
+}
+.archive-page-screen.char-screen-bg-3 {
+  background-color: #08090d !important;
+  background-image: 
+    radial-gradient(circle at 50% 15%, rgba(136, 171, 218, 0.15) 0%, transparent 60%),
+    radial-gradient(rgba(136, 171, 218, 0.08) 1.2px, transparent 1.2px) !important;
+  background-size: 100% 100%, 16px 16px !important;
 }
 
 .archive-showcase-wrap {
@@ -337,92 +334,6 @@
   gap: 12px;
 }
 
-/* ========== 顶部栏 ========== */
-.archive-integrated-header {
-  width: 100%;
-  max-width: 370px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 0 4px;
-  margin: 0 auto;
-  flex-wrap: nowrap !important;
-  flex-shrink: 0;
-}
-
-.arch-header-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.arch-native-back {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #3c3c43;
-  display: flex;
-  align-items: center;
-  padding: 4px;
-  margin-left: -6px;
-}
-.arch-native-back:active { opacity: 0.5; }
-.arch-native-back svg {
-  width: 24px;
-  height: 24px;
-  stroke: currentColor;
-  stroke-width: 2.5;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.arch-header-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: #1c1c1e;
-  letter-spacing: -0.5px;
-}
-
-.arch-header-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap !important;
-  flex-shrink: 0;
-}
-
-.arch-tool-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #f1f3f5;
-  border: 1px solid rgba(24, 25, 28, 0.12);
-  padding: 5px 10px;
-  border-radius: 16px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #18191c;
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-  transition: all 0.15s ease;
-}
-.arch-tool-pill:active {
-  background: #e2e6ea;
-  transform: scale(0.96);
-}
-.arch-tool-pill svg {
-  width: 12px;
-  height: 12px;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  fill: none;
-}
-
-/* ========== 核心卡片容器视口 ========== */
 .archive-full-card-box {
   width: 100%;
   max-width: 370px;
@@ -559,7 +470,6 @@
   transform: rotate(180deg);
 }
 
-/* 第 1 款相框：固定高度 */
 .t1-photo-stage,
 .arch-shared-photo-box {
   flex: 1;
@@ -624,8 +534,6 @@
   border-top: 1px dashed rgba(43, 51, 62, 0.25);
   position: relative;
   flex-shrink: 0;
-
-  /* 重点在这里：控制图片底部跟这条虚线之间的距离 */
   margin-top: 12px !important; 
 }
 .t1-cutout-left, .t1-cutout-right {
@@ -660,7 +568,6 @@
 /* ======================================================== */
 /* 风格 2：双对角冰蓝缎带亚克力                             */
 /* ======================================================== */
-/* ========== 第二张卡片：100% 还原最初纯白半透明亚克力 ========== */
 .t2-wrapper {
   width: 100%;
   background: rgba(255, 255, 255, 0.9) !important;
@@ -694,13 +601,13 @@
 .t2-top-ring {
   width: 32px;
   height: 8px;
-  background: #cbd5e1 !important; /* 还原原本的高级温润灰底色 */
+  background: #cbd5e1 !important;
   border-radius: 4px;
   margin: 0 auto 6px !important; 
-  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.25) !important; /* 还原内阴影，让它向下凹陷，像个真正的镂空圆孔 */
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.25) !important;
   position: relative;
   flex-shrink: 0;
-  border: none !important; /* 彻底去掉多余的白色边框 */
+  border: none !important;
 }
 .t2-top-ring::after {
   content: none;
@@ -722,7 +629,6 @@
 .t2-icons { display: flex; gap: 6px; color: #7fa5d1; font-size: 13px; }
 .t2-brand { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #7d8b99; text-transform: uppercase; }
 
-/* 第 2 款相框：固定高度 */
 .t2-photo-stage {
   width: 100%;
   height: 360px;
@@ -814,7 +720,6 @@
   border-bottom: 1.5px solid #8a7e72; padding-bottom: 1px; display: flex; align-items: center; gap: 3px;
 }
 
-/* 第 3 款相框：固定高度 */
 .t3-photo-stage {
   width: 100%;
   height: 340px;
@@ -889,12 +794,11 @@
   align-items: center; 
   gap: 5px; 
 }
-/* 重点：让左侧的十字架符号彻底加厚饱满 */
 .t4-title-wrap span:first-child {
   font-size: 14px;
   font-weight: 900;
   color: #3a2e33;
-  transform: scale(1.15); /* 视觉微调增厚 */
+  transform: scale(1.15);
   display: inline-block;
 }
 .t4-title { font-size: 14px; font-weight: 800; letter-spacing: 3px; color: #3a2e33; text-transform: uppercase; }
@@ -903,7 +807,6 @@
   padding: 2px 7px; border-radius: 4px; background: #f6edf0;
 }
 
-/* 第 4 款拱门相框：固定高度 */
 .t4-arch-stage {
   width: 100%;
   height: 350px;
@@ -960,7 +863,6 @@
   color: #f6f3ee;
 }
 
-/* 上下胶卷方孔与排版 */
 .t5-sprockets {
   display: flex;
   justify-content: space-between;
@@ -983,7 +885,6 @@
   letter-spacing: 2px;
 }
 
-/* 头部场景与参数 */
 .t5-header-bar {
   display: flex;
   justify-content: space-between;
@@ -1014,7 +915,6 @@
   letter-spacing: 1px;
 }
 
-/* 胶片相框 */
 .t5-frame-stage {
   flex: 1;
   height: 340px !important; 
@@ -1045,7 +945,6 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
-/* 底部字幕与票根 */
 .t5-footer-wrap {
   display: flex;
   flex-direction: column;
@@ -1122,8 +1021,8 @@
   max-width: 360px;
   padding-top: 6px;
   position: relative !important;
-  z-index: 50 !important; /* 提到最高层，任何东西都挡不住它 */
-  pointer-events: auto !important; /* 强制接收点击触摸 */
+  z-index: 50 !important;
+  pointer-events: auto !important;
 }
 
 .dock-arrow-btn {
@@ -1162,6 +1061,14 @@
 }
 .dock-edit-btn:active { transform: scale(0.97); background: #000000; }
 .dock-edit-btn svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+/* 仅限 PWA 桌面端生效：拉开编辑按钮与卡片的距离 */
+@media (display-mode: standalone) {
+  .archive-bottom-dock {
+    margin-top: 28px !important;
+    padding-bottom: calc(14px + var(--safe-bottom)) !important;
+  }
+}
 
 /* ========== 通用多步骤 SPA 动画 ========== */
 .archive-step-panel {
@@ -1237,8 +1144,6 @@
 
 /* ========== 初雪 Pure Crystal 清透雪晶蓝 ========== */
 .frost-crystal-svg { width: 46px; height: 46px; overflow: visible; }
-
-/* 冰晶描边：清透初雪蓝（带微光通透感） */
 .crystal-stroke { 
   stroke: rgba(90, 145, 210, 0.75) !important; 
   stroke-width: 1.35; 
@@ -1246,14 +1151,10 @@
   stroke-linejoin: round; 
   fill: none; 
 }
-
-/* 核心晶核与尖端凝霜点：深邃雪晶蓝 */
 .crystal-core circle[fill],
 .crystal-sparkles circle[fill] {
   fill: rgba(90, 145, 210, 0.85) !important;
 }
-
-/* 四周闪烁的星芒符号：柔和初雪蓝 */
 .empty-sparkle {
   position: absolute;
   font-size: 11px;
@@ -1261,7 +1162,6 @@
   opacity: 0;
 }
 
-/* ========== 初雪 Pure Crystal 优雅轻快节奏 (1.5s 黄金时长) ========== */
 .archive-panel-active .crystal-core { 
   opacity: 0; 
   transform-origin: 24px 24px; 
@@ -1329,7 +1229,7 @@
 .action-trigger-btn:active { transform: scale(0.97); background: #000000; }
 .action-trigger-btn svg { width: 15px; height: 15px; stroke: #ffffff; stroke-width: 2.2; fill: none; }
 
-/* ========== 法式手账填单本面 (左侧内联返回按钮) ========== */
+/* ========== 法式手账填单本面 ========== */
 .journal-sheet {
   width: 100%;
   max-width: 370px;
@@ -1411,35 +1311,27 @@
 .journal-seal-stamp { width: 38px; height: 38px; border: 1.5px solid #18191c; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 6.5px; font-weight: 900; letter-spacing: 0.5px; transform: rotate(-8deg); color: #18191c; opacity: 0.85; }
 .seal-star { font-size: 8px; line-height: 1; }
 
-/* ========== 用户档案抽屉 ========== */
-.user-drawer-mask { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 2500; display: none; }
-.user-drawer-mask.show { display: block; }
-.user-drawer-card { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 18px 18px calc(20px + var(--safe-bottom)); z-index: 2600; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 65vh; display: flex; flex-direction: column; }
-.user-drawer-card.show { transform: translateY(0); }
-.drawer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,0.06); }
-.drawer-title { font-size: 15px; font-weight: 800; color: #18191c; }
-.drawer-close-btn { background: none; border: none; font-size: 15px; color: #94a3b8; cursor: pointer; padding: 3px; }
-.drawer-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 4px; }
-.drawer-user-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: #f8fafc; border: 1px solid rgba(0,0,0,0.04); cursor: pointer; }
-.drawer-user-item.active { background: #f1f5f9; border-color: #18191c; }
-.drawer-avatar { width: 38px; height: 38px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b; overflow: hidden; font-size: 13px; flex-shrink: 0; }
-.drawer-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.drawer-user-info { flex: 1; min-width: 0; }
-.drawer-user-name { font-size: 13.5px; font-weight: 800; color: #18191c; display: flex; align-items: center; gap: 5px; }
-.drawer-active-tag { font-size: 8.5px; font-weight: 700; color: #ffffff; background: #18191c; padding: 1px 5px; border-radius: 3px; }
-.drawer-user-date { font-size: 9.5px; color: #94a3b8; font-family: monospace; margin-top: 1px; }
-.drawer-del-btn { background: none; border: none; color: #ef4444; font-size: 11.5px; font-weight: 600; padding: 5px 8px; cursor: pointer; border-radius: 5px; }
-.drawer-del-btn:active { background: rgba(239, 68, 68, 0.1); }
+/* ========== 用户/角色档案抽屉（2500/2600 盖住所有底层内容） ========== */
+.user-drawer-mask, .char-drawer-mask { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 2500; display: none; }
+.user-drawer-mask.show, .char-drawer-mask.show { display: block; }
+.user-drawer-card, .char-drawer-card { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 18px 18px calc(20px + var(--safe-bottom)); z-index: 2600; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 65vh; display: flex; flex-direction: column; }
+.user-drawer-card.show, .char-drawer-card.show { transform: translateY(0); }
+.drawer-header, .char-drawer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.drawer-title, .char-drawer-title { font-size: 15px; font-weight: 800; color: #18191c; }
+.drawer-close-btn, .char-drawer-close { background: none; border: none; font-size: 15px; color: #94a3b8; cursor: pointer; padding: 3px; }
+.drawer-list, .char-drawer-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 4px; }
+.drawer-user-item, .char-drawer-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: #f8fafc; border: 1px solid rgba(0,0,0,0.04); cursor: pointer; }
+.drawer-user-item.active, .char-drawer-item.active { background: #f1f5f9; border-color: #18191c; }
+.drawer-avatar, .char-drawer-avatar { width: 38px; height: 38px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b; overflow: hidden; font-size: 13px; flex-shrink: 0; }
+.drawer-avatar img, .char-drawer-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.drawer-user-info, .char-drawer-info { flex: 1; min-width: 0; }
+.drawer-user-name, .char-drawer-name { font-size: 13.5px; font-weight: 800; color: #18191c; display: flex; align-items: center; gap: 5px; }
+.drawer-active-tag, .char-active-tag { font-size: 8.5px; font-weight: 700; color: #ffffff; background: #18191c; padding: 1px 5px; border-radius: 3px; }
+.drawer-user-date, .char-drawer-date { font-size: 9.5px; color: #94a3b8; font-family: monospace; margin-top: 1px; }
+.drawer-del-btn, .char-drawer-del { background: none; border: none; color: #ef4444; font-size: 11.5px; font-weight: 600; padding: 5px 8px; cursor: pointer; border-radius: 5px; }
+.drawer-del-btn:active, .char-drawer-del:active { background: rgba(239, 68, 68, 0.1); }
 
-/* 仅限 PWA 桌面端生效：拉开编辑按钮与卡片的距离 */
-@media (display-mode: standalone) {
-  .archive-bottom-dock {
-    margin-top: 28px !important;
-    padding-bottom: calc(14px + var(--safe-bottom)) !important;
-  }
-}
-
-/* ========== 02-05 扩大编辑按钮样式 ========== */
+/* 02-05 扩大编辑按钮样式 */
 .expand-edit-btn {
   background: none;
   border: none;
@@ -1465,14 +1357,14 @@
   fill: none;
 }
 
-/* ========== 全屏沉浸式手写纸板弹窗 ========== */
+/* 全屏沉浸式手写纸板弹窗 */
 .expand-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 9999;
+  z-index: 3000;
   display: none;
   align-items: flex-end;
   justify-content: center;
@@ -1605,4 +1497,3 @@
 .expand-clear-btn:active {
   opacity: 0.6;
 }
-
