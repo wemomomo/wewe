@@ -13,9 +13,9 @@
 
   var DEFAULT_BIOS = [
     '把梦放进富士山里融化         🍎 -夢を富士山に入れて溶かす苹果',
-    '“你可以是任何形状的星星星星，\n                          ——但對我来説就是宇宙⊹',
+    '“你可以是任何形状的星星，\n                         ——但對我来説就是宇宙⊹',
     '霧の中で咲く純白の夢\n雾中盛开的纯白梦境',
-    '\n𓈒𓏸✧₊ 月亮偷藏糖果 融化在星塵郵筒的縫隙裡𓈒𓏸ꕤ.₊',
+    '𓈒𓏸✧₊ 月亮偷藏糖果 融化在星塵郵筒的縫隙裡𓈒𓏸ꕤ.₊\n',
     '“在这漫长胶片的每一帧里，只为你聚焦。”'
   ];
 
@@ -850,14 +850,14 @@
     bindLiveEdits(cur);
   }
 
+    // ============ iOS WebKit 专用的全无损换行与空格提取器 ============
   function getHtmlWithBreaks(node) {
     if (!node) return '';
-    var clone = node.cloneNode(true);
-    clone.querySelectorAll('br').forEach(function(br) { br.parentNode.replaceChild(document.createTextNode('\n'), br); });
-    clone.querySelectorAll('div, p').forEach(function(b) { b.appendChild(document.createTextNode('\n')); });
-    var raw = clone.textContent || '';
-    raw = raw.replace(/\u00a0/g, ' ');
-    return raw.replace(/\n+$/, '');
+    var text = (node.innerText !== undefined) ? node.innerText : node.textContent;
+    if (typeof text === 'string') {
+      return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    }
+    return '';
   }
 
   function syncDirectEdits(cur) {
