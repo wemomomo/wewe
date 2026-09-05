@@ -148,29 +148,28 @@
       + '<circle cx="71" cy="19" r="0.9" fill="currentColor" opacity="0.48"/>'
       + '</svg>'
       + '</div>'
-      + '<div class="astrolabe-poly"></div>'
-      + '<span class="art-star s1">✦</span><span class="art-star s2">✧</span><span class="art-star s3">✦</span>'
-      + '<span class="art-crosshair c1">+</span><span class="art-crosshair c2">+</span>'
+      + '<span class="art-star s1">✦</span><span class="art-star s3">✦</span>'
+      + '<span class="art-crosshair c1">+</span>'
       + '</div>'
 
       // 单层合并顶栏：左标题 + 中间滑动胶囊 + 右三横线图标
-      + '<div class="archive-header" style="width:100%; display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; position:relative; z-index:1;">'
-      + '<div class="archive-header-left" style="display:flex; align-items:center; gap:4px;">'
+      + '<div class="archive-header">'
+      + '<div class="archive-header-left">'
       + '<button class="arch-native-back" id="archShellBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-      + '<h1 class="archive-title" style="font-size:18px; font-weight:800; letter-spacing:0.5px; white-space:nowrap;">档案</h1>'
+      + '<h1 class="archive-title">档案</h1>'
       + '</div>'
 
       // 中间小巧流体双段滑块
-      + '<div class="archive-nav-capsule" style="width:136px; height:34px; padding:2px; border-radius:18px; margin:0 4px;">'
-      + '<div class="nav-glider-pill" id="navGlider" style="border-radius:14px; transform: translateX(' + (currentTab === 'user' ? '0%' : '100%') + ');"></div>'
-      + '<button class="archive-nav-item' + (currentTab === 'user' ? ' active' : '') + '" id="tabUserBtn" type="button" style="font-size:11.5px;"><span>用户</span></button>'
-      + '<button class="archive-nav-item' + (currentTab === 'char' ? ' active' : '') + '" id="tabCharBtn" type="button" style="font-size:11.5px;"><span>角色</span></button>'
+      + '<div class="archive-nav-capsule">'
+      + '<div class="nav-glider-pill" id="navGlider" style="transform: translateX(' + (currentTab === 'user' ? '0%' : '100%') + ');"></div>'
+      + '<button class="archive-nav-item' + (currentTab === 'user' ? ' active' : '') + '" id="tabUserBtn" type="button"><span>用户</span></button>'
+      + '<button class="archive-nav-item' + (currentTab === 'char' ? ' active' : '') + '" id="tabCharBtn" type="button"><span>角色</span></button>'
       + '</div>'
 
       // 右侧：三条横线的列表菜单图标按钮
-      + '<div class="archive-header-right" style="display:flex; align-items:center;">'
-      + '<button class="arch-tool-pill" id="actionMenuBtn" type="button" style="padding:6px; border-radius:50%; width:34px; height:34px; justify-content:center;">'
-      + '<svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke-width:2.2;"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>'
+      + '<div class="archive-header-right">'
+      + '<button class="arch-tool-pill" id="actionMenuBtn" type="button">'
+      + '<svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>'
       + '</button>'
       + '</div>'
       + '</div>'
@@ -454,6 +453,18 @@
       appearance: cur.appearance || '', personality: cur.personality || '', tags: cur.tags || '', hobbies: cur.hobbies || '', background: cur.background || ''
     });
 
+    function exitWithoutSaving() {
+      if (userList.length > 0 && cur.name && cur.name !== '') {
+        renderArchiveShell();
+      } else if (userList.length > 0) {
+        userList = userList.filter(function(u) { return u.id !== cur.id; });
+        if (userList.length) { currentUserId = userList[0].id; renderArchiveShell(); }
+        else { renderArchiveShell(); }
+      } else {
+        renderArchiveShell();
+      }
+    }
+
     step2BackHandler = function() {
       var modal = document.getElementById('expandModalOverlay');
       if (modal && modal.classList.contains('show')) {
@@ -476,24 +487,30 @@
       });
 
       if (originalSnapshot !== currentSnapshot) {
-        if (confirm('检测到内容已修改，是否保存？')) {
+        if (window.AppDialog) {
+          AppDialog.confirm({
+            title: '提示',
+            desc: '检测到手札内容已修改，是否保存？',
+            confirmText: '保存'
+          }, function() {
+            var nameVal = (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, '');
+            if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
+            saveFormDataToCur(cur);
+            saveCurrentToDB(function() { renderArchiveShell(); });
+          }, function() {
+            exitWithoutSaving();
+          });
+          return;
+        } else if (confirm('检测到内容已修改，是否保存？')) {
           var nameVal = (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, '');
-          if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('姓名不能为空哦'); return; }
+          if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
           saveFormDataToCur(cur);
           saveCurrentToDB(function() { renderArchiveShell(); });
           return;
         }
       }
 
-      if (userList.length > 0 && cur.name && cur.name !== '') {
-        renderArchiveShell();
-      } else if (userList.length > 0) {
-        userList = userList.filter(function(u) { return u.id !== cur.id; });
-        if (userList.length) { currentUserId = userList[0].id; renderArchiveShell(); }
-        else { renderArchiveShell(); }
-      } else {
-        renderArchiveShell();
-      }
+      exitWithoutSaving();
     };
 
     document.getElementById('archBackBtn').addEventListener('click', step2BackHandler);
@@ -551,7 +568,29 @@
     });
 
     if (modalTextarea) modalTextarea.addEventListener('input', updateWordCount);
-    if (clearBtn) clearBtn.addEventListener('click', function() { if (modalTextarea && confirm('确定清空内容吗？')) { modalTextarea.value = ''; updateWordCount(); modalTextarea.focus(); } });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        if (!modalTextarea) return;
+        if (window.AppDialog) {
+          AppDialog.confirm({
+            title: '提示',
+            desc: '确定要清空当前输入的内容吗？',
+            confirmText: '清空',
+            isDanger: true
+          }, function() {
+            modalTextarea.value = '';
+            updateWordCount();
+            modalTextarea.focus();
+          });
+        } else if (confirm('确定清空内容吗？')) {
+          modalTextarea.value = '';
+          updateWordCount();
+          modalTextarea.focus();
+        }
+      });
+    }
+
     if (modalDoneBtn) modalDoneBtn.addEventListener('click', function() { if (currentTargetFieldId) { var targetInput = document.getElementById(currentTargetFieldId); if (targetInput && modalTextarea) targetInput.value = modalTextarea.value; } closeExpandModal(); });
     if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeExpandModal);
 
@@ -616,13 +655,13 @@
       + '<button class="dock-arrow-btn" id="nextTplBtn" type="button"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>'
       + '</div>'
 
-      // 用户抽屉（内置新建按钮）
+      // 用户抽屉（内置新建按钮，强制不换行）
       + '<div class="user-drawer-mask" id="userDrawerMask"></div>'
       + '<div class="user-drawer-card" id="userDrawerCard">'
       + '<div class="drawer-header" style="display:flex; justify-content:space-between; align-items:center;">'
       + '<div class="drawer-title">用户档案库 (' + userList.length + ')</div>'
       + '<div style="display:flex; align-items:center; gap:8px;">'
-      + '<button class="arch-tool-pill" id="drawerNewUserBtn" type="button" style="padding:4px 10px; font-size:11px;"><svg viewBox="0 0 24 24" style="width:11px; height:11px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
+      + '<button id="drawerNewUserBtn" type="button" style="display:inline-flex; align-items:center; justify-content:center; gap:4px; height:28px; padding:0 12px; border-radius:14px; background:#f8fafc; color:#1e242d; border:1px solid rgba(0,0,0,0.08); box-shadow:0 2px 6px rgba(0,0,0,0.04), inset 0 1px 1px #fff; font-size:11px; font-weight:700; letter-spacing:0.5px; cursor:pointer; white-space:nowrap; width:auto; flex-shrink:0;"><svg viewBox="0 0 24 24" style="width:10px; height:10px; stroke:#1e242d; stroke-width:2.4; fill:none;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
       + '<button class="drawer-close-btn" id="drawerCloseBtn" type="button">✕</button>'
       + '</div>'
       + '</div>'
@@ -675,7 +714,7 @@
         + '<div class="t3-perfs-left"><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div></div>'
         + '<div class="t3-perfs-right"><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div></div>'
         + '<div class="t3-inner-box"><div class="t3-header-row"><div class="t3-postmark"><div class="t3-pm-circle" contenteditable="true" spellcheck="false">PARIS</div><div class="t3-pm-lines"><div class="t3-pm-line"></div><div class="t3-pm-line"></div></div></div><div class="t3-tag-text" contenteditable="true" spellcheck="false"><span>LETTRE D\'AMOUR</span></div></div>'
-        + '<div class="t3-photo-stage' + hasPhotoClass + '" id="cardPhotoBtn"><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="t1-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>上传立绘</span></div><div class="t3-photo-tag" contenteditable="true" spellcheck="false"><span>NO. ' + esc(cur.birthday || '0000') + '</span></div></div>'
+        + '<div class="t3-photo-stage' + hasPhotoClass + '" id="cardPhotoBtn"><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="t1-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>上传立绘</span></div><div class="t3-photo-tag" contenteditable="true" spellcheck="false"><span>NO. ' + esc(cur.birthday || '0000') + '</span></div></div>'
         + '<div class="t3-footer-body"><div style="display:flex; justify-content:space-between; align-items:baseline;"><div class="t3-username" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="t3-serial">POSTAGE</div></div>'
         + '<div class="t3-bio" id="cardBio" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.bio2 || DEFAULT_BIOS[2]) + '</div>'
         + '<div class="t3-bottom-deck"><div class="t3-french-tags"><span class="t3-french-quote" contenteditable="true" spellcheck="false">« Pour toujours et à jamais »</span><div class="t3-chips"><span class="t3-chip" contenteditable="true" spellcheck="false">燕麦手作</span><span class="t3-chip" contenteditable="true" spellcheck="false">典藏信笺</span></div></div><div class="t3-wax-seal"><div class="t3-wax-inner" contenteditable="true" spellcheck="false">✦</div></div></div>'
@@ -799,15 +838,34 @@
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
           var delId = this.dataset.delId;
-          userList = userList.filter(function(u) { return u.id !== delId; });
-          if (currentUserId === delId) {
-            currentUserId = userList.length ? userList[0].id : null;
+          if (window.AppDialog) {
+            AppDialog.confirm({
+              title: '提示',
+              desc: '确定要删除该用户档案吗？此操作无法撤销。',
+              confirmText: '删除',
+              isDanger: true
+            }, function() {
+              userList = userList.filter(function(u) { return u.id !== delId; });
+              if (currentUserId === delId) {
+                currentUserId = userList.length ? userList[0].id : null;
+              }
+              saveCurrentToDB(function() {
+                if (userList.length) renderSubContent();
+                else renderStep1(document.getElementById('archiveSubViewport'));
+                if (window.AppNav) AppNav.showToast('✦ 档案已成功删除 ✦');
+              });
+            });
+          } else if (confirm('确定要删除该用户档案吗？')) {
+            userList = userList.filter(function(u) { return u.id !== delId; });
+            if (currentUserId === delId) {
+              currentUserId = userList.length ? userList[0].id : null;
+            }
+            saveCurrentToDB(function() {
+              if (userList.length) renderSubContent();
+              else renderStep1(document.getElementById('archiveSubViewport'));
+              if (window.AppNav) AppNav.showToast('✦ 档案已成功删除 ✦');
+            });
           }
-          saveCurrentToDB(function() {
-            if (userList.length) renderSubContent();
-            else renderStep1(document.getElementById('archiveSubViewport'));
-            if (window.AppNav) AppNav.showToast('✦ 档案已成功删除 ✦');
-          });
         });
       });
     }
@@ -850,7 +908,7 @@
     bindLiveEdits(cur);
   }
 
-    // ============ iOS WebKit 专用的全无损换行与空格提取器 ============
+  // ============ iOS WebKit 专用的全无损换行与空格提取器 ============
   function getHtmlWithBreaks(node) {
     if (!node) return '';
     var text = (node.innerText !== undefined) ? node.innerText : node.textContent;
