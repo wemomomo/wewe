@@ -21,7 +21,7 @@
 
   var defaultProfile = {
     id: '',
-    name: '你',
+    name: '',
     gender: '',
     age: '',
     height: '',
@@ -286,10 +286,10 @@
       + '</div>'
       + '</div>'
       + '<h2 class="empty-title">尚未建立用户档案</h2>'
-      + '<p class="empty-desc">记录你的专属身份、立绘特写。</p>'
+      + '<p class="empty-desc">记录你的专属身份、立绘特写</p>'
       + '<button class="action-trigger-btn" id="goToStep2Btn" type="button">'
       + '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
-      + '<span>新建用户档案</span>'
+      + '<span>新建USER设定</span>'
       + '</button>'
       + '</div>'
       + '</div>';
@@ -344,7 +344,7 @@
       + '<span class="brand-serial">创檔日期：' + esc(cur.createDate || getTodayDateStr()) + '</span>'
       + '</div>'
       + '<h1 class="journal-main-title">照见录入手札</h1>'
-      + '<p class="journal-desc-text">墨已研就，且借一纸素白，晕作众生相。</p>'
+      + '<p class="journal-desc-text">✥ 墨已研就，且借一纸素白，晕作众生相 ✥</p>'
       + '<div class="journal-header-divider"><span class="divider-line"></span><span class="divider-star">✦</span><span class="divider-line"></span></div>'
       + '</div>'
 
@@ -386,7 +386,7 @@
       + '</button>'
       + '</div>'
       + '</div>'
-      + '<div class="ruled-item" style="margin-bottom:6px;"><span class="ruled-label">性格标签</span><input type="text" class="ruled-input" id="fieldTags" value="' + esc(cur.tags) + '" placeholder="多个关键词用空格分隔"></div>'
+      + '<div class="ruled-item" style="margin-bottom:6px;"><span class="ruled-label">性格标签</span><input type="text" class="ruled-input" id="fieldTags" value="' + esc(cur.tags) + '" placeholder="多个关键词用空格或逗号分隔"></div>'
       + '<textarea class="ruled-textarea" id="fieldPersonality" rows="2" placeholder="日常性格表现、说话习惯、专属的互动方式与情绪特点...">' + esc(cur.personality) + '</textarea>'
       + '</div>'
 
@@ -419,12 +419,12 @@
       + '</div>'
 
       + '<div class="journal-tear-strip">'
-      + '<div class="journal-sign-box"><span class="sign-label">AUTHENTICATED PROTOCOL</span><span class="sign-handwriting">✦ Verified Confidential Dossier</span></div>'
-      + '<div class="journal-seal-stamp"><span class="seal-star">✦</span><span>NIVEOUS</span><span>OFFICIAL</span></div>'
+      + '<div class="journal-sign-box"><span class="sign-handwriting">✦ Verified Confidential Dossier</span></div>'
+      + '<div class="journal-seal-stamp"><span>NIVEOUS</span><span>OFFICIAL</span></div>'
       + '</div>'
 
       + '<button class="action-trigger-btn" id="generateCardBtn" style="max-width:100%; height:44px; border-radius:12px;" type="button">'
-      + '<span> ✥ ⋆ 铺万镜为卷 ⋆ ✥ </span>'
+      + '<span> 铺万镜为卷 </span>'
       + '</button>'
       + '</div>'
       + '</div>'
@@ -485,7 +485,7 @@
         }
       }
 
-      if (userList.length > 0 && cur.name && cur.name !== '你') {
+      if (userList.length > 0 && cur.name && cur.name !== '') {
         renderArchiveShell();
       } else if (userList.length > 0) {
         userList = userList.filter(function(u) { return u.id !== cur.id; });
@@ -500,11 +500,11 @@
 
     function saveFormDataToCur(target) {
       target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
-      target.gender = document.getElementById('fieldGender').value || '女';
-      target.age = document.getElementById('fieldAge').value || '18';
-      target.height = document.getElementById('fieldHeight').value || '165cm';
+      target.gender = document.getElementById('fieldGender').value || '';
+      target.age = document.getElementById('fieldAge').value || '';
+      target.height = document.getElementById('fieldHeight').value || '';
       target.birthday = document.getElementById('fieldBirthday').value;
-      target.zodiac = document.getElementById('fieldZodiac').value || '天秤座';
+      target.zodiac = document.getElementById('fieldZodiac').value || '';
       target.appearance = document.getElementById('fieldAppearance').value;
       target.personality = document.getElementById('fieldPersonality').value;
       target.tags = document.getElementById('fieldTags').value;
