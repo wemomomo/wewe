@@ -11,7 +11,7 @@
   var container = null;
   var currentTab = 'user'; // 'user' | 'char'
 
-  // 数据列表与当前选中 ID
+  // 数据列表与当前选中状态
   var userList = [];
   var currentUserId = null;
   var userTplIdx = 0;
@@ -20,7 +20,7 @@
   var currentCharId = null;
   var charTplIdx = 0;
 
-  // 用户默认文案与资料
+  // 用户默认文案
   var DEFAULT_USER_BIOS = [
     '把梦放进富士山里融化         🍎 -夢を富士山に入れて溶かす苹果',
     '“你可以是任何形状的星星，\n                        ——但對我来説就是宇宙⊹',
@@ -37,7 +37,7 @@
     tag1: '✦ 专属', tag2: '♡ 奔赴', tag3: '✧ 宇宙漫游', serial: 'NO. 0000-NIVEOUS', tplIdx: 0
   };
 
-  // 角色默认文案与资料
+  // 角色默认文案
   var DEFAULT_CHAR_QUOTES = [
     '无论在任何时刻，只要你唤我的名字，哥哥都会穿越数据与光芒来到你的身边。',
     '无论在任何时刻，只要你唤我的名字，哥哥都会穿越数据与光芒来到你的身边。',
@@ -74,7 +74,7 @@
   }
 
   // ==========================================
-  // 全局灵敏右滑返回主页手势 (核心修复)
+  // 全局右滑返回主页手势
   // ==========================================
   function initGlobalSwipeBack() {
     var touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
@@ -84,11 +84,9 @@
       var archivePage = document.querySelector('.page[data-page="archive"]');
       if (!archivePage || !archivePage.classList.contains('active')) return;
 
-      // 如果当前正在填单页（手写板或手账录入），交给专门的填单拦截器处理，不在此处直接退出
       var step2 = document.getElementById('archStep2');
       if (step2 && step2.classList.contains('step-active')) return;
 
-      // 如果正在编辑卡片文字，不触发返回
       var activeEl = document.activeElement;
       if (activeEl && (activeEl.isContentEditable || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
       if (e.target.closest('[contenteditable="true"]')) return;
@@ -112,7 +110,6 @@
       var diffX = touchEndX - touchStartX;
       var diffY = touchEndY - touchStartY;
 
-      // 只要横向滑动大于 35px，且横向位移大于纵向位移，立刻平滑退出返回桌面
       if (diffX > 35 && Math.abs(diffX) > Math.abs(diffY)) {
         syncCurrentLiveEdits();
         saveCurrentToDB(function() {
@@ -215,6 +212,17 @@
     renderStep2();
   }
 
+  // 通用优雅弹窗封装 (兼容 AppDialog 与系统原生 confirm)
+  function showUniversalConfirm(options, onConfirm, onCancel) {
+    if (window.AppDialog && typeof AppDialog.confirm === 'function') {
+      AppDialog.confirm(options, onConfirm, onCancel);
+    } else {
+      var msg = (options.title ? (options.title + '：') : '') + (options.desc || '确定执行此操作吗？');
+      if (confirm(msg)) { if (onConfirm) onConfirm(); }
+      else { if (onCancel) onCancel(); }
+    }
+  }
+
   // ==========================================
   // 总外壳架构：玄月星盘 + 单层顶栏
   // ==========================================
@@ -251,7 +259,7 @@
       + '<h1 class="archive-title">档案</h1>'
       + '</div>'
 
-      // 中间滑动胶囊 (纯类名控制)
+      // 中间滑动胶囊
       + '<div class="archive-nav-capsule">'
       + '<div class="nav-glider-pill' + (currentTab === 'char' ? ' char-pos' : '') + '" id="navGlider"></div>'
       + '<button class="archive-nav-item' + (currentTab === 'user' ? ' active' : '') + '" id="tabUserBtn" type="button"><span>用户</span></button>'
@@ -327,8 +335,43 @@
   }
 
   // ==========================================
-  // 步骤 2：手账录入填单
+  // 步骤 1：空状态凝聚冰晶
   // ==========================================
+  function renderStep1(subViewport) {
+    var isUser = (currentTab === 'user');
+    subViewport.innerHTML = '<div class="archive-step-panel step-active">'
+      + '<div class="empty-card-stage">'
+      + '<div class="deco-cross tl">+</div><div class="deco-cross tr">+</div><div class="deco-cross bl">+</div><div class="deco-cross br">+</div>'
+      + '<div class="empty-illustration-box">'
+      + '<span class="empty-sparkle s1">✦</span><span class="empty-sparkle s2">✧</span>'
+      + '<div class="empty-illustration-circle">'
+      + '<svg class="frost-crystal-svg" viewBox="0 0 48 48">'
+      + '<g class="crystal-core"><circle cx="24" cy="24" r="1.5" fill="#18191c" /><polygon points="24,19.5 28.5,24 24,28.5 19.5,24" class="crystal-stroke" /><circle cx="24" cy="24" r="9" class="crystal-stroke" stroke-dasharray="1.5 2" stroke-width="0.8" opacity="0.6" /></g>'
+      + '<g class="crystal-spears crystal-stroke"><polygon points="24,3 27,15 24,19.5 21,15" /><polygon points="24,45 27,33 24,28.5 21,33" /><polygon points="3,24 15,21 19.5,24 15,27" /><polygon points="45,24 33,21 28.5,24 33,27" /></g>'
+      + '<g class="crystal-petals crystal-stroke"><polygon points="35,13 36.5,19 30.5,20.5 29,14.5" /><polygon points="13,13 14.5,19 20.5,20.5 19,14.5" /><polygon points="35,35 36.5,29 30.5,27.5 29,33.5" /><polygon points="13,35 14.5,29 20.5,27.5 19,33.5" /></g>'
+      + '<g class="crystal-sparkles"><circle cx="24" cy="3" r="1" fill="#18191c" /><circle cx="24" cy="45" r="1" fill="#18191c" /><circle cx="3" cy="24" r="1" fill="#18191c" /><circle cx="45" cy="24" r="1" fill="#18191c" /></g>'
+      + '</svg>'
+      + '</div>'
+      + '</div>'
+      + '<h2 class="empty-title">' + (isUser ? '尚未建立用户档案' : '尚未录入角色设定') + '</h2>'
+      + '<p class="empty-desc">' + (isUser ? '记录你的专属身份与高定立绘' : '记录角色的外貌立绘、性格特质与深度羁绊') + '</p>'
+      + '<button class="action-trigger-btn" id="goToStep2Btn" type="button">'
+      + '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+      + '<span>' + (isUser ? '新建USER设定' : '新建角色设定') + '</span>'
+      + '</button>'
+      + '</div>'
+      + '</div>';
+
+    document.getElementById('goToStep2Btn').addEventListener('click', function() {
+      createNewItem();
+    });
+  }
+
+  // ==========================================
+  // 步骤 2：手账录入填单 (用户/角色完全对称交互)
+  // ==========================================
+  var step2BackHandler = null;
+
   function renderStep2() {
     var isUser = (currentTab === 'user');
     var cur = isUser ? (getCurrentUser() || defaultUserProfile) : (getCurrentChar() || defaultCharProfile);
@@ -424,7 +467,12 @@
 
       + '</div>';
 
-    function exitForm() {
+    var originalSnapshot = JSON.stringify({
+      name: cur.name || '', gender: cur.gender || '', age: cur.age || '', height: cur.height || '', birthday: cur.birthday || '', zodiac: cur.zodiac || '',
+      appearance: cur.appearance || '', personality: cur.personality || '', tags: cur.tags || '', hobbies: cur.hobbies || '', background: cur.background || ''
+    });
+
+    function exitWithoutSaving() {
       var list = isUser ? userList : charList;
       if (list.length > 0 && cur.name && cur.name !== '') {
         renderArchiveShell();
@@ -442,7 +490,47 @@
       }
     }
 
-    document.getElementById('formBackBtn').addEventListener('click', exitForm);
+    step2BackHandler = function() {
+      var modal = document.getElementById('expandModalOverlay');
+      if (modal && modal.classList.contains('show')) {
+        handleModalCloseAttempt();
+        return;
+      }
+
+      var currentSnapshot = JSON.stringify({
+        name: (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, ''),
+        gender: (document.getElementById('fieldGender') ? document.getElementById('fieldGender').value : ''),
+        age: (document.getElementById('fieldAge') ? document.getElementById('fieldAge').value : ''),
+        height: (document.getElementById('fieldHeight') ? document.getElementById('fieldHeight').value : ''),
+        birthday: (document.getElementById('fieldBirthday') ? document.getElementById('fieldBirthday').value : ''),
+        zodiac: (document.getElementById('fieldZodiac') ? document.getElementById('fieldZodiac').value : ''),
+        appearance: (document.getElementById('fieldAppearance') ? document.getElementById('fieldAppearance').value : ''),
+        personality: (document.getElementById('fieldPersonality') ? document.getElementById('fieldPersonality').value : ''),
+        tags: (document.getElementById('fieldTags') ? document.getElementById('fieldTags').value : ''),
+        hobbies: (document.getElementById('fieldHobbies') ? document.getElementById('fieldHobbies').value : ''),
+        background: (document.getElementById('fieldBackground') ? document.getElementById('fieldBackground').value : '')
+      });
+
+      if (originalSnapshot !== currentSnapshot) {
+        showUniversalConfirm({
+          title: '提示',
+          desc: '检测到手札内容已修改，是否保存？',
+          confirmText: '保存'
+        }, function() {
+          var nameVal = (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, '');
+          if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
+          saveFormDataToCur();
+          saveCurrentToDB(function() { renderArchiveShell(); });
+        }, function() {
+          exitWithoutSaving();
+        });
+        return;
+      }
+
+      exitWithoutSaving();
+    };
+
+    document.getElementById('formBackBtn').addEventListener('click', step2BackHandler);
 
     function saveFormDataToCur() {
       cur.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
@@ -463,6 +551,7 @@
     }
 
     var currentTargetFieldId = '';
+    var modalOriginalText = '';
     var modalOverlay = document.getElementById('expandModalOverlay');
     var modalTitle = document.getElementById('expandModalTitle');
     var modalTextarea = document.getElementById('expandModalTextarea');
@@ -481,6 +570,7 @@
       if (modalTitle) modalTitle.textContent = titleText || '深度手札编辑';
       if (modalTextarea) {
         modalTextarea.value = targetInput ? targetInput.value : '';
+        modalOriginalText = modalTextarea.value;
         updateWordCount();
       }
       if (modalOverlay) modalOverlay.classList.add('show');
@@ -490,6 +580,27 @@
     function closeExpandModal() {
       if (modalOverlay) modalOverlay.classList.remove('show');
       currentTargetFieldId = '';
+      modalOriginalText = '';
+    }
+
+    function handleModalCloseAttempt() {
+      if (modalTextarea && modalTextarea.value !== modalOriginalText) {
+        showUniversalConfirm({
+          title: '提示',
+          desc: '检测到手写板内容已修改，是否保存？',
+          confirmText: '保存'
+        }, function() {
+          if (currentTargetFieldId) {
+            var targetInput = document.getElementById(currentTargetFieldId);
+            if (targetInput && modalTextarea) targetInput.value = modalTextarea.value;
+          }
+          closeExpandModal();
+        }, function() {
+          closeExpandModal();
+        });
+        return;
+      }
+      closeExpandModal();
     }
 
     document.querySelectorAll('.expand-edit-btn').forEach(function(btn) {
@@ -503,11 +614,17 @@
 
     if (clearBtn) {
       clearBtn.addEventListener('click', function() {
-        if (modalTextarea && confirm('确定要清空当前输入的内容吗？')) {
+        if (!modalTextarea) return;
+        showUniversalConfirm({
+          title: '提示',
+          desc: '确定要清空当前输入的内容吗？',
+          confirmText: '清空',
+          isDanger: true
+        }, function() {
           modalTextarea.value = '';
           updateWordCount();
           modalTextarea.focus();
-        }
+        });
       });
     }
 
@@ -521,7 +638,7 @@
       });
     }
 
-    if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeExpandModal);
+    if (modalCancelBtn) modalCancelBtn.addEventListener('click', handleModalCloseAttempt);
 
     document.getElementById('generateCardBtn').addEventListener('click', function() {
       var nameVal = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
@@ -532,6 +649,43 @@
       });
     });
   }
+
+  // 捕获级滑动拦截
+  (function initGlobalSwipeInterceptor() {
+    var touchStartX = 0, touchStartY = 0, touchCurX = 0, touchCurY = 0;
+    var isIntercepting = false;
+
+    window.addEventListener('touchstart', function(e) {
+      var step2 = document.getElementById('archStep2');
+      if (!step2 || !step2.classList.contains('step-active')) { isIntercepting = false; return; }
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchCurX = touchStartX;
+      touchCurY = touchStartY;
+      isIntercepting = true;
+      if (touchStartX <= 60) e.stopPropagation();
+    }, { capture: true, passive: true });
+
+    window.addEventListener('touchmove', function(e) {
+      if (!isIntercepting) return;
+      touchCurX = e.touches[0].clientX;
+      touchCurY = e.touches[0].clientY;
+      var diffX = touchCurX - touchStartX;
+      var diffY = touchCurY - touchStartY;
+      if (diffX > 10 && diffX > Math.abs(diffY)) e.stopPropagation();
+    }, { capture: true, passive: true });
+
+    window.addEventListener('touchend', function(e) {
+      if (!isIntercepting) return;
+      isIntercepting = false;
+      var diffX = touchCurX - touchStartX;
+      var diffY = touchCurY - touchStartY;
+      if (diffX > 50 && diffX > Math.abs(diffY) * 1.2) {
+        e.stopPropagation();
+        if (typeof step2BackHandler === 'function') step2BackHandler();
+      }
+    }, { capture: true, passive: true });
+  })();
 
   // ==========================================
   // 步骤 3：小卡展示 (用户 / 角色 统一渲染)
@@ -554,7 +708,7 @@
       + '<button class="dock-arrow-btn" id="nextTplBtn" type="button"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>'
       + '</div>'
 
-      // 专属抽屉
+      // 专属抽屉 (用户/角色完全对齐)
       + '<div class="' + (isUser ? 'user-drawer-mask' : 'char-drawer-mask') + '" id="drawerMask"></div>'
       + '<div class="' + (isUser ? 'user-drawer-card' : 'char-drawer-card') + '" id="drawerCard">'
       + '<div class="drawer-header">'
@@ -654,7 +808,7 @@
   }
 
   // ==========================================
-  // 角色 5 款卡片模版 HTML
+  // 角色 5 款卡片模版 HTML (严格对齐 5 套高定结构)
   // ==========================================
   function renderCharTemplate(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
@@ -665,7 +819,7 @@
         + '<div class="card-bg-dots"></div>'
         + '<div class="card-top-bar"><div class="card-serial" id="cardSerial" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.serial || 'NO. 92WOB007STZT') + '</div><div class="card-brand" contenteditable="true" spellcheck="false">NIVEOUS ARCHIVE</div></div>'
         + '<div class="photo-frame-wrap">'
-        + '<div class="left-deco-bar"><div class="vert-text">SEC. 09 // REF</div><div class="deco-ruler"><span class="ruler-line rl-long"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-mid"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-long"></span></div><div class="vert-text">LATUE JMSÁAND</div></div>'
+        + '<div class="left-deco-bar"><div class="vert-text">SEC. 09 // REF</div><div class="deco-ruler"><span class="ruler-line rl-long"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-mid"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-long"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-mid"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-long"></span></div><div class="vert-text">LATUE JMSÁAND</div></div>'
         + '<div class="right-deco-line"><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg><div class="vert-dash-line"></div><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg></div>'
         + '<div class="photo-box' + hasPhotoClass + '" id="cardPhotoBtn"><div class="frame-corner c-tl"></div><div class="frame-corner c-tr"></div><div class="frame-corner c-bl"></div><div class="frame-corner c-br"></div><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>点击上传立绘</span></div></div>'
         + '</div>'
@@ -674,7 +828,7 @@
         + '<div class="char-tags-row">' + tagItems + '</div>'
         + '<div class="char-intro-text" id="cardQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote0 || DEFAULT_CHAR_QUOTES[0]) + '</div>'
         + '</div>'
-        + '<div class="card-footer-bar"><div class="qr-box"><svg viewBox="0 0 24 24"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v3h-3v-3zm-5 0h2v2h-2v-2zm2 3h2v2h-2v-2zm3 0h3v3h-3v-3zm-3 3h2v2h-2v-2z"/></svg></div><div class="barcode-horiz"><span class="b2"></span><span class="b1"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b2"></span><span class="b1"></span><span class="b2"></span></div></div>'
+        + '<div class="card-footer-bar"><div class="qr-box"><svg viewBox="0 0 24 24"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v3h-3v-3zm-5 0h2v2h-2v-2zm2 3h2v2h-2v-2zm3 0h3v3h-3v-3zm-3 3h2v2h-2v-2z"/></svg></div><div class="barcode-horiz"><span class="b2"></span><span class="b1"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b2"></span><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b1"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b2"></span></div></div>'
         + '</div>';
     } else if (tplIdx === 1) {
       return '<div class="char-card-base theme-notebook">'
@@ -762,7 +916,7 @@
       renderStep2();
     });
 
-    // 抽屉交互
+    // 抽屉交互 (用户/角色完全对齐)
     var drawerCard = document.getElementById('drawerCard');
     var drawerCloseBtn = document.getElementById('drawerCloseBtn');
     var drawerMask = document.getElementById('drawerMask');
@@ -803,7 +957,12 @@
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
           var delId = this.dataset.delId;
-          if (confirm('确定要删除该档案吗？此操作无法撤销。')) {
+          showUniversalConfirm({
+            title: '提示',
+            desc: isUser ? '确定要删除该用户档案吗？此操作无法撤销。' : '确定要删除该角色档案吗？此操作无法撤销。',
+            confirmText: '删除',
+            isDanger: true
+          }, function() {
             if (isUser) {
               userList = userList.filter(function(u) { return u.id !== delId; });
               if (currentUserId === delId) currentUserId = userList.length ? userList[0].id : null;
@@ -813,9 +972,9 @@
             }
             saveCurrentToDB(function() {
               renderSubContent();
-              if (window.AppNav) AppNav.showToast('✦ 档案已成功删除 ✦');
+              if (window.AppNav) AppNav.showToast(isUser ? '✦ 用户档案已成功删除 ✦' : '✦ 角色档案已成功删除 ✦');
             });
-          }
+          });
         });
       });
     }
