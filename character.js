@@ -43,24 +43,27 @@
     tplIdx: 0
   };
 
-  function tryInit() {
-    container = document.getElementById('characterContent');
-    if (!container) {
-      window.addEventListener('dbReady', tryInit);
-      return;
-    }
+  // 核心挂载入口（供外部随时唤醒）
+  function mountCharacter(targetEl) {
+    container = targetEl || document.getElementById('characterContent') || document.getElementById('archiveContent');
+    if (!container) return;
     loadAllData();
   }
 
-  if (window._dbReady) {
-    tryInit();
-  } else {
-    window.addEventListener('dbReady', tryInit);
-    setTimeout(tryInit, 500);
-  }
+  // 暴露给全局调度器
+  window.CharacterApp = {
+    mount: mountCharacter,
+    refresh: function() { loadAllData(); }
+  };
+
+  // 广播引擎已就绪
+  window.dispatchEvent(new Event('characterEngineReady'));
 
   function loadAllData() {
-    if (!window.AppDB) return;
+    if (!window.AppDB) {
+      setTimeout(loadAllData, 100);
+      return;
+    }
     AppDB.get(CHAR_LIST_KEY, function(list) {
       charList = Array.isArray(list) ? list : [];
       charList.forEach(function(u) {
@@ -128,6 +131,7 @@
   // 步骤 1：空状态凝聚冰晶
   // ==========================================
   function renderStep1() {
+    if (!container) return;
     container.className = 'app-content archive-page-wrap archive-panel-active';
     container.innerHTML = '<div class="archive-page-screen screen-bg-0">'
       + '<div class="header-ornament-stage">'
@@ -142,6 +146,11 @@
       + '<button class="arch-native-back" id="charBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
       + '<div><div class="archive-subtitle">DOSSIER</div><div class="archive-title">档案</div></div>'
       + '</div>'
+      + '</div>'
+      + '<div class="archive-nav-capsule">'
+      + '<div class="nav-glider-pill" style="transform:translateX(100%);"></div>'
+      + '<button class="archive-nav-item" id="navToUserBtn" type="button">用户档案</button>'
+      + '<button class="archive-nav-item active" id="navToCharBtn" type="button">角色档案</button>'
       + '</div>'
       + '</div>'
 
@@ -193,6 +202,15 @@
       if (window.AppNav) AppNav.showPage('home');
     });
 
+    var navUserBtn = document.getElementById('navToUserBtn');
+    if (navUserBtn) {
+      navUserBtn.addEventListener('click', function() {
+        if (window.UserArchiveApp && window.UserArchiveApp.mount) {
+          window.UserArchiveApp.mount(container);
+        }
+      });
+    }
+
     document.getElementById('goToCharStep2Btn').addEventListener('click', function() {
       createNewChar();
     });
@@ -201,9 +219,8 @@
   // ==========================================
   // 步骤 2：手账录入填单
   // ==========================================
-  var step2BackHandler = null;
-
   function renderStep2() {
+    if (!container) return;
     var cur = getCurrentChar() || defaultCharProfile;
     container.className = 'app-content archive-page-wrap';
     container.innerHTML = '<div class="archive-page-screen screen-bg-0">'
@@ -339,7 +356,7 @@
       background: cur.background || ''
     });
 
-    step2BackHandler = function() {
+    function step2BackHandler() {
       var modal = document.getElementById('charExpandModalOverlay');
       if (modal && modal.classList.contains('show')) {
         closeExpandModal();
@@ -409,7 +426,7 @@
       } else {
         renderStep1();
       }
-    };
+    }
 
     document.getElementById('charBackBtn').addEventListener('click', step2BackHandler);
 
@@ -456,9 +473,7 @@
       });
     });
 
-    if (modalTextarea) {
-      modalTextarea.addEventListener('input', updateWordCount);
-    }
+    if (modalTextarea) modalTextarea.addEventListener('input', updateWordCount);
 
     if (clearBtn) {
       clearBtn.addEventListener('click', function() {
@@ -482,9 +497,7 @@
       });
     }
 
-    if (modalCancelBtn) {
-      modalCancelBtn.addEventListener('click', closeExpandModal);
-    }
+    if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeExpandModal);
 
     document.getElementById('generateCharCardBtn').addEventListener('click', function() {
       var nameVal = document.getElementById('charFieldName').value.replace(/[✞✟✠]/g, '');
@@ -522,6 +535,7 @@
   // 步骤 3：5 款专属角色卡片展示
   // ==========================================
   function renderStep3() {
+    if (!container) return;
     var cur = getCurrentChar();
     if (!cur) {
       renderStep1();
@@ -553,6 +567,11 @@
       + '<button class="arch-tool-pill" id="actionNewCharBtn" type="button"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
       + '<button class="arch-tool-pill" id="actionCharListBtn" type="button"><span>角色列表 (' + charList.length + ')</span></button>'
       + '</div>'
+      + '</div>'
+      + '<div class="archive-nav-capsule">'
+      + '<div class="nav-glider-pill" style="transform:translateX(100%);"></div>'
+      + '<button class="archive-nav-item" id="navToUserBtn" type="button">用户档案</button>'
+      + '<button class="archive-nav-item active" id="navToCharBtn" type="button">角色档案</button>'
       + '</div>'
       + '</div>'
 
@@ -682,6 +701,18 @@
         if (window.AppNav) AppNav.showPage('home');
       });
     });
+
+    var navUserBtn = document.getElementById('navToUserBtn');
+    if (navUserBtn) {
+      navUserBtn.addEventListener('click', function() {
+        syncDirectEdits(cur);
+        saveCurrentToDB(function() {
+          if (window.UserArchiveApp && window.UserArchiveApp.mount) {
+            window.UserArchiveApp.mount(container);
+          }
+        });
+      });
+    }
 
     document.getElementById('prevCharTplBtn').addEventListener('click', function() {
       syncDirectEdits(cur);
