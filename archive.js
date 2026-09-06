@@ -63,6 +63,7 @@
       return;
     }
     loadAllData();
+    initGlobalSwipeBack();
   }
 
   if (window._dbReady) {
@@ -70,6 +71,55 @@
   } else {
     window.addEventListener('dbReady', tryInit);
     setTimeout(tryInit, 500);
+  }
+
+  // ==========================================
+  // 全局灵敏右滑返回主页手势 (核心修复)
+  // ==========================================
+  function initGlobalSwipeBack() {
+    var touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
+    var isSwiping = false;
+
+    window.addEventListener('touchstart', function(e) {
+      var archivePage = document.querySelector('.page[data-page="archive"]');
+      if (!archivePage || !archivePage.classList.contains('active')) return;
+
+      // 如果当前正在填单页（手写板或手账录入），交给专门的填单拦截器处理，不在此处直接退出
+      var step2 = document.getElementById('archStep2');
+      if (step2 && step2.classList.contains('step-active')) return;
+
+      // 如果正在编辑卡片文字，不触发返回
+      var activeEl = document.activeElement;
+      if (activeEl && (activeEl.isContentEditable || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+      if (e.target.closest('[contenteditable="true"]')) return;
+
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchEndX = touchStartX;
+      touchEndY = touchStartY;
+      isSwiping = true;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', function(e) {
+      if (!isSwiping) return;
+      touchEndX = e.touches[0].clientX;
+      touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', function() {
+      if (!isSwiping) return;
+      isSwiping = false;
+      var diffX = touchEndX - touchStartX;
+      var diffY = touchEndY - touchStartY;
+
+      // 只要横向滑动大于 35px，且横向位移大于纵向位移，立刻平滑退出返回桌面
+      if (diffX > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+        syncCurrentLiveEdits();
+        saveCurrentToDB(function() {
+          if (window.AppNav) AppNav.showPage('home');
+        });
+      }
+    }, { passive: true });
   }
 
   // 读取所有数据
@@ -201,7 +251,7 @@
       + '<h1 class="archive-title">档案</h1>'
       + '</div>'
 
-      // 中间滑动胶囊 (用类名控制位置，绝不加内联 style)
+      // 中间滑动胶囊 (纯类名控制)
       + '<div class="archive-nav-capsule">'
       + '<div class="nav-glider-pill' + (currentTab === 'char' ? ' char-pos' : '') + '" id="navGlider"></div>'
       + '<button class="archive-nav-item' + (currentTab === 'user' ? ' active' : '') + '" id="tabUserBtn" type="button"><span>用户</span></button>'
@@ -250,10 +300,8 @@
     });
 
     document.getElementById('actionMenuBtn').addEventListener('click', function() {
-      var maskId = (currentTab === 'user') ? 'userDrawerMask' : 'charDrawerMask';
-      var cardId = (currentTab === 'user') ? 'userDrawerCard' : 'charDrawerCard';
-      var mask = document.getElementById(maskId);
-      var card = document.getElementById(cardId);
+      var mask = document.getElementById('drawerMask');
+      var card = document.getElementById('drawerCard');
       if (mask) mask.classList.add('show');
       if (card) card.classList.add('show');
     });
@@ -276,39 +324,6 @@
       else if (charList.length > 0) { currentCharId = charList[0].id; renderCardShowcase(subViewport, charList[0]); }
       else renderStep1(subViewport);
     }
-  }
-
-  // ==========================================
-  // 步骤 1：空状态凝聚冰晶
-  // ==========================================
-  function renderStep1(subViewport) {
-    var isUser = (currentTab === 'user');
-    subViewport.innerHTML = '<div class="archive-step-panel step-active">'
-      + '<div class="empty-card-stage">'
-      + '<div class="deco-cross tl">+</div><div class="deco-cross tr">+</div><div class="deco-cross bl">+</div><div class="deco-cross br">+</div>'
-      + '<div class="empty-illustration-box">'
-      + '<span class="empty-sparkle s1">✦</span><span class="empty-sparkle s2">✧</span>'
-      + '<div class="empty-illustration-circle">'
-      + '<svg class="frost-crystal-svg" viewBox="0 0 48 48">'
-      + '<g class="crystal-core"><circle cx="24" cy="24" r="1.5" fill="#18191c" /><polygon points="24,19.5 28.5,24 24,28.5 19.5,24" class="crystal-stroke" /><circle cx="24" cy="24" r="9" class="crystal-stroke" stroke-dasharray="1.5 2" stroke-width="0.8" opacity="0.6" /></g>'
-      + '<g class="crystal-spears crystal-stroke"><polygon points="24,3 27,15 24,19.5 21,15" /><polygon points="24,45 27,33 24,28.5 21,33" /><polygon points="3,24 15,21 19.5,24 15,27" /><polygon points="45,24 33,21 28.5,24 33,27" /></g>'
-      + '<g class="crystal-petals crystal-stroke"><polygon points="35,13 36.5,19 30.5,20.5 29,14.5" /><polygon points="13,13 14.5,19 20.5,20.5 19,14.5" /><polygon points="35,35 36.5,29 30.5,27.5 29,33.5" /><polygon points="13,35 14.5,29 20.5,27.5 19,33.5" /></g>'
-      + '<g class="crystal-sparkles"><circle cx="24" cy="3" r="1" fill="#18191c" /><circle cx="24" cy="45" r="1" fill="#18191c" /><circle cx="3" cy="24" r="1" fill="#18191c" /><circle cx="45" cy="24" r="1" fill="#18191c" /></g>'
-      + '</svg>'
-      + '</div>'
-      + '</div>'
-      + '<h2 class="empty-title">' + (isUser ? '尚未建立用户档案' : '尚未录入角色设定') + '</h2>'
-      + '<p class="empty-desc">' + (isUser ? '记录你的专属身份与高定立绘' : '记录角色的外貌立绘、性格特质与深度羁绊') + '</p>'
-      + '<button class="action-trigger-btn" id="goToStep2Btn" type="button">'
-      + '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
-      + '<span>' + (isUser ? '新建USER设定' : '新建角色设定') + '</span>'
-      + '</button>'
-      + '</div>'
-      + '</div>';
-
-    document.getElementById('goToStep2Btn').addEventListener('click', function() {
-      createNewItem();
-    });
   }
 
   // ==========================================
@@ -519,7 +534,7 @@
   }
 
   // ==========================================
-  // 步骤 3：小卡展示 (自动识别用户/角色)
+  // 步骤 3：小卡展示 (用户 / 角色 统一渲染)
   // ==========================================
   function renderCardShowcase(subViewport, cur) {
     if (cur.name) cur.name = cur.name.replace(/[✞✟✠]/g, '');
@@ -639,7 +654,7 @@
   }
 
   // ==========================================
-  // 角色 5 款卡片模版 HTML (严格对齐 5 套高定结构)
+  // 角色 5 款卡片模版 HTML
   // ==========================================
   function renderCharTemplate(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
