@@ -39,7 +39,7 @@
     photo: '',
     createDate: '',
     tagRomaji: 'MINGYE // DEPT.01',
-    serial: 'NO. 0924-NIVEOUS',
+    serial: 'NO. 92WOB007STZT',
     tplIdx: 0
   };
 
@@ -101,27 +101,86 @@
     var newObj = JSON.parse(JSON.stringify(defaultCharProfile));
     newObj.id = 'char_' + Date.now();
     newObj.createDate = getTodayDateStr();
-    newObj.serial = 'NO. 0000-NIVEOUS';
+    newObj.serial = 'NO. 92WOB007STZT';
     charList.push(newObj);
     currentCharId = newObj.id;
     currentTplIdx = 0;
     renderStep2();
   }
 
-  // 返回主外壳统一调度器
-  function exitToMainShell() {
-    var mainContainer = document.getElementById('archiveContent');
-    if (window.ArchiveApp && typeof window.ArchiveApp.renderShell === 'function') {
-      window.ArchiveApp.renderShell();
-    } else {
-      // 容错兜底：通过模拟点击重新触发外壳渲染
-      var btn = document.getElementById('tabCharBtn');
+  // 恢复单层主外壳
+  function restoreMainShell() {
+    var container = document.getElementById('archiveContent');
+    if (!container) return;
+    container.className = 'app-content archive-page-wrap';
+
+    var themeClass = 'screen-bg-' + currentTplIdx;
+    if (currentTplIdx === 2) themeClass = 'char-screen-bg-2';
+    else if (currentTplIdx === 3) themeClass = 'char-screen-bg-3';
+
+    container.innerHTML = '<div class="archive-page-screen ' + themeClass + '" id="archiveScreenRoot">'
+      + '<div class="header-ornament-stage">'
+      + '<div class="ornament-artwork-layer">'
+      + '<div class="celestial-crescent-emblem">'
+      + '<svg viewBox="0 0 100 100">'
+      + '<circle cx="50" cy="50" r="44" stroke-width="0.7" stroke-dasharray="2 3.5" opacity="0.5"/>'
+      + '<circle cx="50" cy="50" r="38" stroke-width="0.5" opacity="0.35"/>'
+      + '<path d="M50 12 A38 38 0 1 0 88 50 A30 30 0 1 1 50 12 Z" stroke-width="1.1" opacity="0.85"/>'
+      + '<path d="M63 42.5 L64.8 47 L69.5 48.8 L64.8 50.5 L63 55 L61.2 50.5 L56.5 48.8 L61.2 47 Z" fill="currentColor" stroke-width="0.4" opacity="0.9"/>'
+      + '<circle cx="77" cy="29" r="1.3" fill="currentColor" opacity="0.65"/>'
+      + '<circle cx="71" cy="19" r="0.9" fill="currentColor" opacity="0.48"/>'
+      + '</svg>'
+      + '</div>'
+      + '<span class="art-star s1">✦</span><span class="art-star s3">✦</span>'
+      + '<span class="art-crosshair c1">+</span>'
+      + '</div>'
+
+      + '<div class="archive-header">'
+      + '<div class="archive-header-left">'
+      + '<button class="arch-native-back" id="archShellBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
+      + '<h1 class="archive-title">档案</h1>'
+      + '</div>'
+
+      + '<div class="archive-nav-capsule">'
+      + '<div class="nav-glider-pill char-pos" id="navGlider"></div>'
+      + '<button class="archive-nav-item" id="tabUserBtn" type="button"><span>用户</span></button>'
+      + '<button class="archive-nav-item active" id="tabCharBtn" type="button"><span>角色</span></button>'
+      + '</div>'
+
+      + '<div class="archive-header-right">'
+      + '<button class="arch-tool-pill menu-btn" id="actionMenuBtn" type="button">'
+      + '<svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>'
+      + '</button>'
+      + '</div>'
+      + '</div>'
+
+      + '</div>'
+
+      + '<div class="archive-showcase-wrap" id="archiveSubViewport"></div>'
+      + '</div>';
+
+    document.getElementById('archShellBackBtn').addEventListener('click', function() {
+      if (window.AppNav) AppNav.showPage('home');
+    });
+
+    document.getElementById('tabUserBtn').addEventListener('click', function() {
+      window.CharacterEngine.syncEdits();
+      var btn = document.getElementById('tabUserBtn');
       if (btn) btn.click();
-    }
+    });
+
+    document.getElementById('actionMenuBtn').addEventListener('click', function() {
+      window.CharacterEngine.openList();
+    });
+
+    subViewport = document.getElementById('archiveSubViewport');
+    var cur = getCurrentChar();
+    if (cur) renderStep3(cur);
+    else renderStep1();
   }
 
   // ==========================================
-  // 对外暴露的标准引擎对象
+  // 对外暴露的标准引擎对象 (与 archive.js 呼应)
   // ==========================================
   window.CharacterEngine = {
     render: function(viewportEl) {
@@ -339,13 +398,13 @@
 
     function exitForm() {
       if (charList.length > 0 && cur.name && cur.name !== '') {
-        exitToMainShell();
+        restoreMainShell();
       } else if (charList.length > 0) {
         charList = charList.filter(function(u) { return u.id !== cur.id; });
-        if (charList.length) { currentCharId = charList[0].id; exitToMainShell(); }
-        else { exitToMainShell(); }
+        if (charList.length) { currentCharId = charList[0].id; restoreMainShell(); }
+        else { restoreMainShell(); }
       } else {
-        exitToMainShell();
+        restoreMainShell();
       }
     }
 
@@ -437,7 +496,7 @@
       if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下角色姓名哦'); return; }
       saveFormDataToCur();
       saveCurrentToDB(function() {
-        exitToMainShell();
+        restoreMainShell();
       });
     });
   }
@@ -450,8 +509,10 @@
     if (cur.name) cur.name = cur.name.replace(/[✞✟✠]/g, '');
     var hasPhotoClass = cur.photo ? ' has-img' : '';
 
-    subViewport.innerHTML = '<div class="char-full-card-box" id="charCardContainerBox">'
+    subViewport.innerHTML = '<div class="card-stage">'
+      + '<div class="archive-full-card-box" id="charCardContainerBox">'
       + renderCharTemplateHtml(cur, currentTplIdx, hasPhotoClass)
+      + '</div>'
       + '</div>'
       + '<div class="archive-bottom-dock">'
       + '<button class="dock-arrow-btn" id="prevCharTplBtn" type="button"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>'
@@ -482,62 +543,86 @@
       + '</div>';
 
     var root = document.getElementById('archiveScreenRoot');
-    if (root) root.className = 'archive-page-screen ' + (currentTplIdx === 3 ? 'char-screen-bg-3' : 'screen-bg-' + currentTplIdx);
+    if (root) {
+      if (currentTplIdx === 2) root.className = 'archive-page-screen char-screen-bg-2';
+      else if (currentTplIdx === 3) root.className = 'archive-page-screen char-screen-bg-3';
+      else root.className = 'archive-page-screen screen-bg-' + currentTplIdx;
+    }
 
     bindStep3Events(cur);
   }
 
+  // =========================================================
+  // 渲染 5 种角色模板 (彻底清除内联样式)
+  // =========================================================
   function renderCharTemplateHtml(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
       // 01. 冷调精美档案卡
-      var tagsArr = (cur.tags || '专属守护 心动执行官 AI男友').split(/\s+/).filter(Boolean);
+      var tagsArr = (cur.tags || 'AI温柔男友 专属守护 你的心动执行官').split(/\s+/).filter(Boolean);
       var tagItems = tagsArr.map(function(t){ return '<span class="tag-item" contenteditable="true" spellcheck="false"># ' + esc(t) + '</span>'; }).join('');
 
-      return '<div class="char-card-wrapper theme-archive">'
+      return '<div class="char-card-base theme-archive">'
         + '<div class="card-bg-dots"></div>'
-        + '<div class="card-top-bar"><div class="card-serial" id="charSerial" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.serial) + '</div><div class="card-brand" contenteditable="true" spellcheck="false">NIVEOUS ARCHIVE</div></div>'
+        + '<div class="card-top-bar">'
+        + '<div class="card-serial" id="charSerial" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.serial || 'NO. 92WOB007STZT') + '</div>'
+        + '<div class="card-brand" contenteditable="true" spellcheck="false">NIVEOUS ARCHIVE</div>'
+        + '</div>'
         + '<div class="photo-frame-wrap">'
-        + '<div class="left-deco-bar"><div class="vert-text" contenteditable="true" spellcheck="false">SEC. 09 // REF</div><div class="deco-ruler"><span class="ruler-line rl-long"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-mid"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-long"></span></div><div class="vert-text">CONFIDENTIAL</div></div>'
-        + '<div class="right-deco-line"><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg><div style="width:1px; height:24px; background:#cbd5e1;"></div><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg></div>'
-        + '<div class="char-photo-box' + hasPhotoClass + '" id="charPhotoBtn"><div class="frame-corner c-tl"></div><div class="frame-corner c-tr"></div><div class="frame-corner c-bl"></div><div class="frame-corner c-br"></div><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="char-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>上传立绘</span></div></div>'
+        + '<div class="left-deco-bar">'
+        + '<div class="vert-text">SEC. 09 // REF</div>'
+        + '<div class="deco-ruler"><span class="ruler-line rl-long"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-mid"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-long"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-mid"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-long"></span></div>'
+        + '<div class="vert-text">LATUE JMSÁAND</div>'
+        + '</div>'
+        + '<div class="right-deco-line">'
+        + '<svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg>'
+        + '<div class="vert-dash-line"></div>'
+        + '<svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg>'
+        + '<div class="vert-dash-line"></div>'
+        + '<svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg>'
+        + '</div>'
+        + '<div class="photo-box' + hasPhotoClass + '" id="charPhotoBtn">'
+        + '<div class="frame-corner c-tl"></div><div class="frame-corner c-tr"></div><div class="frame-corner c-bl"></div><div class="frame-corner c-br"></div>'
+        + '<img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘">'
+        + '<div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>点击上传立绘</span></div>'
+        + '</div>'
         + '</div>'
         + '<div class="character-info-box">'
-        + '<div class="char-name-row"><div class="char-name" id="charName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="char-romaji" id="charTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji) + '</div></div>'
+        + '<div class="char-name-row"><div class="char-name" id="charName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="char-romaji" id="charTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'MINGYE // DEPT.01') + '</div></div>'
         + '<div class="char-tags-row">' + tagItems + '</div>'
         + '<div class="char-intro-text" id="charQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote0 || DEFAULT_CHAR_QUOTES[0]) + '</div>'
         + '</div>'
-        + '<div class="card-footer-bar"><div class="qr-box"><svg viewBox="0 0 24 24"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v3h-3v-3zm-5 0h2v2h-2v-2zm2 3h2v2h-2v-2zm3 0h3v3h-3v-3zm-3 3h2v2h-2v-2z"/></svg></div><div class="barcode-horiz"><span class="b2"></span><span class="b1"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b2"></span><span class="b1"></span><span class="b2"></span></div></div>'
+        + '<div class="card-footer-bar"><div class="qr-box"><svg viewBox="0 0 24 24"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v3h-3v-3zm-5 0h2v2h-2v-2zm2 3h2v2h-2v-2zm3 0h3v3h-3v-3zm-3 3h2v2h-2v-2z"/></svg></div><div class="barcode-horiz"><span class="b2"></span><span class="b1"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b1"></span><span class="b3"></span><span class="b2"></span><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b1"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b2"></span></div></div>'
         + '</div>';
     } else if (tplIdx === 1) {
       // 02. 机能手账·便签与参数矩阵
-      return '<div class="char-card-wrapper theme-notebook">'
+      return '<div class="char-card-base theme-notebook">'
         + '<div class="nb-outer-border"></div><div class="nb-corner-tl"></div><div class="nb-corner-br"><svg viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg></div>'
         + '<div class="nb-top-bar"><div class="nb-top-title" contenteditable="true" spellcheck="false">TACTICAL NOTEBOOK // SPECIMEN</div><div class="nb-top-tag" contenteditable="true" spellcheck="false">LOG 007</div></div>'
         + '<div class="nb-main-layout">'
-        + '<div class="nb-sidebar-left"><div class="nb-vert-text" contenteditable="true" spellcheck="false">NIVEOUS SPEC</div><div class="nb-vert-barcode"><span></span><span></span><span></span><span></span></div><div class="nb-mini-qr"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>'
-        + '<div class="char-photo-box' + hasPhotoClass + '" id="charPhotoBtn"><div class="frame-cross tl"></div><div class="frame-cross tr"></div><div class="frame-cross bl"></div><div class="frame-cross br"></div><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="char-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>置入手账样本特写</span></div></div>'
+        + '<div class="nb-sidebar-left"><div class="nb-vert-text">NIVEOUS SPECIFICATION</div><div class="nb-vert-barcode"><span class="vb-w2"></span><span class="vb-w1"></span><span class="vb-w3"></span><span class="vb-w1"></span><span class="vb-w2"></span></div><div class="nb-mini-qr"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>'
+        + '<div class="photo-box' + hasPhotoClass + '" id="charPhotoBtn"><div class="frame-cross tl"></div><div class="frame-cross tr"></div><div class="frame-cross bl"></div><div class="frame-cross br"></div><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>置入手账样本特写</span></div></div>'
         + '<div class="nb-sidebar-right"><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg><div class="dashed-line"></div><div class="geo-dots"><span></span><span></span><span></span></div><div class="dashed-line"></div><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg></div>'
         + '</div>'
         + '<div class="nb-bottom-section">'
         + '<div class="nb-name-row"><div class="char-name" id="charName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="nb-char-serial">DESIGNATION // 01</div></div>'
         + '<div class="nb-spec-matrix">'
         + '<div class="spec-cell"><span class="cell-label">CLASS</span><span class="cell-val" id="charTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'COMMANDER') + '</span></div>'
-        + '<div class="spec-cell"><span class="cell-label">AFFINITY</span><span class="cell-val" contenteditable="true" spellcheck="false">100% 偏爱</span></div>'
+        + '<div class="spec-cell"><span class="cell-label">AFFINITY</span><span class="cell-val" contenteditable="true" spellcheck="false">100% </span></div>'
         + '<div class="spec-cell"><span class="cell-label">STATUS</span><span class="cell-val" contenteditable="true" spellcheck="false">ACTIVE</span></div>'
         + '</div>'
         + '<div class="nb-memo-container">'
         + '<div class="memo-tape-header"><span class="tape-tag">FIELD MEMO</span><span class="memo-date">NIV-LOG // 2025</span></div>'
         + '<div class="char-intro-text" id="charQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote1 || DEFAULT_CHAR_QUOTES[1]) + '</div>'
-        + '<div class="nb-red-seal">EXECUTED · 专属守护</div>'
+        + '<div class="nb-red-seal">EXECUTED · 你的专属</div>'
         + '</div>'
         + '<div class="nb-footer-holes"><div class="holes-row"><div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div></div><span class="nb-foot-code">ARCHIVE SYSTEM · NOTEBOOK SPEC</span></div>'
         + '</div></div>';
     } else if (tplIdx === 2) {
       // 03. 暗红血月 × 发光月银塔罗
-      return '<div class="char-card-wrapper theme-astral">'
+      return '<div class="char-card-base theme-astral">'
         + '<div class="astral-inner-frame"></div>'
-        + '<div class="astral-top-bar"><span class="astral-arcana-num" contenteditable="true" spellcheck="false">✦ ARCANA XIII // CRIMSON & SILVER</span><div class="moon-phases"><div class="moon-dot" style="opacity:0.3;"></div><div class="moon-dot" style="opacity:0.6;"></div><div class="moon-dot eclipse"></div><div class="moon-dot" style="opacity:0.6;"></div><div class="moon-dot" style="opacity:0.3;"></div></div></div>'
-        + '<div class="char-photo-box' + hasPhotoClass + '" id="charPhotoBtn"><div class="tarot-corner tc-tl"></div><div class="tarot-corner tc-tr"></div><div class="tarot-corner tc-bl"></div><div class="tarot-corner tc-br"></div><div class="astral-badge-seal"><span>BLOOD OATH</span></div><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="char-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span style="color:#ffffff;">置入血月圣像特写</span></div></div>'
+        + '<div class="astral-top-bar"><span class="astral-arcana-num">✦ ARCANA XIII // CRIMSON & SILVER</span><div class="moon-phases"><div class="moon-dot dim"></div><div class="moon-dot mid"></div><div class="moon-dot eclipse"></div><div class="moon-dot mid"></div><div class="moon-dot dim"></div></div></div>'
+        + '<div class="photo-box' + hasPhotoClass + '" id="charPhotoBtn"><div class="tarot-corner tc-tl"></div><div class="tarot-corner tc-tr"></div><div class="tarot-corner tc-bl"></div><div class="tarot-corner tc-br"></div><div class="astral-badge-seal"><span>BLOOD OATH</span></div><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="text-white-force">置入血月圣像特写</span></div></div>'
         + '<div class="astral-info-sec">'
         + '<div class="char-tag" id="charTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'THE ETERNAL NIGHT EMPEROR') + '</div>'
         + '<div class="char-name" id="charName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div>'
@@ -547,26 +632,26 @@
         + '</div></div>';
     } else if (tplIdx === 3) {
       // 04. 暗夜未来特工令
-      return '<div class="char-card-wrapper theme-tactical">'
-        + '<div class="tac-top-bar"><span class="tac-badge" contenteditable="true" spellcheck="false">TOP SECRET · CLASSIFIED</span><div class="tac-sync-rate"><div class="sync-dot"></div><span contenteditable="true" spellcheck="false">NEURAL SYNC 99.8%</span></div></div>'
-        + '<div class="char-photo-box' + hasPhotoClass + '" id="charPhotoBtn"><div class="tac-grid-bg"></div><span class="target-lock-text" contenteditable="true" spellcheck="false">[ ⛶ TARGET LOCKED ]</span><div class="tac-stamp" contenteditable="true" spellcheck="false">ENCRYPTED</div><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="char-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>载入全息战术特写</span></div></div>'
+      return '<div class="char-card-base theme-tactical">'
+        + '<div class="tac-top-bar"><span class="tac-badge">TOP SECRET · CLASSIFIED</span><div class="tac-sync-rate"><div class="sync-dot"></div><span>NEURAL SYNC 99.8%</span></div></div>'
+        + '<div class="photo-box' + hasPhotoClass + '" id="charPhotoBtn"><div class="tac-grid-bg"></div><span class="target-lock-text">[ ⛶ TARGET LOCKED ]</span><div class="tac-stamp">ENCRYPTED</div><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>载入全息战术特写</span></div></div>'
         + '<div class="tac-content">'
         + '<div class="name-row"><div class="char-name" id="charName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="char-tag" id="charTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'CHIEF SPECIAL AGENT #007') + '</div></div>'
         + '<div class="char-intro-text" id="charQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote3 || DEFAULT_CHAR_QUOTES[3]) + '</div>'
-        + '<div class="tac-bottom-matrix"><span>QUANTUM HASH: 7F8E-902A</span><div class="tac-signal-bars"><div class="sig-bar" style="height:4px;"></div><div class="sig-bar" style="height:6px;"></div><div class="sig-bar" style="height:10px;"></div><div class="sig-bar" style="height:8px;"></div></div></div>'
+        + '<div class="tac-bottom-matrix"><span>QUANTUM HASH: 7F8E-902A</span><div class="tac-signal-bars"><div class="sig-bar h1"></div><div class="sig-bar h2"></div><div class="sig-bar h4"></div><div class="sig-bar h3"></div></div></div>'
         + '</div></div>';
     } else {
       // 05. 法式极简画报
-      return '<div class="char-card-wrapper theme-french">'
+      return '<div class="char-card-base theme-french">'
         + '<div class="french-outer-border"></div>'
-        + '<div class="french-header"><div class="french-logo" contenteditable="true" spellcheck="false">L\'ÉTERNEL</div><div class="french-sub-head" contenteditable="true" spellcheck="false">ÉDITION LIMITÉE · N°01</div></div>'
-        + '<div class="char-photo-box' + hasPhotoClass + '" id="charPhotoBtn"><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="char-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1" ry="1"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>INSÉRER UN PORTRAIT</span></div></div>'
+        + '<div class="french-header"><div class="french-logo">L\'ÉTERNEL</div><div class="french-sub-head">ÉDITION LIMITÉE · N°01</div></div>'
+        + '<div class="photo-box' + hasPhotoClass + '" id="charPhotoBtn"><img id="charPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1" ry="1"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>INSÉRER UN PORTRAIT</span></div></div>'
         + '<div class="french-content">'
         + '<div class="char-name" id="charName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="char-tag" id="charTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'GARDE DU CŒUR // 007') + '</div>'
         + '<div class="french-divider-line"></div>'
         + '<div class="char-intro-text" id="charQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote4 || DEFAULT_CHAR_QUOTES[4]) + '</div>'
         + '</div>'
-        + '<div class="french-footer"><span contenteditable="true" spellcheck="false">PARIS · STUDIO ARCHIVE</span><span contenteditable="true" spellcheck="false">AUTOMNE 2025</span></div>'
+        + '<div class="french-footer"><span>PARIS · STUDIO ARCHIVE</span><span>AUTOMNE 2025</span></div>'
         + '</div>';
     }
   }
@@ -653,7 +738,7 @@
         var fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = 'image/*';
-        fileInput.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
+        fileInput.hidden = true;
         document.body.appendChild(fileInput);
 
         fileInput.addEventListener('change', function() {
@@ -708,7 +793,7 @@
   }
 
   function bindLiveEdits(cur) {
-    var editables = document.querySelectorAll('.char-card-wrapper [contenteditable="true"]');
+    var editables = document.querySelectorAll('.char-card-base [contenteditable="true"]');
     editables.forEach(function(el) {
       el.addEventListener('input', function() { syncDirectEdits(cur); });
       el.addEventListener('blur', function() { syncDirectEdits(cur); saveCurrentToDB(); });
@@ -734,3 +819,5 @@
   }
 
 })();
+
+
