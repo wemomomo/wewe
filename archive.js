@@ -345,8 +345,8 @@
       + '</div>'
       + '<span class="brand-serial">创檔日期：' + esc(cur.createDate || getTodayDateStr()) + '</span>'
       + '</div>'
-      + '<h1 class="journal-main-title">《录入手札》</h1>'
-      + '<p class="journal-desc-text"> 墨已研就，且借一纸素白，写作众生相 </p>'
+      + '<h1 class="journal-main-title">录入手札</h1>'
+      + '<p class="journal-desc-text">墨已研就，且借一纸素白，晕作众生相</p>'
       + '<div class="journal-header-divider"><span class="divider-line"></span><span class="divider-star">✦</span><span class="divider-line"></span></div>'
       + '</div>'
 
@@ -426,7 +426,7 @@
       + '</div>'
 
       + '<button class="action-trigger-btn save-seal-btn" id="generateCardBtn" type="button">'
-      + '<span> 照见万镜绘卷 </span>'
+      + '<span> 照见万镜 </span>'
       + '</button>'
       + '</div>'
       + '</div>'
@@ -471,7 +471,7 @@
     step2BackHandler = function() {
       var modal = document.getElementById('expandModalOverlay');
       if (modal && modal.classList.contains('show')) {
-        closeExpandModal();
+        handleModalCloseAttempt();
         return;
       }
 
@@ -504,12 +504,6 @@
             exitWithoutSaving();
           });
           return;
-        } else if (confirm('检测到内容已修改，是否保存？')) {
-          var nameVal = (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, '');
-          if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
-          saveFormDataToCur(cur);
-          saveCurrentToDB(function() { renderArchiveShell(); });
-          return;
         }
       }
 
@@ -537,6 +531,7 @@
     }
 
     var currentTargetFieldId = '';
+    var modalOriginalText = '';
     var modalOverlay = document.getElementById('expandModalOverlay');
     var modalTitle = document.getElementById('expandModalTitle');
     var modalTextarea = document.getElementById('expandModalTextarea');
@@ -553,7 +548,11 @@
       currentTargetFieldId = fieldId;
       var targetInput = document.getElementById(fieldId);
       if (modalTitle) modalTitle.textContent = titleText || '深度手札编辑';
-      if (modalTextarea) { modalTextarea.value = targetInput ? targetInput.value : ''; updateWordCount(); }
+      if (modalTextarea) {
+        modalTextarea.value = targetInput ? targetInput.value : '';
+        modalOriginalText = modalTextarea.value;
+        updateWordCount();
+      }
       if (modalOverlay) modalOverlay.classList.add('show');
       setTimeout(function() { if (modalTextarea) modalTextarea.focus(); }, 300);
     }
@@ -561,6 +560,29 @@
     function closeExpandModal() {
       if (modalOverlay) modalOverlay.classList.remove('show');
       currentTargetFieldId = '';
+      modalOriginalText = '';
+    }
+
+    function handleModalCloseAttempt() {
+      if (modalTextarea && modalTextarea.value !== modalOriginalText) {
+        if (window.AppDialog) {
+          AppDialog.confirm({
+            title: '提示',
+            desc: '检测到手写板内容已修改，是否保存？',
+            confirmText: '保存'
+          }, function() {
+            if (currentTargetFieldId) {
+              var targetInput = document.getElementById(currentTargetFieldId);
+              if (targetInput && modalTextarea) targetInput.value = modalTextarea.value;
+            }
+            closeExpandModal();
+          }, function() {
+            closeExpandModal();
+          });
+          return;
+        }
+      }
+      closeExpandModal();
     }
 
     document.querySelectorAll('.expand-edit-btn').forEach(function(btn) {
@@ -586,16 +608,23 @@
             updateWordCount();
             modalTextarea.focus();
           });
-        } else if (confirm('确定清空内容吗？')) {
-          modalTextarea.value = '';
-          updateWordCount();
-          modalTextarea.focus();
         }
       });
     }
 
-    if (modalDoneBtn) modalDoneBtn.addEventListener('click', function() { if (currentTargetFieldId) { var targetInput = document.getElementById(currentTargetFieldId); if (targetInput && modalTextarea) targetInput.value = modalTextarea.value; } closeExpandModal(); });
-    if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeExpandModal);
+    if (modalDoneBtn) {
+      modalDoneBtn.addEventListener('click', function() {
+        if (currentTargetFieldId) {
+          var targetInput = document.getElementById(currentTargetFieldId);
+          if (targetInput && modalTextarea) targetInput.value = modalTextarea.value;
+        }
+        closeExpandModal();
+      });
+    }
+
+    if (modalCancelBtn) {
+      modalCancelBtn.addEventListener('click', handleModalCloseAttempt);
+    }
 
     document.getElementById('generateCardBtn').addEventListener('click', function() {
       var nameVal = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
@@ -717,7 +746,7 @@
         + '<div class="t3-perfs-left"><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div></div>'
         + '<div class="t3-perfs-right"><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div><div class="t3-perf-hole"></div></div>'
         + '<div class="t3-inner-box"><div class="t3-header-row"><div class="t3-postmark"><div class="t3-pm-circle" contenteditable="true" spellcheck="false">PARIS</div><div class="t3-pm-lines"><div class="t3-pm-line"></div><div class="t3-pm-line"></div></div></div><div class="t3-tag-text" contenteditable="true" spellcheck="false"><span>LETTRE D\'AMOUR</span></div></div>'
-        + '<div class="t3-photo-stage' + hasPhotoClass + '" id="cardPhotoBtn"><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="t1-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>上传立绘</span></div><div class="t3-photo-tag" contenteditable="true" spellcheck="false"><span>NO. ' + esc(cur.birthday || '0000') + '</span></div></div>'
+        + '<div class="t3-photo-stage' + hasPhotoClass + '" id="cardPhotoBtn"><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="t1-photo-empty"><svg viewBox="0 0 24 24"><rect x="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>上传立绘</span></div><div class="t3-photo-tag" contenteditable="true" spellcheck="false"><span>NO. ' + esc(cur.birthday || '0000') + '</span></div></div>'
         + '<div class="t3-footer-body"><div style="display:flex; justify-content:space-between; align-items:baseline;"><div class="t3-username" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="t3-serial">POSTAGE</div></div>'
         + '<div class="t3-bio" id="cardBio" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.bio2 || DEFAULT_BIOS[2]) + '</div>'
         + '<div class="t3-bottom-deck"><div class="t3-french-tags"><span class="t3-french-quote" contenteditable="true" spellcheck="false">« Pour toujours et à jamais »</span><div class="t3-chips"><span class="t3-chip" contenteditable="true" spellcheck="false">燕麦手作</span><span class="t3-chip" contenteditable="true" spellcheck="false">典藏信笺</span></div></div><div class="t3-wax-seal"><div class="t3-wax-inner" contenteditable="true" spellcheck="false">✦</div></div></div>'
@@ -857,16 +886,6 @@
                 else renderStep1(document.getElementById('archiveSubViewport'));
                 if (window.AppNav) AppNav.showToast('✦ 档案已成功删除 ✦');
               });
-            });
-          } else if (confirm('确定要删除该用户档案吗？')) {
-            userList = userList.filter(function(u) { return u.id !== delId; });
-            if (currentUserId === delId) {
-              currentUserId = userList.length ? userList[0].id : null;
-            }
-            saveCurrentToDB(function() {
-              if (userList.length) renderSubContent();
-              else renderStep1(document.getElementById('archiveSubViewport'));
-              if (window.AppNav) AppNav.showToast('✦ 档案已成功删除 ✦');
             });
           }
         });
