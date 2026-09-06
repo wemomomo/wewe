@@ -10,7 +10,7 @@
 }
 
 /* ========== 可编辑文字优化（防蓝框·支持空格与换行） ========== */
-.char-card-wrapper [contenteditable="true"],
+.char-card-base [contenteditable="true"],
 .char-intro-text, .char-quote,
 [contenteditable="true"] {
   outline: none !important;
@@ -19,12 +19,25 @@
   white-space: pre-wrap !important;
 }
 
-.char-card-wrapper [contenteditable="true"]:focus,
+.char-card-base [contenteditable="true"]:focus,
 [contenteditable="true"]:focus {
   outline: none !important;
   background: transparent !important;
   box-shadow: none !important;
   border-color: inherit !important;
+}
+
+/* ========== 角色专属底页背景主题 ========== */
+.char-screen-bg-2 {
+  background: radial-gradient(circle at 50% 15%, #2a060a 0%, #190306 55%, #090103 100%) !important;
+}
+
+.char-screen-bg-3 {
+  background-color: #08090d !important;
+  background-image: 
+    radial-gradient(circle at 50% 15%, rgba(136, 171, 218, 0.15) 0%, transparent 60%),
+    radial-gradient(rgba(136, 171, 218, 0.08) 1.2px, transparent 1.2px) !important;
+  background-size: 100% 100%, 16px 16px !important;
 }
 
 /* ========== 核心卡片容器视口 (统一 520px 高度) ========== */
@@ -39,20 +52,22 @@
   flex-shrink: 0;
 }
 
-.char-card-wrapper {
+.char-card-base {
   width: 100%;
   height: 520px !important;
   max-height: 520px !important;
-  box-sizing: border-box;
+  background: var(--card-bg);
+  position: relative;
+  box-shadow: 0 16px 40px rgba(74, 107, 143, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 16px 40px rgba(74, 107, 143, 0.12), 0 2px 6px rgba(0,0,0,0.04);
 }
 
-/* 相框通用基础：不强占空间，留给文字与参数充足空间 */
-.char-photo-box {
+/* 相框通用基础：黄金比例尺寸，不强占文字空间 */
+.photo-box {
   width: 100%;
   background: #f8fafc;
   position: relative;
@@ -64,7 +79,7 @@
   flex-shrink: 0;
 }
 
-.char-photo-box img {
+.photo-box img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -74,10 +89,10 @@
   z-index: 1;
 }
 
-.char-photo-box.has-img img { display: block; }
-.char-photo-box.has-img .char-photo-empty { display: none; }
+.photo-box.has-img img { display: block; }
+.photo-box.has-img .photo-empty { display: none; }
 
-.char-photo-empty {
+.photo-empty {
   position: absolute;
   inset: 0;
   display: flex;
@@ -88,13 +103,17 @@
   color: #94a3b8;
   z-index: 2;
 }
-.char-photo-empty svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.5; }
-.char-photo-empty span { font-size: 10.5px; font-weight: 500; }
+.photo-empty svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+.photo-empty span { font-size: 10.5px; font-weight: 500; }
+
+.text-white-force {
+  color: #ffffff !important;
+}
 
 /* =========================================================
    模板 1：【冷调精美档案卡】(theme-archive)
 ========================================================= */
-.char-card-wrapper.theme-archive {
+.char-card-base.theme-archive {
   border-radius: 18px;
   padding: 14px 12px 14px;
   gap: 8px;
@@ -135,9 +154,9 @@
   display: flex; flex-direction: column; align-items: center; justify-content: space-around; pointer-events: none;
 }
 .theme-archive .star-icon { width: 9px; height: 9px; fill: #4a6b8f; }
+.theme-archive .vert-dash-line { width: 1px; height: 26px; background: #cbd5e1; }
 
-/* 相框高度舒展控制在 200px */
-.theme-archive .char-photo-box {
+.theme-archive .photo-box {
   height: 200px;
   border: 1.5px solid #1e293b;
   border-radius: 4px;
@@ -170,7 +189,7 @@
 /* =========================================================
    模板 2：【机能手账 · 便签与参数矩阵】(theme-notebook)
 ========================================================= */
-.char-card-wrapper.theme-notebook {
+.char-card-base.theme-notebook {
   background: #ffffff;
   border-radius: 6px;
   padding: 12px 12px 14px;
@@ -208,14 +227,17 @@
 }
 .theme-notebook .nb-vert-barcode { width: 10px; height: 70px; display: flex; gap: 1px; }
 .theme-notebook .nb-vert-barcode span { height: 100%; background: #000; display: inline-block; }
+.theme-notebook .vb-w1 { width: 1px; }
+.theme-notebook .vb-w2 { width: 2px; }
+.theme-notebook .vb-w3 { width: 3px; }
+
 .theme-notebook .nb-mini-qr {
   width: 14px; height: 14px; border: 1px solid #000; padding: 1px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
 }
 .theme-notebook .nb-mini-qr span { background: #000; }
 .theme-notebook .nb-mini-qr span:nth-child(2), .theme-notebook .nb-mini-qr span:nth-child(6) { background: transparent; }
 
-/* 相框高度舒展控制在 165px，绝不挤压便签和矩阵 */
-.theme-notebook .char-photo-box {
+.theme-notebook .photo-box {
   height: 165px;
   background: #f8fafc;
   border: 1.5px solid #121316;
@@ -277,7 +299,7 @@
 /* =========================================================
    模板 3：【暗红血月 × 发光月银塔罗】(theme-astral)
 ========================================================= */
-.char-card-wrapper.theme-astral {
+.char-card-base.theme-astral {
   background: radial-gradient(circle at 50% 15%, #2a060a 0%, #190306 55%, #090103 100%);
   border: 1.5px solid #f1f5f9;
   border-radius: 14px;
@@ -304,10 +326,11 @@
 }
 .theme-astral .moon-phases { display: flex; align-items: center; gap: 4px; }
 .theme-astral .moon-dot { width: 5px; height: 5px; border-radius: 50%; border: 1px solid #cbd5e1; background: transparent; }
-.theme-astral .moon-dot.eclipse { background: #ff2a44; border-color: #ffffff; box-shadow: 0 0 8px #ff2a44, 0 0 4px #ffffff; }
+.theme-astral .moon-dot.dim { opacity: 0.3; }
+.theme-astral .moon-dot.mid { opacity: 0.6; }
+.theme-astral .moon-dot.eclipse { background: #ff2a44; border-color: #ffffff; box-shadow: 0 0 8px #ff2a44, 0 0 4px #ffffff; opacity: 1; }
 
-/* 塔罗相框：高度控制在 190px，给下方的神圣符记与金句充足空间 */
-.theme-astral .char-photo-box {
+.theme-astral .photo-box {
   height: 190px;
   border: 1px solid rgba(226, 232, 240, 0.35);
   border-radius: 6px;
@@ -356,7 +379,7 @@
 /* =========================================================
    模板 4：【暗夜未来特工令】(theme-tactical)
 ========================================================= */
-.char-card-wrapper.theme-tactical {
+.char-card-base.theme-tactical {
   background: #08090d;
   border: 1.5px solid rgba(136, 171, 218, 0.5);
   color: #f8fafc;
@@ -378,8 +401,7 @@
 }
 .theme-tactical .sync-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
 
-/* 相框高度舒展控制在 200px */
-.theme-tactical .char-photo-box {
+.theme-tactical .photo-box {
   height: 200px;
   background: #0f1118;
   border: 1px solid rgba(136, 171, 218, 0.35);
@@ -417,12 +439,15 @@
 }
 .theme-tactical .tac-signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 9px; }
 .theme-tactical .sig-bar { width: 2px; background: var(--accent-blue); border-radius: 1px; }
+.theme-tactical .sig-bar.h1 { height: 4px; }
+.theme-tactical .sig-bar.h2 { height: 6px; }
+.theme-tactical .sig-bar.h3 { height: 8px; }
+.theme-tactical .sig-bar.h4 { height: 10px; }
 
 /* =========================================================
    模板 5：【法式极简画报】(theme-french)
 ========================================================= */
-.char-card-base.theme-french,
-.char-card-wrapper.theme-french {
+.char-card-base.theme-french {
   background: #ffffff; border: 1px solid #111215; padding: 18px 16px 18px; border-radius: 2px;
 }
 .theme-french .french-outer-border { position: absolute; inset: 5px; border: 1.5px solid #111215; pointer-events: none; z-index: 1; }
@@ -435,8 +460,7 @@
 .theme-french .french-logo { font-size: 22px; font-weight: 600; letter-spacing: 5px; text-transform: uppercase; color: #111215; line-height: 1.1; font-family: "Didot", "Playfair Display", serif; }
 .theme-french .french-sub-head { font-size: 7.5px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; letter-spacing: 3px; text-transform: uppercase; color: #9e8a78; margin-top: 4px; font-weight: 600; }
 
-/* 法式相框高度舒展控制在 195px */
-.theme-french .char-photo-box {
+.theme-french .photo-box {
   height: 195px;
   background: #f8f8f7;
   border: 0.5px solid rgba(17, 18, 21, 0.2);
@@ -456,61 +480,3 @@
   letter-spacing: 1.5px; color: #9c9a9e; text-transform: uppercase; position: relative; z-index: 2; flex-shrink: 0;
 }
 
-/* ========== 底部吸底控制坞 ========== */
-.char-bottom-dock {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  max-width: 360px;
-  padding-top: 6px;
-  position: relative !important;
-  z-index: 50 !important;
-  pointer-events: auto !important;
-}
-
-.char-dock-arrow {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 1px solid rgba(24, 25, 28, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #18191c;
-  cursor: pointer;
-}
-.char-dock-arrow:active { transform: scale(0.92); background: #f8f9fa; }
-.char-dock-arrow svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.5; fill: none; }
-
-.char-dock-edit {
-  flex: 1;
-  height: 42px;
-  border-radius: 21px;
-  background: #18191c;
-  color: #ffffff;
-  border: none;
-  font-size: 13.5px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  box-shadow: 0 4px 14px rgba(24, 25, 28, 0.2);
-  cursor: pointer;
-  font-family: inherit;
-}
-.char-dock-edit:active { transform: scale(0.97); background: #000000; }
-.char-dock-edit svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2; fill: none; }
-
-/* 仅限 PWA 桌面端生效：拉开编辑按钮与卡片的距离 */
-@media (display-mode: standalone) {
-  .char-bottom-dock {
-    margin-top: 28px !important;
-    padding-bottom: calc(14px + var(--safe-bottom)) !important;
-  }
-}
