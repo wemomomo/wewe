@@ -236,7 +236,7 @@ html, body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0.92);
-  width: 340px;
+  width: 240px;
   height: 110px;
   max-width: calc(100vw - 32px);
   padding: 10px 24px;
