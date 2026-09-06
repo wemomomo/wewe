@@ -108,8 +108,20 @@
     renderStep2();
   }
 
+  // 返回主外壳统一调度器
+  function exitToMainShell() {
+    var mainContainer = document.getElementById('archiveContent');
+    if (window.ArchiveApp && typeof window.ArchiveApp.renderShell === 'function') {
+      window.ArchiveApp.renderShell();
+    } else {
+      // 容错兜底：通过模拟点击重新触发外壳渲染
+      var btn = document.getElementById('tabCharBtn');
+      if (btn) btn.click();
+    }
+  }
+
   // ==========================================
-  // 对外暴露的标准引擎对象 (与 archive.js 对接)
+  // 对外暴露的标准引擎对象
   // ==========================================
   window.CharacterEngine = {
     render: function(viewportEl) {
@@ -224,7 +236,7 @@
       + '<div class="journal-header-divider"><span class="divider-line"></span><span class="divider-star">✦</span><span class="divider-line"></span></div>'
       + '</div>'
 
-      // 01. 基础身份
+      // 01. 基础设定
       + '<div class="journal-section">'
       + '<div class="section-lead-title"><div class="section-name"><span class="sec-index">01.</span><span>基础设定</span></div><span class="section-tag-en">IDENTITY</span></div>'
       + '<div class="ruled-row-grid">'
@@ -327,13 +339,13 @@
 
     function exitForm() {
       if (charList.length > 0 && cur.name && cur.name !== '') {
-        window.CharacterEngine.render();
+        exitToMainShell();
       } else if (charList.length > 0) {
         charList = charList.filter(function(u) { return u.id !== cur.id; });
-        if (charList.length) { currentCharId = charList[0].id; window.CharacterEngine.render(); }
-        else { renderStep1(); }
+        if (charList.length) { currentCharId = charList[0].id; exitToMainShell(); }
+        else { exitToMainShell(); }
       } else {
-        renderStep1();
+        exitToMainShell();
       }
     }
 
@@ -425,7 +437,7 @@
       if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下角色姓名哦'); return; }
       saveFormDataToCur();
       saveCurrentToDB(function() {
-        window.CharacterEngine.render();
+        exitToMainShell();
       });
     });
   }
