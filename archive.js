@@ -903,34 +903,36 @@
   }
 
   // ==========================================
-  // 角色 5 款卡片 HTML
+  // 角色 5 款卡片 HTML（顺序：01档案 02手账 03特工 04塔罗 05画报）
   // ==========================================
   function renderCharCardHtml(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
-      var tagsArr = (cur.tags || 'AI温柔男友 专属守护 你的心动执行官').split(/\s+/).filter(Boolean);
-      var tagItems = tagsArr.map(function(t){ return '<span class="tag-item" contenteditable="true" spellcheck="false"># ' + esc(t) + '</span>'; }).join('');
-
+      // 01. 冷调精美档案卡
       return '<div class="char-card-base theme-archive">'
         + '<div class="card-bg-dots"></div>'
         + '<div class="card-top-bar"><div class="card-serial" id="cardSerial" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.serial || 'NO. 92WOB007STZT') + '</div><div class="card-brand" contenteditable="true" spellcheck="false">NIVEOUS ARCHIVE</div></div>'
         + '<div class="photo-frame-wrap">'
-        + '<div class="left-deco-bar"><div class="vert-text">SEC. 09 // REF</div><div class="deco-ruler"><span class="ruler-line rl-long"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-mid"></span><span class="ruler-line rl-short"></span><span class="ruler-line rl-long"></span></div><div class="vert-text">LATUE JMSÁAND</div></div>'
-        + '<div class="right-deco-line"><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg><div class="vert-dash-line"></div><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg></div>'
+        + '<div class="left-deco-bar"><div class="vert-text">SEC. 09 // REF</div><div class="vert-text">SPECIMEN</div></div>'
+        + '<div class="right-deco-line"><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg><div style="width:1px; height:30px; background:#cbd5e1;"></div><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg><div style="width:1px; height:30px; background:#cbd5e1;"></div><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg></div>'
         + '<div class="photo-box' + hasPhotoClass + '" id="cardPhotoBtn"><div class="frame-corner c-tl"></div><div class="frame-corner c-tr"></div><div class="frame-corner c-bl"></div><div class="frame-corner c-br"></div><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>点击上传立绘</span></div></div>'
         + '</div>'
-        + '<div class="character-info-box">'
-        + '<div class="char-name-row"><div class="char-name" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="char-romaji" id="cardTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'MINGYE // DEPT.01') + '</div></div>'
-        + '<div class="char-tags-row">' + tagItems + '</div>'
+        + '<div class="archive-bottom-zone">'
+        + '<div class="char-spec-header">'
+        + '<div class="name-block"><div class="char-name" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="char-en-sub" id="cardTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'COMMANDER // DEPT.01') + '</div></div>'
+        + '<div class="huge-shadow-num" contenteditable="true" spellcheck="false">01</div>'
+        + '</div>'
+        + '<div class="precision-axis-line"><div class="axis-dot"></div><div class="axis-line"></div><div class="axis-cross">+</div><div class="axis-line" style="background: linear-gradient(to right, rgba(74, 107, 143, 0.15), rgba(136, 171, 218, 0.4));"></div><div class="axis-dot"></div></div>'
         + '<div class="char-intro-text" id="cardQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote0 || DEFAULT_CHAR_QUOTES[0]) + '</div>'
         + '</div>'
         + '<div class="card-footer-bar"><div class="qr-box"><svg viewBox="0 0 24 24"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v3h-3v-3zm-5 0h2v2h-2v-2zm2 3h2v2h-2v-2zm3 0h3v3h-3v-3zm-3 3h2v2h-2v-2z"/></svg></div><div class="barcode-horiz"><span class="b2"></span><span class="b1"></span><span class="b3"></span><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b2"></span><span class="b1"></span><span class="b2"></span></div></div>'
         + '</div>';
     } else if (tplIdx === 1) {
+      // 02. 机能手账（纯黑白灰纸质版）
       return '<div class="char-card-base theme-notebook">'
-        + '<div class="nb-outer-border"></div><div class="nb-corner-tl"></div><div class="nb-corner-br"><svg viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg></div>'
+        + '<div class="nb-outer-border"></div><div class="nb-corner-tl"></div><div class="nb-corner-br"><svg viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 23,12 9.5,9.5"/></svg></div>'
         + '<div class="nb-top-bar"><div class="nb-top-title" contenteditable="true" spellcheck="false">TACTICAL NOTEBOOK // SPECIMEN</div><div class="nb-top-tag" contenteditable="true" spellcheck="false">LOG 007</div></div>'
         + '<div class="nb-main-layout">'
-        + '<div class="nb-sidebar-left"><div class="nb-vert-text">NIVEOUS SPECIFICATION</div><div class="nb-vert-barcode"><span class="vb-w2"></span><span class="vb-w1"></span><span class="vb-w3"></span><span class="vb-w1"></span><span class="vb-w2"></span></div><div class="nb-mini-qr"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>'
+        + '<div class="nb-sidebar-left"><div class="nb-vert-text">NIVEOUS SPECIFICATION</div><div class="nb-vert-barcode"><span style="width:2px;"></span><span style="width:1px;"></span><span style="width:3px;"></span><span style="width:1px;"></span><span style="width:2px;"></span></div><div class="nb-mini-qr"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>'
         + '<div class="photo-box' + hasPhotoClass + '" id="cardPhotoBtn"><div class="frame-cross tl"></div><div class="frame-cross tr"></div><div class="frame-cross bl"></div><div class="frame-cross br"></div><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>置入手账样本特写</span></div></div>'
         + '<div class="nb-sidebar-right"><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg><div class="dashed-line"></div><div class="geo-dots"><span></span><span></span><span></span></div><div class="dashed-line"></div><svg class="star-icon" viewBox="0 0 24 24"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5"/></svg></div>'
         + '</div>'
@@ -938,38 +940,40 @@
         + '<div class="nb-name-row"><div class="char-name" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="nb-char-serial">DESIGNATION // 01</div></div>'
         + '<div class="nb-spec-matrix">'
         + '<div class="spec-cell"><span class="cell-label">CLASS</span><span class="cell-val" id="cardTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'COMMANDER') + '</span></div>'
-        + '<div class="spec-cell"><span class="cell-label">AFFINITY</span><span class="cell-val" contenteditable="true" spellcheck="false">100% </span></div>'
+        + '<div class="spec-cell"><span class="cell-label">AFFINITY</span><span class="cell-val" contenteditable="true" spellcheck="false">100%</span></div>'
         + '<div class="spec-cell"><span class="cell-label">STATUS</span><span class="cell-val" contenteditable="true" spellcheck="false">ACTIVE</span></div>'
         + '</div>'
         + '<div class="nb-memo-container">'
         + '<div class="memo-tape-header"><span class="tape-tag">FIELD MEMO</span><span class="memo-date">NIV-LOG // 2025</span></div>'
         + '<div class="char-intro-text" id="cardQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote1 || DEFAULT_CHAR_QUOTES[1]) + '</div>'
-        + '<div class="nb-red-seal">EXECUTED · 你的专属</div>'
         + '</div>'
         + '<div class="nb-footer-holes"><div class="holes-row"><div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div></div><span class="nb-foot-code">ARCHIVE SYSTEM · NOTEBOOK SPEC</span></div>'
         + '</div></div>';
     } else if (tplIdx === 2) {
-      return '<div class="char-card-base theme-astral">'
-        + '<div class="astral-inner-frame"></div>'
-        + '<div class="astral-top-bar"><span class="astral-arcana-num">✦ ARCANA XIII // CRIMSON & SILVER</span><div class="moon-phases"><div class="moon-dot dim"></div><div class="moon-dot mid"></div><div class="moon-dot eclipse"></div><div class="moon-dot mid"></div><div class="moon-dot dim"></div></div></div>'
-        + '<div class="photo-box' + hasPhotoClass + '" id="cardPhotoBtn"><div class="tarot-corner tc-tl"></div><div class="tarot-corner tc-tr"></div><div class="tarot-corner tc-bl"></div><div class="tarot-corner tc-br"></div><div class="astral-badge-seal"><span>BLOOD OATH</span></div><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="text-white-force">置入血月圣像特写</span></div></div>'
-        + '<div class="astral-info-sec">'
-        + '<div class="char-tag" id="cardTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'THE ETERNAL NIGHT EMPEROR') + '</div>'
-        + '<div class="char-name" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div>'
-        + '<div class="tarot-glyph-separator"><div class="glyph-line"></div><div class="glyph-symbol">☽ ✧ ☾</div><div class="glyph-line"></div></div>'
-        + '<div class="char-intro-text" id="cardQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote2 || DEFAULT_CHAR_QUOTES[2]) + '</div>'
-        + '<div class="astral-foot-matrix"><span>SANCTUM IMPERIUM</span><span>ORBIT // 333°</span><span>MMXXV · ETERNAL</span></div>'
-        + '</div></div>';
-    } else if (tplIdx === 3) {
+      // 03. 暗夜未来特工令 (第3顺位)
       return '<div class="char-card-base theme-tactical">'
         + '<div class="tac-top-bar"><span class="tac-badge">TOP SECRET · CLASSIFIED</span><div class="tac-sync-rate"><div class="sync-dot"></div><span>NEURAL SYNC 99.8%</span></div></div>'
         + '<div class="photo-box' + hasPhotoClass + '" id="cardPhotoBtn"><div class="tac-grid-bg"></div><span class="target-lock-text">[ ⛶ TARGET LOCKED ]</span><div class="tac-stamp">ENCRYPTED</div><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>载入全息战术特写</span></div></div>'
         + '<div class="tac-content">'
         + '<div class="name-row"><div class="char-name" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div><div class="char-tag" id="cardTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'CHIEF SPECIAL AGENT #007') + '</div></div>'
+        + '<div class="char-intro-text" id="cardQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote2 || DEFAULT_CHAR_QUOTES[2]) + '</div>'
+        + '<div class="tac-bottom-matrix"><span>QUANTUM HASH: 7F8E-902A</span><div class="tac-signal-bars"><div class="sig-bar" style="height: 4px;"></div><div class="sig-bar" style="height: 6px;"></div><div class="sig-bar" style="height:10px;"></div><div class="sig-bar" style="height: 8px;"></div></div></div>'
+        + '</div></div>';
+    } else if (tplIdx === 3) {
+      // 04. 暗红血月 × 发光月银塔罗 (第4顺位)
+      return '<div class="char-card-base theme-astral">'
+        + '<div class="astral-inner-frame"></div>'
+        + '<div class="astral-top-bar"><span class="astral-arcana-num">✦ ARCANA XIII // CRIMSON & SILVER</span><div class="moon-phases"><div class="moon-dot" style="opacity:0.3;"></div><div class="moon-dot" style="opacity:0.6;"></div><div class="moon-dot eclipse"></div><div class="moon-dot" style="opacity:0.6;"></div><div class="moon-dot" style="opacity:0.3;"></div></div></div>'
+        + '<div class="photo-box' + hasPhotoClass + '" id="cardPhotoBtn"><div class="tarot-corner tc-tl"></div><div class="tarot-corner tc-tr"></div><div class="tarot-corner tc-bl"></div><div class="tarot-corner tc-br"></div><div class="astral-badge-seal"><span>BLOOD OATH</span></div><img id="cardPhotoImg" src="' + esc(cur.photo) + '" alt="立绘"><div class="photo-empty"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span style="color:#ffffff;">置入血月圣像特写</span></div></div>'
+        + '<div class="astral-info-sec">'
+        + '<div class="char-tag" id="cardTagRomaji" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.tagRomaji || 'THE ETERNAL NIGHT EMPEROR') + '</div>'
+        + '<div class="char-name" id="cardName" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.name) + '</div>'
+        + '<div class="tarot-glyph-separator"><div class="glyph-line"></div><div class="glyph-symbol">☽ ✧ ☾</div><div class="glyph-line"></div></div>'
         + '<div class="char-intro-text" id="cardQuote" contenteditable="true" spellcheck="false">' + formatLineBreaks(cur.quote3 || DEFAULT_CHAR_QUOTES[3]) + '</div>'
-        + '<div class="tac-bottom-matrix"><span>QUANTUM HASH: 7F8E-902A</span><div class="tac-signal-bars"><div class="sig-bar h1"></div><div class="sig-bar h2"></div><div class="sig-bar h4"></div><div class="sig-bar h3"></div></div></div>'
+        + '<div class="astral-foot-matrix"><span>SANCTUM IMPERIUM</span><span>ORBIT // 333°</span><span>MMXXV · ETERNAL</span></div>'
         + '</div></div>';
     } else {
+      // 05. 法式极简画报 (第5顺位)
       return '<div class="char-card-base theme-french">'
         + '<div class="french-outer-border"></div>'
         + '<div class="french-header"><div class="french-logo">L\'ÉTERNEL</div><div class="french-sub-head">ÉDITION LIMITÉE · N°01</div></div>'
