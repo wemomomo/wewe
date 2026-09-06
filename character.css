@@ -1,11 +1,9 @@
 
 /* =========================================================
-   角色专属卡片基础舞台 (统一 520px 高度)
+   角色专属卡片基础舞台
 ========================================================= */
 .char-card-base {
   width: 100%;
-  height: 520px !important;
-  max-height: 520px !important;
   background: #ffffff;
   position: relative;
   box-shadow: 0 16px 40px rgba(74, 107, 143, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -16,10 +14,10 @@
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* 相框通用基础：黄金比例尺寸，不挤压文字空间 */
+/* 相框通用基础：统一支持撑满图片与默认状态 */
 .char-card-base .photo-box {
   width: 100%;
-  background: #f8fafc;
+  background: #ffffff !important;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -62,55 +60,69 @@
 
 /* =========================================================
    模板 1：【冷调精美档案卡】(theme-archive)
+   ★ 上中下距离与相框高度 100% 严格对齐用户第 1 款卡片
 ========================================================= */
 .char-card-base.theme-archive {
-  border-radius: 18px;
-  padding: 14px 12px 14px;
-  gap: 8px;
-  border: 1px solid rgba(176, 204, 232, 0.4);
+  border-radius: 24px;
+  padding: 16px 14px 18px; /* 对齐用户外框 Padding */
+  box-shadow: 0 20px 50px rgba(74, 107, 143, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   background: #ffffff;
+  position: relative;
 }
 
 .theme-archive .card-bg-dots {
   position: absolute;
-  top: 0; right: 0; width: 110px; height: 110px;
-  background-image: radial-gradient(#94a3b8 1px, transparent 1px);
-  background-size: 8px 8px; opacity: 0.25; pointer-events: none;
+  top: 4px; right: 4px; width: 70px; height: 70px;
+  background-image: radial-gradient(#2b333e 1px, transparent 1px);
+  background-size: 5px 5px; opacity: 0.18; pointer-events: none;
+  border-radius: 0 14px 0 0;
 }
 
 .theme-archive .card-top-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 4px 6px; border-bottom: 1px dashed #cbd5e1; flex-shrink: 0;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding-bottom: 0; border-bottom: none; flex-shrink: 0;
+  position: relative; z-index: 2;
 }
-.theme-archive .card-serial { font-size: 9.5px; font-family: monospace; font-weight: 700; letter-spacing: 2px; color: #64748b; }
-.theme-archive .card-brand { font-size: 9px; letter-spacing: 2.5px; color: #88abda; text-transform: uppercase; font-weight: 700; }
+.theme-archive .card-serial { font-size: 10px; font-family: monospace; font-weight: 700; letter-spacing: 2px; color: #7a9ec7; }
+.theme-archive .card-brand { font-size: 10.5px; letter-spacing: 1px; color: #ffffff; background: #242b35; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
 
 .theme-archive .photo-frame-wrap {
-  position: relative; width: 100%; padding: 4px 14px 6px 26px; flex-shrink: 0;
+  position: relative; width: 100%;
+  display: flex; align-items: stretch; gap: 10px;
+  padding: 0; margin-top: 12px; /* 对齐内框 gap 12px */
+  flex-shrink: 0;
 }
 .theme-archive .left-deco-bar {
-  position: absolute; left: 4px; top: 6px; bottom: 6px;
-  display: flex; flex-direction: column; align-items: center; justify-content: space-between; pointer-events: none;
+  width: 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 4px 0; flex-shrink: 0; pointer-events: none;
 }
-.theme-archive .vert-text { writing-mode: vertical-rl; text-orientation: mixed; font-size: 7.5px; letter-spacing: 2px; color: #94a3b8; font-family: monospace; font-weight: 600; }
+.theme-archive .vert-text { writing-mode: vertical-rl; text-orientation: mixed; font-size: 8px; letter-spacing: 2px; color: #4a5568; font-family: monospace; font-weight: 600; }
 .theme-archive .deco-ruler { display: flex; flex-direction: column; gap: 2.5px; align-items: flex-start; width: 10px; }
-.theme-archive .ruler-line { background: #94a3b8; height: 1px; display: block; }
-.theme-archive .rl-long { width: 10px; background: #4a6b8f; }
+.theme-archive .ruler-line { background: #2b333e; height: 1px; display: block; }
+.theme-archive .rl-long { width: 10px; height: 2px; }
 .theme-archive .rl-mid { width: 6px; }
 .theme-archive .rl-short { width: 3px; }
 
 .theme-archive .right-deco-line {
-  position: absolute; right: 4px; top: 12px; bottom: 12px;
-  display: flex; flex-direction: column; align-items: center; justify-content: space-around; pointer-events: none;
+  width: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-around;
+  padding: 6px 0; flex-shrink: 0; pointer-events: none;
 }
-.theme-archive .star-icon { width: 9px; height: 9px; fill: #4a6b8f; }
-.theme-archive .vert-dash-line { width: 1px; height: 26px; background: #cbd5e1; }
+.theme-archive .star-icon { width: 10px; height: 10px; fill: #242b35; }
+.theme-archive .vert-dash-line { width: 1px; height: 30px; border-left: 1.2px dashed #a0aec0; }
 
+/* 相框固定 350px 高度（完全与用户端相框一模一样） */
 .theme-archive .photo-box {
-  height: 200px;
-  border: 1.5px solid #1e293b;
-  border-radius: 4px;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 350px !important;
+  border-radius: 16px;
+  border: 1.5px solid #2b333e;
   box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  position: relative;
 }
 .theme-archive .frame-corner { position: absolute; width: 7px; height: 7px; border: 1.5px solid #1e293b; pointer-events: none; z-index: 2; }
 .theme-archive .c-tl { top: 2px; left: 2px; border-right: none; border-bottom: none; }
@@ -118,20 +130,38 @@
 .theme-archive .c-bl { bottom: 2px; left: 2px; border-right: none; border-top: none; }
 .theme-archive .c-br { bottom: 2px; right: 2px; border-left: none; border-top: none; }
 
-.theme-archive .character-info-box { display: flex; flex-direction: column; gap: 6px; padding: 2px 2px; flex: 1; min-height: 0; }
+.theme-archive .character-info-box {
+  display: flex; flex-direction: column;
+  gap: 6px; /* 对齐用户底部 gap 6px */
+  padding-top: 8px; /* 对齐用户底部 padding-top 8px */
+  border-top: 1px dashed rgba(43, 51, 62, 0.25);
+  margin-top: 12px !important; /* 对齐用户底部 margin-top 12px */
+  flex-shrink: 0;
+  position: relative;
+}
 .theme-archive .char-name-row { display: flex; align-items: baseline; justify-content: space-between; }
-.theme-archive .char-name { font-size: 19px; font-weight: 800; letter-spacing: 0.5px; color: #1c1c1e; }
-.theme-archive .char-romaji { font-size: 10px; color: #71717a; font-family: monospace; letter-spacing: 1px; }
+.theme-archive .char-name { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; color: #242b35; }
+.theme-archive .char-romaji { font-size: 11px; color: #7a9ec7; font-family: monospace; font-weight: 600; }
 
-.theme-archive .char-tags-row { display: flex; gap: 5px; flex-wrap: wrap; }
-.theme-archive .tag-item { font-size: 9.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: #f4f4f5; color: #52525b; border: 0.5px solid #e4e4e7; }
-.theme-archive .char-intro-text { font-size: 11.5px; line-height: 1.55; color: #52525b; background: #fafafa; border-radius: 6px; padding: 6px 8px; border: 0.5px solid #f4f4f5; flex: 1; }
+.theme-archive .char-tags-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.theme-archive .tag-item {
+  font-size: 11.5px; font-weight: 600; padding: 3.5px 9px; border-radius: 8px;
+  background: #f0f5fa; color: #4a6b8f; border: 0.5px solid rgba(176, 204, 232, 0.6);
+}
+.theme-archive .char-intro-text {
+  font-size: 13.5px; line-height: 1.55; color: #3a424e; font-weight: 500;
+  padding: 0; background: transparent; border: none;
+}
 
-.theme-archive .card-footer-bar { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 0; flex-shrink: 0; }
-.theme-archive .qr-box { width: 22px; height: 22px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 2px; background: #fff; display: flex; align-items: center; justify-content: center; }
-.theme-archive .qr-box svg { width: 100%; height: 100%; fill: #1e293b; }
+.theme-archive .card-footer-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 6px; border-top: 1px dashed rgba(43, 51, 62, 0.15); margin-top: 2px;
+  flex-shrink: 0;
+}
+.theme-archive .qr-box { width: 22px; height: 22px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px; background: #fff; display: flex; align-items: center; justify-content: center; }
+.theme-archive .qr-box svg { width: 100%; height: 100%; fill: #2b333e; }
 .theme-archive .barcode-horiz { display: flex; gap: 1.5px; height: 16px; align-items: flex-end; }
-.theme-archive .barcode-horiz span { background: #1e293b; display: inline-block; height: 100%; }
+.theme-archive .barcode-horiz span { background: #2b333e; display: inline-block; height: 100%; }
 .theme-archive .b1 { width: 1px; }
 .theme-archive .b2 { width: 2px; }
 .theme-archive .b3 { width: 3px; }
