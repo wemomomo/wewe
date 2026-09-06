@@ -1025,10 +1025,75 @@
       renderStep2();
     });
 
-    // 右滑返回主页
+    //    // ============ 精准防冲突手势逻辑 ============
     var root = document.getElementById('archiveScreenRoot');
     var touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
 
+    if (root) {
+      root.addEventListener('touchstart', function(e) {
+        // 1. 如果正在打字或点击了可编辑文字，绝对禁止触发任何手势
+        var activeEl = document.activeElement;
+        if (activeEl && (activeEl.isContentEditable || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+        if (e.target.closest('[contenteditable="true"]')) return;
+
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchEndX = touchStartX;
+        touchEndY = touchStartY;
+      }, { passive: true });
+
+      root.addEventListener('touchmove', function(e) {
+        touchEndX = e.touches[0].clientX;
+        touchEndY = e.touches[0].clientY;
+      }, { passive: true });
+
+      root.addEventListener('touchend', function() {
+        var diffX = touchEndX - touchStartX;
+        var diffY = touchEndY - touchStartY;
+
+        // 只要纵向滑动大于横向滑动，说明墨墨在上下看，忽略横向操作
+        if (Math.abs(diffY) >= Math.abs(diffX)) return;
+
+        // A. 屏幕左侧边缘起步（<= 35px）且向右滑超过 40px -> 纯粹触发【退出返回主页】
+        if (touchStartX <= 35 && diffX > 40) {
+          syncDirectEdits(cur);
+          saveCurrentToDB(function() {
+            if (window.AppNav) AppNav.showPage('home');
+          });
+          return;
+        }
+
+        // B. 卡片中间区域（> 35px）横向滑动 -> 纯粹触发【卡片模板切换】
+        if (touchStartX > 35) {
+          if (diffX < -40) {
+            // 左滑 -> 下一张
+            syncDirectEdits(cur);
+            if (isUser) {
+              userTplIdx = (userTplIdx + 1) % 5;
+              cur.tplIdx = userTplIdx;
+            } else {
+              charTplIdx = (charTplIdx + 1) % 5;
+              cur.tplIdx = charTplIdx;
+            }
+            saveCurrentToDB();
+            renderSubContent();
+          } else if (diffX > 40) {
+            // 右滑 -> 上一张
+            syncDirectEdits(cur);
+            if (isUser) {
+              userTplIdx = (userTplIdx - 1 + 5) % 5;
+              cur.tplIdx = userTplIdx;
+            } else {
+              charTplIdx = (charTplIdx - 1 + 5) % 5;
+              cur.tplIdx = charTplIdx;
+            }
+            saveCurrentToDB();
+            renderSubContent();
+          }
+        }
+      }, { passive: true });
+    }
+    
     if (root) {
       root.addEventListener('touchstart', function(e) {
         var activeEl = document.activeElement;
