@@ -195,6 +195,11 @@
   pointer-events: none;
 }
 
+/* 角色标签激活时：黑色滑块平移到右侧 */
+.nav-glider-pill.char-pos {
+  transform: translateX(100%) !important;
+}
+
 .archive-nav-item {
   flex: 1;
   height: 100%;
