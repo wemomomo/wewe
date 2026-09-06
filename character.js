@@ -5,7 +5,7 @@
   var CHAR_LIST_KEY = 'character_archives_list_v1';
   var ACTIVE_CHAR_ID_KEY = 'character_archive_active_id_v1';
 
-  var container = null;
+  var subViewport = null;
   var charList = [];
   var currentCharId = null;
   var currentTplIdx = 0; // 0:档案卡, 1:机能手账, 2:血月塔罗, 3:特工令, 4:法式画报
@@ -43,25 +43,9 @@
     tplIdx: 0
   };
 
-  // 核心挂载入口（供外部随时唤醒）
-  function mountCharacter(targetEl) {
-    container = targetEl || document.getElementById('characterContent') || document.getElementById('archiveContent');
-    if (!container) return;
-    loadAllData();
-  }
-
-  // 暴露给全局调度器
-  window.CharacterApp = {
-    mount: mountCharacter,
-    refresh: function() { loadAllData(); }
-  };
-
-  // 广播引擎已就绪
-  window.dispatchEvent(new Event('characterEngineReady'));
-
-  function loadAllData() {
+  function loadAllData(callback) {
     if (!window.AppDB) {
-      setTimeout(loadAllData, 100);
+      if (callback) callback();
       return;
     }
     AppDB.get(CHAR_LIST_KEY, function(list) {
@@ -80,14 +64,11 @@
         var activeChar = getCurrentChar();
         if (activeChar) {
           currentTplIdx = activeChar.tplIdx || 0;
-          renderStep3();
         } else if (charList.length > 0) {
           currentCharId = charList[0].id;
           currentTplIdx = charList[0].tplIdx || 0;
-          renderStep3();
-        } else {
-          renderStep1();
         }
+        if (callback) callback();
       });
     });
   }
@@ -128,33 +109,45 @@
   }
 
   // ==========================================
+  // 对外暴露的标准引擎对象 (与 archive.js 对接)
+  // ==========================================
+  window.CharacterEngine = {
+    render: function(viewportEl) {
+      subViewport = viewportEl || document.getElementById('archiveSubViewport');
+      if (!subViewport) return;
+      loadAllData(function() {
+        var cur = getCurrentChar();
+        if (cur) {
+          renderStep3(cur);
+        } else if (charList.length > 0) {
+          currentCharId = charList[0].id;
+          renderStep3(charList[0]);
+        } else {
+          renderStep1();
+        }
+      });
+    },
+    syncEdits: function() {
+      var cur = getCurrentChar();
+      if (cur) {
+        syncDirectEdits(cur);
+        saveCurrentToDB();
+      }
+    },
+    openList: function() {
+      var drawerMask = document.getElementById('charDrawerMask');
+      var drawerCard = document.getElementById('charDrawerCard');
+      if (drawerMask) drawerMask.classList.add('show');
+      if (drawerCard) drawerCard.classList.add('show');
+    }
+  };
+
+  // ==========================================
   // 步骤 1：空状态凝聚冰晶
   // ==========================================
   function renderStep1() {
-    if (!container) return;
-    container.className = 'app-content archive-page-wrap archive-panel-active';
-    container.innerHTML = '<div class="archive-page-screen screen-bg-0">'
-      + '<div class="header-ornament-stage">'
-      + '<div class="ornament-artwork-layer">'
-      + '<div class="celestial-crescent-emblem"><svg viewBox="0 0 100 100"><path d="M50 10 A40 40 0 1 0 85 75 A34 34 0 1 1 50 10 Z"/><circle cx="50" cy="50" r="42" stroke-dasharray="2 3" stroke-width="0.8"/><circle cx="50" cy="50" r="28" stroke-width="0.5"/><path d="M50 8 L50 20 M50 80 L50 92 M8 50 L20 50 M80 50 L92 50" stroke-width="0.8"/></svg></div>'
-      + '<div class="astrolabe-poly"></div>'
-      + '<span class="art-star s1">✦</span><span class="art-star s2">✧</span><span class="art-star s3">✦</span>'
-      + '<span class="art-crosshair c1">+</span><span class="art-crosshair c2">+</span>'
-      + '</div>'
-      + '<div class="archive-header">'
-      + '<div class="archive-header-left">'
-      + '<button class="arch-native-back" id="charBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-      + '<div><div class="archive-subtitle">DOSSIER</div><div class="archive-title">档案</div></div>'
-      + '</div>'
-      + '</div>'
-      + '<div class="archive-nav-capsule">'
-      + '<div class="nav-glider-pill" style="transform:translateX(100%);"></div>'
-      + '<button class="archive-nav-item" id="navToUserBtn" type="button">用户档案</button>'
-      + '<button class="archive-nav-item active" id="navToCharBtn" type="button">角色档案</button>'
-      + '</div>'
-      + '</div>'
-
-      + '<div class="archive-step-panel step-active" id="charStep1">'
+    if (!subViewport) return;
+    subViewport.innerHTML = '<div class="archive-step-panel step-active" id="charStep1">'
       + '<div class="empty-card-stage">'
       + '<div class="deco-cross tl">+</div><div class="deco-cross tr">+</div>'
       + '<div class="deco-cross bl">+</div><div class="deco-cross br">+</div>'
@@ -192,36 +185,27 @@
       + '<p class="empty-desc">记录角色的外貌立绘、性格特质、专属心动台词与深度渊源，定制多款视觉卡片。</p>'
       + '<button class="action-trigger-btn" id="goToCharStep2Btn" type="button">'
       + '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
-      + '<span>新建角色档案</span>'
+      + '<span>新建角色设定</span>'
       + '</button>'
-      + '</div>'
       + '</div>'
       + '</div>';
 
-    document.getElementById('charBackBtn').addEventListener('click', function() {
-      if (window.AppNav) AppNav.showPage('home');
-    });
-
-    var navUserBtn = document.getElementById('navToUserBtn');
-    if (navUserBtn) {
-      navUserBtn.addEventListener('click', function() {
-        if (window.UserArchiveApp && window.UserArchiveApp.mount) {
-          window.UserArchiveApp.mount(container);
-        }
+    var btn = document.getElementById('goToCharStep2Btn');
+    if (btn) {
+      btn.addEventListener('click', function() {
+        createNewChar();
       });
     }
-
-    document.getElementById('goToCharStep2Btn').addEventListener('click', function() {
-      createNewChar();
-    });
   }
 
   // ==========================================
-  // 步骤 2：手账录入填单
+  // 步骤 2：角色手账录入填单
   // ==========================================
   function renderStep2() {
-    if (!container) return;
     var cur = getCurrentChar() || defaultCharProfile;
+    var container = document.getElementById('archiveContent');
+    if (!container) return;
+
     container.className = 'app-content archive-page-wrap';
     container.innerHTML = '<div class="archive-page-screen screen-bg-0">'
       + '<div class="archive-step-panel step-active" id="charStep2">'
@@ -230,34 +214,34 @@
       + '<div class="journal-header">'
       + '<div class="journal-header-top">'
       + '<div class="journal-header-top-left">'
-      + '<button class="journal-inline-back" id="charBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
+      + '<button class="journal-inline-back" id="charFormBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
       + '<span class="brand-confidential">RECORD // CHARACTER</span>'
       + '</div>'
       + '<span class="brand-serial">创檔日期：' + esc(cur.createDate || getTodayDateStr()) + '</span>'
       + '</div>'
-      + '<h1 class="journal-main-title">角色档案手札</h1>'
-      + '<p class="journal-desc-text">在这里提笔，细致记录角色的外貌神韵、性格内核与专属浪漫羁绊。</p>'
+      + '<h1 class="journal-main-title">角色手札</h1>'
+      + '<p class="journal-desc-text">细致记录角色的外貌神韵、性格内核与专属浪漫羁绊。</p>'
       + '<div class="journal-header-divider"><span class="divider-line"></span><span class="divider-star">✦</span><span class="divider-line"></span></div>'
       + '</div>'
 
-      // 01. 基础设定
+      // 01. 基础身份
       + '<div class="journal-section">'
       + '<div class="section-lead-title"><div class="section-name"><span class="sec-index">01.</span><span>基础设定</span></div><span class="section-tag-en">IDENTITY</span></div>'
       + '<div class="ruled-row-grid">'
-      + '<div class="ruled-item"><span class="ruled-label">角色姓名</span><input type="text" class="ruled-input" id="charFieldName" value="' + esc(cur.name) + '" placeholder="如：冥夜"></div>'
-      + '<div class="ruled-item"><span class="ruled-label">性别</span><input type="text" class="ruled-input" id="charFieldGender" value="' + esc(cur.gender) + '" placeholder="如：男"></div>'
-      + '<div class="ruled-item"><span class="ruled-label">年龄</span><input type="text" class="ruled-input" id="charFieldAge" value="' + esc(cur.age) + '" placeholder="如：20"></div>'
-      + '<div class="ruled-item"><span class="ruled-label">身高</span><input type="text" class="ruled-input" id="charFieldHeight" value="' + esc(cur.height) + '" placeholder="如：185cm"></div>'
-      + '<div class="ruled-item"><span class="ruled-label">生日</span><input type="text" class="ruled-input" id="charFieldBirthday" value="' + esc(cur.birthday) + '" placeholder="如：09.24"></div>'
-      + '<div class="ruled-item"><span class="ruled-label">星座</span><input type="text" class="ruled-input" id="charFieldZodiac" value="' + esc(cur.zodiac) + '" placeholder="如：天秤座"></div>'
+      + '<div class="ruled-item"><span class="ruled-label">角色姓名</span><input type="text" class="ruled-input" id="charFieldName" value="' + esc(cur.name) + '" placeholder=""></div>'
+      + '<div class="ruled-item"><span class="ruled-label">性别</span><input type="text" class="ruled-input" id="charFieldGender" value="' + esc(cur.gender) + '" placeholder=""></div>'
+      + '<div class="ruled-item"><span class="ruled-label">年龄</span><input type="text" class="ruled-input" id="charFieldAge" value="' + esc(cur.age) + '" placeholder=""></div>'
+      + '<div class="ruled-item"><span class="ruled-label">身高</span><input type="text" class="ruled-input" id="charFieldHeight" value="' + esc(cur.height) + '" placeholder=""></div>'
+      + '<div class="ruled-item"><span class="ruled-label">生日</span><input type="text" class="ruled-input" id="charFieldBirthday" value="' + esc(cur.birthday) + '" placeholder=""></div>'
+      + '<div class="ruled-item"><span class="ruled-label">星座</span><input type="text" class="ruled-input" id="charFieldZodiac" value="' + esc(cur.zodiac) + '" placeholder=""></div>'
       + '</div>'
       + '</div>'
 
-      // 02. 长相与外貌特征
+      // 02. 外貌长相
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">02.</span><span>外貌长相与气质</span></div>'
-      + '<div style="display:flex; align-items:center; gap:6px;">'
+      + '<div class="section-lead-right">'
       + '<span class="section-tag-en">APPEARANCE</span>'
       + '<button class="expand-edit-btn" data-expand-target="charFieldAppearance" data-expand-title="02. 外貌长相与气质" type="button" title="扩大编辑">'
       + '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
@@ -267,26 +251,26 @@
       + '<textarea class="ruled-textarea" id="charFieldAppearance" rows="2" placeholder="发色、眸色、五官气质、身形线条、专属穿搭...">' + esc(cur.appearance) + '</textarea>'
       + '</div>'
 
-      // 03. 性格特质与语气
+      // 03. 性格特质
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">03.</span><span>性格特质与言行语气</span></div>'
-      + '<div style="display:flex; align-items:center; gap:6px;">'
+      + '<div class="section-lead-right">'
       + '<span class="section-tag-en">PERSONALITY</span>'
       + '<button class="expand-edit-btn" data-expand-target="charFieldPersonality" data-expand-title="03. 性格特质与言行语气" type="button" title="扩大编辑">'
       + '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
       + '</button>'
       + '</div>'
       + '</div>'
-      + '<div class="ruled-item" style="margin-bottom:6px;"><span class="ruled-label">专属标签</span><input type="text" class="ruled-input" id="charFieldTags" value="' + esc(cur.tags) + '" placeholder="多个标签用空格分隔"></div>'
+      + '<div class="ruled-item compact-item"><span class="ruled-label">专属标签</span><input type="text" class="ruled-input" id="charFieldTags" value="' + esc(cur.tags) + '" placeholder="多个标签用空格分隔"></div>'
       + '<textarea class="ruled-textarea" id="charFieldPersonality" rows="2" placeholder="性格核心、对话语气习惯、面对喜欢的人的特殊偏爱表现...">' + esc(cur.personality) + '</textarea>'
       + '</div>'
 
-      // 04. 兴趣爱好与日常
+      // 04. 兴趣爱好
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">04.</span><span>日常习惯与喜好偏好</span></div>'
-      + '<div style="display:flex; align-items:center; gap:6px;">'
+      + '<div class="section-lead-right">'
       + '<span class="section-tag-en">HOBBIES & LIKES</span>'
       + '<button class="expand-edit-btn" data-expand-target="charFieldHobbies" data-expand-title="04. 日常习惯与喜好偏好" type="button" title="扩大编辑">'
       + '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
@@ -296,11 +280,11 @@
       + '<textarea class="ruled-textarea" id="charFieldHobbies" rows="2" placeholder="喜欢的饮品、日常爱好、特殊习惯细节...">' + esc(cur.hobbies) + '</textarea>'
       + '</div>'
 
-      // 05. 深度渊源与人设
+      // 05. 深度设定
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">05.</span><span>深度设定与故事渊源</span></div>'
-      + '<div style="display:flex; align-items:center; gap:6px;">'
+      + '<div class="section-lead-right">'
       + '<span class="section-tag-en">BACKGROUND & LORE</span>'
       + '<button class="expand-edit-btn" data-expand-target="charFieldBackground" data-expand-title="05. 深度设定与故事渊源" type="button" title="扩大编辑">'
       + '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
@@ -311,13 +295,12 @@
       + '</div>'
 
       + '<div class="journal-tear-strip">'
-      + '<div class="journal-sign-box"><span class="sign-label">AUTHENTICATED DOSSIER</span><span class="sign-handwriting">✦ Official Character Record</span></div>'
-      + '<div class="journal-seal-stamp"><span class="seal-star">✦</span><span>NIVEOUS</span><span>CHARACTER</span></div>'
+      + '<div class="journal-sign-box"><span class="sign-handwriting">✦ Verified Character Dossier</span></div>'
+      + '<div class="journal-seal-stamp"><span>NIVEOUS</span><span>OFFICIAL</span></div>'
       + '</div>'
 
-      + '<button class="action-trigger-btn" id="generateCharCardBtn" style="max-width:100%; height:44px; border-radius:12px;" type="button">'
-      + '<svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>'
-      + '<span>封存档案并生成小卡</span>'
+      + '<button class="action-trigger-btn save-seal-btn" id="generateCharCardBtn" type="button">'
+      + '<span> 封存档案 </span>'
       + '</button>'
       + '</div>'
       + '</div>'
@@ -342,93 +325,39 @@
 
       + '</div>';
 
-    var originalSnapshot = JSON.stringify({
-      name: cur.name || '',
-      gender: cur.gender || '',
-      age: cur.age || '',
-      height: cur.height || '',
-      birthday: cur.birthday || '',
-      zodiac: cur.zodiac || '',
-      appearance: cur.appearance || '',
-      personality: cur.personality || '',
-      tags: cur.tags || '',
-      hobbies: cur.hobbies || '',
-      background: cur.background || ''
-    });
-
-    function step2BackHandler() {
-      var modal = document.getElementById('charExpandModalOverlay');
-      if (modal && modal.classList.contains('show')) {
-        closeExpandModal();
-        return;
-      }
-
-      var currentSnapshot = JSON.stringify({
-        name: (document.getElementById('charFieldName') ? document.getElementById('charFieldName').value : '').replace(/[✞✟✠]/g, ''),
-        gender: (document.getElementById('charFieldGender') ? document.getElementById('charFieldGender').value : ''),
-        age: (document.getElementById('charFieldAge') ? document.getElementById('charFieldAge').value : ''),
-        height: (document.getElementById('charFieldHeight') ? document.getElementById('charFieldHeight').value : ''),
-        birthday: (document.getElementById('charFieldBirthday') ? document.getElementById('charFieldBirthday').value : ''),
-        zodiac: (document.getElementById('charFieldZodiac') ? document.getElementById('charFieldZodiac').value : ''),
-        appearance: (document.getElementById('charFieldAppearance') ? document.getElementById('charFieldAppearance').value : ''),
-        personality: (document.getElementById('charFieldPersonality') ? document.getElementById('charFieldPersonality').value : ''),
-        tags: (document.getElementById('charFieldTags') ? document.getElementById('charFieldTags').value : ''),
-        hobbies: (document.getElementById('charFieldHobbies') ? document.getElementById('charFieldHobbies').value : ''),
-        background: (document.getElementById('charFieldBackground') ? document.getElementById('charFieldBackground').value : '')
-      });
-
-      var isModified = (originalSnapshot !== currentSnapshot);
-
-      if (isModified) {
-        var shouldSave = confirm('检测到角色内容已修改，是否保存？');
-        if (shouldSave) {
-          var nameVal = (document.getElementById('charFieldName') ? document.getElementById('charFieldName').value : '').replace(/[✞✟✠]/g, '');
-          if (!nameVal.trim()) {
-            AppNav.showToast('角色姓名不能为空哦');
-            return;
-          }
-          cur.name = nameVal;
-          cur.gender = document.getElementById('charFieldGender').value || '男';
-          cur.age = document.getElementById('charFieldAge').value || '20';
-          cur.height = document.getElementById('charFieldHeight').value || '185cm';
-          cur.birthday = document.getElementById('charFieldBirthday').value;
-          cur.zodiac = document.getElementById('charFieldZodiac').value || '天秤座';
-          cur.appearance = document.getElementById('charFieldAppearance').value;
-          cur.personality = document.getElementById('charFieldPersonality').value;
-          cur.tags = document.getElementById('charFieldTags').value;
-          cur.hobbies = document.getElementById('charFieldHobbies').value;
-          cur.background = document.getElementById('charFieldBackground').value;
-
-          if (cur.birthday) {
-            var cleanDigits = cur.birthday.replace(/[^0-9]/g, '');
-            cur.serial = 'NO. ' + (cleanDigits || cur.birthday) + '-NIVEOUS';
-          } else {
-            cur.serial = 'NO. 0000-NIVEOUS';
-          }
-
-          saveCurrentToDB(function() {
-            renderStep3();
-          });
-          return;
-        }
-      }
-
-      if (charList.length > 0 && cur.name && cur.name !== '冥夜') {
-        renderStep3();
+    function exitForm() {
+      if (charList.length > 0 && cur.name && cur.name !== '') {
+        window.CharacterEngine.render();
       } else if (charList.length > 0) {
         charList = charList.filter(function(u) { return u.id !== cur.id; });
-        if (charList.length) {
-          currentCharId = charList[0].id;
-          renderStep3();
-        } else {
-          renderStep1();
-        }
+        if (charList.length) { currentCharId = charList[0].id; window.CharacterEngine.render(); }
+        else { renderStep1(); }
       } else {
         renderStep1();
       }
     }
 
-    document.getElementById('charBackBtn').addEventListener('click', step2BackHandler);
+    document.getElementById('charFormBackBtn').addEventListener('click', function() {
+      exitForm();
+    });
+
+    function saveFormDataToCur() {
+      cur.name = (document.getElementById('charFieldName').value || '').replace(/[✞✟✠]/g, '');
+      cur.gender = document.getElementById('charFieldGender').value || '';
+      cur.age = document.getElementById('charFieldAge').value || '';
+      cur.height = document.getElementById('charFieldHeight').value || '';
+      cur.birthday = document.getElementById('charFieldBirthday').value;
+      cur.zodiac = document.getElementById('charFieldZodiac').value || '';
+      cur.appearance = document.getElementById('charFieldAppearance').value;
+      cur.personality = document.getElementById('charFieldPersonality').value;
+      cur.tags = document.getElementById('charFieldTags').value;
+      cur.hobbies = document.getElementById('charFieldHobbies').value;
+      cur.background = document.getElementById('charFieldBackground').value;
+      if (cur.birthday) {
+        var cleanDigits = cur.birthday.replace(/[^0-9]/g, '');
+        cur.serial = 'NO. ' + (cleanDigits || cur.birthday) + '-NIVEOUS';
+      }
+    }
 
     var currentTargetFieldId = '';
     var modalOverlay = document.getElementById('charExpandModalOverlay');
@@ -440,9 +369,7 @@
     var clearBtn = document.getElementById('charExpandClearBtn');
 
     function updateWordCount() {
-      if (wordCount && modalTextarea) {
-        wordCount.textContent = modalTextarea.value.length + ' 字';
-      }
+      if (wordCount && modalTextarea) wordCount.textContent = modalTextarea.value.length + ' 字';
     }
 
     function openExpandModal(fieldId, titleText) {
@@ -454,9 +381,7 @@
         updateWordCount();
       }
       if (modalOverlay) modalOverlay.classList.add('show');
-      setTimeout(function() {
-        if (modalTextarea) modalTextarea.focus();
-      }, 300);
+      setTimeout(function() { if (modalTextarea) modalTextarea.focus(); }, 300);
     }
 
     function closeExpandModal() {
@@ -467,9 +392,7 @@
     document.querySelectorAll('.expand-edit-btn').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var targetId = this.dataset.expandTarget;
-        var title = this.dataset.expandTitle;
-        openExpandModal(targetId, title);
+        openExpandModal(this.dataset.expandTarget, this.dataset.expandTitle);
       });
     });
 
@@ -489,9 +412,7 @@
       modalDoneBtn.addEventListener('click', function() {
         if (currentTargetFieldId) {
           var targetInput = document.getElementById(currentTargetFieldId);
-          if (targetInput && modalTextarea) {
-            targetInput.value = modalTextarea.value;
-          }
+          if (targetInput && modalTextarea) targetInput.value = modalTextarea.value;
         }
         closeExpandModal();
       });
@@ -500,116 +421,60 @@
     if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeExpandModal);
 
     document.getElementById('generateCharCardBtn').addEventListener('click', function() {
-      var nameVal = document.getElementById('charFieldName').value.replace(/[✞✟✠]/g, '');
-      if (!nameVal.trim()) {
-        AppNav.showToast('请在第一栏写下角色姓名哦');
-        return;
-      }
-
-      cur.name = nameVal;
-      cur.gender = document.getElementById('charFieldGender').value || '男';
-      cur.age = document.getElementById('charFieldAge').value || '20';
-      cur.height = document.getElementById('charFieldHeight').value || '185cm';
-      cur.birthday = document.getElementById('charFieldBirthday').value;
-      cur.zodiac = document.getElementById('charFieldZodiac').value || '天秤座';
-      cur.appearance = document.getElementById('charFieldAppearance').value;
-      cur.personality = document.getElementById('charFieldPersonality').value;
-      cur.tags = document.getElementById('charFieldTags').value;
-      cur.hobbies = document.getElementById('charFieldHobbies').value;
-      cur.background = document.getElementById('charFieldBackground').value;
-
-      if (cur.birthday) {
-        var cleanDigits = cur.birthday.replace(/[^0-9]/g, '');
-        cur.serial = 'NO. ' + (cleanDigits || cur.birthday) + '-NIVEOUS';
-      } else {
-        cur.serial = 'NO. 0000-NIVEOUS';
-      }
-
+      var nameVal = (document.getElementById('charFieldName').value || '').replace(/[✞✟✠]/g, '');
+      if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下角色姓名哦'); return; }
+      saveFormDataToCur();
       saveCurrentToDB(function() {
-        renderStep3();
+        window.CharacterEngine.render();
       });
     });
   }
 
   // ==========================================
-  // 步骤 3：5 款专属角色卡片展示
+  // 步骤 3：角色卡片展示与管理
   // ==========================================
-  function renderStep3() {
-    if (!container) return;
-    var cur = getCurrentChar();
-    if (!cur) {
-      renderStep1();
-      return;
-    }
-
+  function renderStep3(cur) {
+    if (!subViewport) return;
     if (cur.name) cur.name = cur.name.replace(/[✞✟✠]/g, '');
-
-    container.className = 'app-content archive-page-wrap';
     var hasPhotoClass = cur.photo ? ' has-img' : '';
 
-    var html = '<div class="archive-page-screen ' + (currentTplIdx === 3 ? 'char-screen-bg-3' : 'screen-bg-' + currentTplIdx) + '">'
-      + '<div class="archive-showcase-wrap">'
-      
-      // 融入底色的顶部玄月星芒导航栏
-      + '<div class="header-ornament-stage">'
-      + '<div class="ornament-artwork-layer">'
-      + '<div class="celestial-crescent-emblem"><svg viewBox="0 0 100 100"><path d="M50 10 A40 40 0 1 0 85 75 A34 34 0 1 1 50 10 Z"/><circle cx="50" cy="50" r="42" stroke-dasharray="2 3" stroke-width="0.8"/><circle cx="50" cy="50" r="28" stroke-width="0.5"/><path d="M50 8 L50 20 M50 80 L50 92 M8 50 L20 50 M80 50 L92 50" stroke-width="0.8"/></svg></div>'
-      + '<div class="astrolabe-poly"></div>'
-      + '<span class="art-star s1">✦</span><span class="art-star s2">✧</span><span class="art-star s3">✦</span>'
-      + '<span class="art-crosshair c1">+</span><span class="art-crosshair c2">+</span>'
-      + '</div>'
-      + '<div class="archive-header">'
-      + '<div class="archive-header-left">'
-      + '<button class="arch-native-back" id="charBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-      + '<div><div class="archive-subtitle">CHARACTER DOSSIER</div><div class="archive-title">角色档案</div></div>'
-      + '</div>'
-      + '<div class="archive-header-right">'
-      + '<button class="arch-tool-pill" id="actionNewCharBtn" type="button"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
-      + '<button class="arch-tool-pill" id="actionCharListBtn" type="button"><span>角色列表 (' + charList.length + ')</span></button>'
-      + '</div>'
-      + '</div>'
-      + '<div class="archive-nav-capsule">'
-      + '<div class="nav-glider-pill" style="transform:translateX(100%);"></div>'
-      + '<button class="archive-nav-item" id="navToUserBtn" type="button">用户档案</button>'
-      + '<button class="archive-nav-item active" id="navToCharBtn" type="button">角色档案</button>'
-      + '</div>'
-      + '</div>'
-
-      + '<div class="char-full-card-box" id="charCardContainerBox">'
+    subViewport.innerHTML = '<div class="char-full-card-box" id="charCardContainerBox">'
       + renderCharTemplateHtml(cur, currentTplIdx, hasPhotoClass)
       + '</div>'
-
       + '<div class="archive-bottom-dock">'
       + '<button class="dock-arrow-btn" id="prevCharTplBtn" type="button"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>'
       + '<button class="dock-edit-btn" id="charDockEditBtn" type="button"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>编辑角色资料</span></button>'
       + '<button class="dock-arrow-btn" id="nextCharTplBtn" type="button"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>'
       + '</div>'
 
+      // 角色专属抽屉
       + '<div class="char-drawer-mask" id="charDrawerMask"></div>'
       + '<div class="char-drawer-card" id="charDrawerCard">'
-      + '<div class="char-drawer-header"><div class="char-drawer-title">角色档案库</div><button class="char-drawer-close" id="charDrawerCloseBtn" type="button">✕</button></div>'
-      + '<div class="char-drawer-list">'
+      + '<div class="drawer-header">'
+      + '<div class="drawer-title">角色档案库 (' + charList.length + ')</div>'
+      + '<div class="drawer-header-actions">'
+      + '<button class="drawer-new-btn" id="drawerNewCharBtn" type="button"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建</span></button>'
+      + '<button class="drawer-close-btn" id="charDrawerCloseBtn" type="button">✕</button>'
+      + '</div>'
+      + '</div>'
+      + '<div class="drawer-list">'
       + charList.map(function(u) {
           var isActive = u.id === cur.id;
-          return '<div class="char-drawer-item' + (isActive ? ' active' : '') + '" data-char-id="' + u.id + '">'
-            + '<div class="char-drawer-avatar">' + (u.photo ? '<img src="' + esc(u.photo) + '">' : '✦') + '</div>'
-            + '<div class="char-drawer-info"><div class="char-drawer-name">' + esc(u.name) + (isActive ? '<span class="char-active-tag">当前</span>' : '') + '</div><div class="char-drawer-date">建档：' + esc(u.createDate || '0000') + '</div></div>'
-            + '<button class="char-drawer-del" data-del-id="' + u.id + '" type="button">删除</button>'
+          return '<div class="drawer-user-item' + (isActive ? ' active' : '') + '" data-char-id="' + u.id + '">'
+            + '<div class="drawer-avatar">' + (u.photo ? '<img src="' + esc(u.photo) + '">' : '✦') + '</div>'
+            + '<div class="drawer-user-info"><div class="drawer-user-name">' + esc(u.name) + (isActive ? '<span class="drawer-active-tag">当前</span>' : '') + '</div><div class="drawer-user-date">建档：' + esc(u.createDate || '0000') + '</div></div>'
+            + '<button class="drawer-del-btn" data-del-id="' + u.id + '" type="button">删除</button>'
             + '</div>';
         }).join('')
       + '</div>'
-      + '</div>'
-
-      + '</div>'
       + '</div>';
 
-    container.innerHTML = html;
+    var root = document.getElementById('archiveScreenRoot');
+    if (root) root.className = 'archive-page-screen ' + (currentTplIdx === 3 ? 'char-screen-bg-3' : 'screen-bg-' + currentTplIdx);
+
     bindStep3Events(cur);
   }
 
-  // ==========================================
-  // 渲染 5 种角色模板
-  // ==========================================
   function renderCharTemplateHtml(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
       // 01. 冷调精美档案卡
@@ -695,31 +560,12 @@
   }
 
   function bindStep3Events(cur) {
-    document.getElementById('charBackBtn').addEventListener('click', function() {
-      syncDirectEdits(cur);
-      saveCurrentToDB(function() {
-        if (window.AppNav) AppNav.showPage('home');
-      });
-    });
-
-    var navUserBtn = document.getElementById('navToUserBtn');
-    if (navUserBtn) {
-      navUserBtn.addEventListener('click', function() {
-        syncDirectEdits(cur);
-        saveCurrentToDB(function() {
-          if (window.UserArchiveApp && window.UserArchiveApp.mount) {
-            window.UserArchiveApp.mount(container);
-          }
-        });
-      });
-    }
-
     document.getElementById('prevCharTplBtn').addEventListener('click', function() {
       syncDirectEdits(cur);
       currentTplIdx = (currentTplIdx - 1 + 5) % 5;
       cur.tplIdx = currentTplIdx;
       saveCurrentToDB();
-      renderStep3();
+      renderStep3(cur);
     });
 
     document.getElementById('nextCharTplBtn').addEventListener('click', function() {
@@ -727,88 +573,52 @@
       currentTplIdx = (currentTplIdx + 1) % 5;
       cur.tplIdx = currentTplIdx;
       saveCurrentToDB();
-      renderStep3();
+      renderStep3(cur);
     });
-
-    // 右滑返回桌面
-    var screenWrapper = container.querySelector('.archive-page-screen') || container;
-    var touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
-
-    screenWrapper.addEventListener('touchstart', function(e) {
-      var activeEl = document.activeElement;
-      if (activeEl && (activeEl.isContentEditable || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
-      if (e.target.closest('[contenteditable="true"]')) return;
-
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-      touchEndX = touchStartX;
-      touchEndY = touchStartY;
-    }, { passive: true });
-
-    screenWrapper.addEventListener('touchmove', function(e) {
-      touchEndX = e.touches[0].clientX;
-      touchEndY = e.touches[0].clientY;
-    }, { passive: true });
-
-    screenWrapper.addEventListener('touchend', function() {
-      var diffX = touchEndX - touchStartX;
-      var diffY = touchEndY - touchStartY;
-      if (diffX > 45 && Math.abs(diffX) > Math.abs(diffY)) {
-        syncDirectEdits(cur);
-        saveCurrentToDB(function() {
-          if (window.AppNav) AppNav.showPage('home');
-        });
-      }
-    }, { passive: true });
 
     document.getElementById('charDockEditBtn').addEventListener('click', function() {
       syncDirectEdits(cur);
       renderStep2();
     });
 
-    var newBtn = document.getElementById('actionNewCharBtn');
-    if (newBtn) {
-      newBtn.addEventListener('click', function() {
-        syncDirectEdits(cur);
-        createNewChar();
-      });
-    }
-
-    var listBtn = document.getElementById('actionCharListBtn');
-    var drawerMask = document.getElementById('charDrawerMask');
+    // 抽屉管理与抽屉内新建
     var drawerCard = document.getElementById('charDrawerCard');
     var drawerCloseBtn = document.getElementById('charDrawerCloseBtn');
-
-    function openDrawer() {
-      if (drawerMask) drawerMask.classList.add('show');
-      if (drawerCard) drawerCard.classList.add('show');
-    }
+    var drawerMask = document.getElementById('charDrawerMask');
+    var drawerNewCharBtn = document.getElementById('drawerNewCharBtn');
 
     function closeDrawer() {
       if (drawerMask) drawerMask.classList.remove('show');
       if (drawerCard) drawerCard.classList.remove('show');
     }
 
-    if (listBtn) listBtn.addEventListener('click', openDrawer);
     if (drawerCloseBtn) drawerCloseBtn.addEventListener('click', closeDrawer);
     if (drawerMask) drawerMask.addEventListener('click', closeDrawer);
 
+    if (drawerNewCharBtn) {
+      drawerNewCharBtn.addEventListener('click', function() {
+        closeDrawer();
+        syncDirectEdits(cur);
+        createNewChar();
+      });
+    }
+
     if (drawerCard) {
-      drawerCard.querySelectorAll('.char-drawer-item').forEach(function(item) {
+      drawerCard.querySelectorAll('.drawer-user-item').forEach(function(item) {
         item.addEventListener('click', function(e) {
-          if (e.target.closest('.char-drawer-del')) return;
+          if (e.target.closest('.drawer-del-btn')) return;
           syncDirectEdits(cur);
           currentCharId = this.dataset.charId;
           var selected = getCurrentChar();
           if (selected) currentTplIdx = selected.tplIdx || 0;
           saveCurrentToDB(function() {
             closeDrawer();
-            renderStep3();
+            renderStep3(selected);
           });
         });
       });
 
-      drawerCard.querySelectorAll('.char-drawer-del').forEach(function(btn) {
+      drawerCard.querySelectorAll('.drawer-del-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
           var delId = this.dataset.delId;
@@ -817,7 +627,7 @@
             currentCharId = charList.length ? charList[0].id : null;
           }
           saveCurrentToDB(function() {
-            if (charList.length) renderStep3();
+            if (charList.length) renderStep3(getCurrentChar());
             else renderStep1();
             if (window.AppNav) AppNav.showToast('✦ 角色档案已成功删除 ✦');
           });
@@ -844,16 +654,12 @@
               AppCropper.open(e.target.result, { aspectRatio: 1 / 1.25 }, function(croppedData) {
                 syncDirectEdits(cur);
                 cur.photo = croppedData;
-                saveCurrentToDB(function() {
-                  renderStep3();
-                });
+                saveCurrentToDB(function() { renderStep3(cur); });
               });
             } else {
               syncDirectEdits(cur);
               cur.photo = e.target.result;
-              saveCurrentToDB(function() {
-                renderStep3();
-              });
+              saveCurrentToDB(function() { renderStep3(cur); });
             }
           };
           reader.readAsDataURL(file);
@@ -870,21 +676,11 @@
   // ============ iOS WebKit 专用的全无损换行与空格提取器 ============
   function getHtmlWithBreaks(node) {
     if (!node) return '';
-    var clone = node.cloneNode(true);
-
-    var breaks = clone.querySelectorAll('br');
-    breaks.forEach(function(br) {
-      br.parentNode.replaceChild(document.createTextNode('\n'), br);
-    });
-
-    var blocks = clone.querySelectorAll('div, p');
-    blocks.forEach(function(b) {
-      b.appendChild(document.createTextNode('\n'));
-    });
-
-    var raw = clone.textContent || '';
-    raw = raw.replace(/\u00a0/g, ' ');
-    return raw.replace(/\n+$/, '');
+    var text = (node.innerText !== undefined) ? node.innerText : node.textContent;
+    if (typeof text === 'string') {
+      return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    }
+    return '';
   }
 
   function syncDirectEdits(cur) {
@@ -902,24 +698,13 @@
   function bindLiveEdits(cur) {
     var editables = document.querySelectorAll('.char-card-wrapper [contenteditable="true"]');
     editables.forEach(function(el) {
-      el.addEventListener('input', function() {
-        syncDirectEdits(cur);
-      });
-      el.addEventListener('blur', function() {
-        syncDirectEdits(cur);
-        saveCurrentToDB();
-      });
+      el.addEventListener('input', function() { syncDirectEdits(cur); });
+      el.addEventListener('blur', function() { syncDirectEdits(cur); saveCurrentToDB(); });
     });
 
-    window.addEventListener('pagehide', function() {
-      syncDirectEdits(cur);
-      saveCurrentToDB();
-    });
+    window.addEventListener('pagehide', function() { syncDirectEdits(cur); saveCurrentToDB(); });
     document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'hidden') {
-        syncDirectEdits(cur);
-        saveCurrentToDB();
-      }
+      if (document.visibilityState === 'hidden') { syncDirectEdits(cur); saveCurrentToDB(); }
     });
   }
 
