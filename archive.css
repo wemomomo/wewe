@@ -7,6 +7,198 @@
   --text-muted: #868e96;
 }
 
+/* 彻底隐藏页面所有滚动条，保留丝滑滑动能力 */
+.archive-page-wrap::-webkit-scrollbar,
+.archive-page-screen::-webkit-scrollbar,
+.expand-modal-textarea::-webkit-scrollbar,
+.ruled-textarea::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.archive-page-wrap,
+.archive-page-screen,
+.expand-modal-textarea,
+.ruled-textarea {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE */
+}
+
+/* ========== 顶部四芒星绑定按钮与激活发光态 ========== */
+.arch-tool-pill.bind-star-btn {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.arch-tool-pill.bind-star-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  transition: all 0.25s ease;
+}
+
+/* 绑定成功后的点亮微光态：优雅清冷灰粉色 */
+.arch-tool-pill.bind-star-btn.is-bound {
+  background: #231c20 !important;
+  color: #e0b4c2 !important; /* 柔和高级灰粉色 */
+  border-color: #3d2c33 !important;
+  box-shadow: 0 0 10px rgba(224, 180, 194, 0.35) !important;
+}
+
+.arch-tool-pill.bind-star-btn.is-bound svg {
+  fill: #e0b4c2 !important;
+  stroke: #e0b4c2 !important;
+  transform: scale(1.08);
+}
+
+/* 暗夜模式下的灰粉高光 */
+.char-screen-bg-2 .arch-tool-pill.bind-star-btn.is-bound,
+.char-screen-bg-3 .arch-tool-pill.bind-star-btn.is-bound {
+  background: rgba(224, 180, 194, 0.15) !important;
+  color: #e0b4c2 !important;
+  border-color: rgba(224, 180, 194, 0.4) !important;
+  box-shadow: 0 0 10px rgba(224, 180, 194, 0.25) !important;
+}
+
+/* ========== 绑定专属用户按钮样式 ========== */
+.bind-select-btn {
+  margin-left: auto !important; /* 👈 核心：自动顶到卡片最右侧边缘！ */
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: none;
+  background: #18191c;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.bind-select-btn.is-cancel {
+  background: #f1f5f9;
+  color: #c94a4a;
+  border: 0.5px solid rgba(239, 68, 68, 0.3);
+}
+
+.bind-select-btn:active {
+  transform: scale(0.94);
+}
+
+/* 抽屉普通条框（默认纯白底色） */
+.drawer-user-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 10px !important;
+  border-radius: 12px !important;
+  background: #ffffff; /* 👈 去掉 !important，允许被 active 覆盖 */
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.drawer-user-item.active {
+  background: rgba(24, 25, 28, 0.07)!important; /* 微深边框凸显当前 */
+  border-color: #f1f5f9 !important; /* 优雅微灰高亮 */ 
+}
+
+/* 中间文字列：不占满整行，紧凑两行排版 */
+.drawer-user-info {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important; /* 👈 名称与建档日期之间的空隙恢复紧凑！ */
+  flex: 0 0 auto !important; /* 核心：不霸道撑开，紧随文字宽度 */
+  min-width: 0 !important;
+}
+
+.drawer-user-name {
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: #18191c !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  line-height: 1.2 !important;
+}
+
+.drawer-user-date {
+  font-size: 9.5px !important;
+  color: #94a3b8 !important;
+  font-family: monospace !important;
+  line-height: 1.2 !important;
+}
+
+/* 紧随文字右侧的【爱心 + 等大头像】：整行居中 */
+.drawer-couple-binding {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
+}
+
+/* 多角色守护头像并排（微叠错落感，精致不占地） */
+.drawer-multi-bound-avatars {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex-shrink: 0 !important;
+}
+
+.drawer-couple-binding .drawer-avatar.bound-target {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  background: #e2e8f0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 13px !important;
+  color: #64748b !important;
+  box-shadow: 0 2px 6px rgba(224, 180, 194, 0.2) !important;
+  flex-shrink: 0 !important;
+}
+
+.drawer-couple-binding .drawer-avatar.bound-target img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* 心电图脉搏连接爱心容器 */
+.drawer-heart-pulse-svg {
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #e0b4c2 !important; /* 指定的高定灰粉色 */
+  flex-shrink: 0 !important;
+  margin: 0 -2px !important;
+}
+
+.drawer-heart-pulse-svg svg {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  filter: drop-shadow(0 1px 3px rgba(224, 180, 194, 0.3)) !important;
+}
+
+/* 核心：把删除按钮自动顶到最右侧边缘！ */
+.drawer-del-btn {
+  margin-left: auto !important;
+  background: none;
+  border: none;
+  color: #c94a4a; /* 删除红色位置 1 */
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
 /* =========================================================
    顶部高定艺术图案舞台（融入背景·单层紧凑横排）
 ========================================================= */
@@ -33,7 +225,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: 20;
 }
 
 /* 1. 左上角玄月星芒圣盘 */
@@ -45,8 +237,11 @@
   height: 120px;
   color: rgba(20, 22, 25, 0.16);
 }
-.char-screen-bg-3 .celestial-crescent-emblem { color: rgba(136, 171, 218, 0.22); }
 
+.char-screen-bg-2 .celestial-crescent-emblem,
+.char-screen-bg-3 .celestial-crescent-emblem { 
+  color: rgba(136, 171, 218, 0.22) !important; 
+}
 .celestial-crescent-emblem svg {
   width: 100%;
   height: 100%;
@@ -63,7 +258,11 @@
   color: rgba(20, 22, 25, 0.4);
   line-height: 1;
 }
-.char-screen-bg-3 .art-star { color: rgba(136, 171, 218, 0.4); }
+
+.char-screen-bg-2 .art-star,
+.char-screen-bg-3 .art-star { 
+  color: rgba(136, 171, 218, 0.4) !important; 
+}
 .art-star.s1 { top: 8px; left: 105px; font-size: 11px; }
 .art-star.s2 { top: 8px; right: 20px; font-size: 9px; }
 .art-star.s3 { bottom: 6px; left: 40%; font-size: 8px; }
@@ -87,7 +286,7 @@
   margin-bottom: 0px;
   padding: 0 2px;
   position: relative;
-  z-index: 1;
+  z-index: 20;
 }
 
 .archive-header-left {
@@ -107,7 +306,10 @@
   padding: 2px;
   margin-left: -4px;
 }
-.char-screen-bg-3 .arch-native-back { color: #f8fafc; }
+/* 1. 让特工令(bg-2)和塔罗牌(bg-3)的返回箭头都变成纯白 */
+.char-screen-bg-2 .arch-native-back { 
+  color: #f8fafc !important; 
+}
 .arch-native-back:active { opacity: 0.5; }
 .arch-native-back svg {
   width: 24px;
@@ -126,11 +328,16 @@
   color: #141619;
   line-height: 1;
 }
-.char-screen-bg-3 .archive-title { color: #ffffff; }
+
+/* 2. 让特工令和塔罗牌的“档案”大标题都变成纯白！ */
+.char-screen-bg-2 .archive-title { 
+  color: #ffffff !important; 
+}
 
 .archive-header-right {
   display: flex;
   align-items: center;
+  gap: 6px !important; 
   flex-shrink: 0;
 }
 
@@ -152,13 +359,10 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.03);
   transition: all 0.15s ease;
 }
-.char-screen-bg-3 .arch-tool-pill {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
-  border-color: rgba(255, 255, 255, 0.18);
-}
 .arch-tool-pill:active { background: #e2e6ea; transform: scale(0.96); }
 .arch-tool-pill svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.2; fill: none; }
+
+
 
 /* 悬浮分段双滑块导航栏（单层紧凑版） */
 .archive-nav-capsule {
@@ -174,8 +378,9 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04), inset 0 1px 1px #ffffff;
   position: relative;
   overflow: hidden;
-  z-index: 1;
+  z-index: 30;
 }
+.char-screen-bg-2 .archive-nav-capsule,
 .char-screen-bg-3 .archive-nav-capsule {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.12);
@@ -191,8 +396,15 @@
   border-radius: 15px;
   box-shadow: 0 2px 8px rgba(18, 20, 23, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15);
   transition: transform 0.35s cubic-bezier(0.25, 1, 0.3, 1);
-  z-index: 1;
+  z-index: 30;
   pointer-events: none;
+}
+/* 3. 让特工令和塔罗牌的右上角圆形按钮变成通透白 */
+.char-screen-bg-2 .arch-tool-pill,
+.char-screen-bg-3 .arch-tool-pill {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
 /* 角色标签激活时：黑色滑块平移到右侧 */
@@ -216,7 +428,7 @@
   transition: color 0.3s ease;
   font-family: inherit;
   position: relative;
-  z-index: 2;
+  z-index: 30;
   letter-spacing: 0.5px;
 }
 .archive-nav-item.active {
@@ -243,12 +455,21 @@
   word-break: break-word !important;
 }
 
+/* 修复：移除导致黑底白字标签隐形的全局透明背景 */
+.arch-card-wrapper [contenteditable="true"],
+.char-card-wrapper [contenteditable="true"],
+[contenteditable="true"] {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+}
+
 .arch-card-wrapper [contenteditable="true"]:focus,
+.char-card-wrapper [contenteditable="true"]:focus,
 [contenteditable="true"]:focus {
   outline: none !important;
-  background: transparent !important;
   box-shadow: none !important;
-  border-color: inherit !important;
 }
 
 [data-page="archive"] .app-header {
@@ -256,29 +477,44 @@
 }
 
 .page[data-page="archive"] {
-  background: #ffffff !important;
-  z-index: 200 !important;
+  background: #ffffff !important; /* 核心：实心纯白兜底，死死挡住桌面壁纸 */
+  z-index: 30 !important;
   position: absolute !important;
   inset: 0 !important;
 }
 
+/* 1. 卡片展示时彻底锁死，禁止任何上下晃动 */
 .archive-page-wrap {
   width: 100%;
   height: 100%;
   padding: 0 !important;
   display: flex;
   flex-direction: column;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden !important; /* 彻底锁死滑动 */
+  overscroll-behavior: none !important;
 }
 
+/* 2. 满屏 100% 严丝合缝贴死屏幕，绝不多出 1 像素 */
 .archive-page-screen {
   width: 100%;
-  min-height: 100%;
+  height: 100% !important;
+  min-height: 100% !important;
+  margin: 0 !important;
   padding: calc(12px + var(--safe-top)) 16px calc(14px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow: hidden !important;
+}
+
+/* 3. 只有在手账填单编辑时，才开启内容滚动 */
+.archive-page-wrap:has(.journal-sheet) {
+  overflow-y: auto !important;
+}
+.archive-page-screen:has(.journal-sheet) {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-y: visible !important;
 }
 
 .archive-page-screen.screen-bg-0 {
@@ -304,11 +540,22 @@
 .archive-page-screen.screen-bg-4 {
   background: #ffffff !important;
 }
-.archive-page-screen.char-screen-bg-3 {
+
+/* 角色第3款（特工令）：实心纯黑科技底色 */
+.archive-page-screen.char-screen-bg-2 {
   background-color: #08090d !important;
   background-image: 
     radial-gradient(circle at 50% 15%, rgba(136, 171, 218, 0.15) 0%, transparent 60%),
     radial-gradient(rgba(136, 171, 218, 0.08) 1.2px, transparent 1.2px) !important;
+  background-size: 100% 100%, 16px 16px !important;
+}
+
+/* 角色第4款（血月塔罗）：实心暗夜深红神秘底色 */
+.archive-page-screen.char-screen-bg-3 {
+  background-color: #fff !important; /* 实心暗黑深红，绝不透底 */
+  background-image: 
+    radial-gradient(circle at 50% 15%, rgba(181, 34, 52, 0.25) 0%, transparent 60%),
+    radial-gradient(rgba(241, 245, 249, 0.06) 1.2px, transparent 1.2px) !important;
   background-size: 100% 100%, 16px 16px !important;
 }
 
@@ -384,7 +631,7 @@
   justify-content: space-between;
   align-items: flex-end;
   position: relative;
-  z-index: 2;
+  z-index: 30;
 }
 .t1-serial {
   font-size: 10px;
@@ -532,7 +779,7 @@
   background: #eef2f7;
   border-radius: 50%;
   border: 1.2px solid #2b333e;
-  z-index: 5;
+  z-index: 30;
 }
 .t1-cutout-left { left: -20px; border-left: none; }
 .t1-cutout-right { right: -20px; border-right: none; }
@@ -576,14 +823,14 @@
   background: linear-gradient(135deg, #b0cce8, #7fa5d1);
   color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 2px;
   text-align: center; padding: 6px 0; transform: rotate(45deg);
-  box-shadow: 0 3px 8px rgba(127, 165, 209, 0.45); z-index: 20; user-select: none;
+  box-shadow: 0 3px 8px rgba(127, 165, 209, 0.45); z-index: 30; user-select: none;
 }
 .t2-ribbon-bl {
   position: absolute; bottom: 18px; left: -36px; width: 130px;
   background: linear-gradient(135deg, #7fa5d1, #b0cce8);
   color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 2px;
   text-align: center; padding: 6px 0; transform: rotate(45deg);
-  box-shadow: 0 -3px 8px rgba(127, 165, 209, 0.35); z-index: 20; user-select: none;
+  box-shadow: 0 -3px 8px rgba(127, 165, 209, 0.35); z-index: 30; user-select: none;
 }
 
 .t2-top-ring {
@@ -606,7 +853,7 @@
   display: flex; flex-direction: column; gap: 4px; overflow: hidden;
 }
 .t2-cross {
-  position: absolute; font-size: 11px; color: #94a3b8; font-weight: 300; pointer-events: none; z-index: 10;
+  position: absolute; font-size: 11px; color: #94a3b8; font-weight: 300; pointer-events: none; z-index: 30;
 }
 .t2-cross.tl { top: 6px; left: 8px; }
 .t2-cross.tr { top: 6px; right: 8px; }
@@ -1007,7 +1254,7 @@
   max-width: 360px;
   padding-top: 6px;
   position: relative !important;
-  z-index: 50 !important;
+  z-index: 30 !important;
   pointer-events: auto !important;
 }
 
@@ -1023,6 +1270,20 @@
   justify-content: center;
   color: #18191c;
   cursor: pointer;
+  position: relative; /* 必须加这行 */
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 核心优化：生成隐形 360° 向外延伸的感应热区，彻底解决右下角点不到的问题！ */
+.dock-arrow-btn::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  left: -12px;
+  right: -12px; /* 向外四周全部扩大 12px 触摸感应圈 */
+  z-index: 30;
 }
 .dock-arrow-btn:active { transform: scale(0.92); background: #f8f9fa; }
 .dock-arrow-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.5; fill: none; }
@@ -1286,7 +1547,35 @@
 .divider-star { font-size: 9px; color: #18191c; }
 
 .journal-section { display: flex; flex-direction: column; gap: 8px; }
-.section-lead-title { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid rgba(24, 25, 28, 0.12); padding-bottom: 3px; }
+.section-lead-title {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important; /* 核心：绝对禁止换到第二行 */
+  border-bottom: 1px solid rgba(24, 25, 28, 0.12);
+  padding-bottom: 3px;
+  width: 100%;
+}
+
+/* 左侧标题 */
+.section-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #18191c;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0; /* 禁止被压缩 */
+}
+
+/* 右侧：英文标签 + 放大按钮 牢牢吸附在最右侧同一行 */
+.section-lead-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex-shrink: 0 !important; /* 核心：死死待在第一行最右边 */
+}
 .section-name { font-size: 13.5px; font-weight: 800; letter-spacing: 1.5px; color: #18191c; display: flex; align-items: center; gap: 4px; }
 .section-name .sec-index { font-family: monospace; font-size: 10px; color: #5c6470; }
 .section-tag-en { font-size: 8.5px; font-family: monospace; color: #5c6470; letter-spacing: 1px; }
@@ -1308,18 +1597,18 @@
 .journal-seal-stamp { width: 38px; height: 38px; border: 1.5px solid #18191c; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 6.5px; font-weight: 900; letter-spacing: 0.5px; transform: rotate(-8deg); color: #18191c; opacity: 0.85; }
 .seal-star { font-size: 8px; line-height: 1; }
 
-/* ========== 用户/角色档案抽屉（2500/2600 盖住所有底层内容） ========== */
+/* ========== 用户/角色档案抽屉（盖住所有底层内容） ========== */
 .user-drawer-mask, .char-drawer-mask {
   position: fixed;
   inset: 0;
   background: transparent !important; /* 彻底去掉黑灰色阴影，完全透明 */
   backdrop-filter: none !important;    /* 彻底去掉毛玻璃模糊 */
   -webkit-backdrop-filter: none !important;
-  z-index: 2500;
+  z-index: 40;
   display: none;
 }
 .user-drawer-mask.show, .char-drawer-mask.show { display: block; }
-.user-drawer-card, .char-drawer-card { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 18px 18px calc(20px + var(--safe-bottom)); z-index: 2600; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 65vh; display: flex; flex-direction: column; }
+.user-drawer-card, .char-drawer-card { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 18px 18px calc(20px + var(--safe-bottom)); z-index: 40; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 65vh; display: flex; flex-direction: column; }
 .user-drawer-card.show, .char-drawer-card.show { transform: translateY(0); }
 .drawer-header, .char-drawer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,0.06); }
 .drawer-title, .char-drawer-title { font-size: 15px; font-weight: 800; color: #18191c; }
@@ -1330,10 +1619,10 @@
 .drawer-avatar, .char-drawer-avatar { width: 38px; height: 38px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b; overflow: hidden; font-size: 13px; flex-shrink: 0; }
 .drawer-avatar img, .char-drawer-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .drawer-user-info, .char-drawer-info { flex: 1; min-width: 0; }
-.drawer-user-name, .char-drawer-name { font-size: 13.5px; font-weight: 800; color: #18191c; display: flex; align-items: center; gap: 5px; }
-.drawer-active-tag, .char-active-tag { font-size: 8.5px; font-weight: 700; color: #ffffff; background: #18191c; padding: 1px 5px; border-radius: 3px; }
-.drawer-user-date, .char-drawer-date { font-size: 9.5px; color: #94a3b8; font-family: monospace; margin-top: 1px; }
-.drawer-del-btn, .char-drawer-del { background: none; border: none; color: #ef4444; font-size: 11.5px; font-weight: 600; padding: 5px 8px; cursor: pointer; border-radius: 5px; }
+.drawer-user-name, .char-drawer-name { font-size: 14px; font-weight: 800; color: #18191c; display: flex; align-items: center; gap: 5px; }
+.drawer-active-tag, .char-active-tag { font-size: 10px; font-weight: 700; color: #ffffff; background: #18191c; padding: 2px 5px; border-radius: 3px; }
+.drawer-user-date, .char-drawer-date { font-size: 11px; color: #94a3b8; font-family: monospace; margin-top: 1px; }
+.drawer-del-btn, .char-drawer-del { background: none; border: none; color: #c94a4a; font-size: 12.5px; font-weight: 600; padding: 5px 8px; cursor: pointer; border-radius: 5px; }
 .drawer-del-btn:active, .char-drawer-del:active { background: rgba(239, 68, 68, 0.1); }
 
 /* 02-05 扩大编辑按钮样式 */
@@ -1362,14 +1651,14 @@
   fill: none;
 }
 
-/* 全屏沉浸式手写纸板弹窗 */
+/* 全屏手写纸板弹窗（完全透明、无毛玻璃模糊、无黑灰遮罩） */
 .expand-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 3000;
+  background: transparent !important; /* 彻底去除灰色/黑色遮罩 */
+  backdrop-filter: none !important;    /* 彻底去除毛玻璃模糊 */
+  -webkit-backdrop-filter: none !important;
+  z-index: 40;
   display: none;
   align-items: flex-end;
   justify-content: center;
@@ -1572,6 +1861,24 @@
 .char-photo-box,
 .photo-box {
   background: #ffffff !important;
+}
+
+/* ========== 彻底消灭收起工具栏后的点击延迟 ========== */
+.archive-bottom-dock,
+.dock-arrow-btn,
+.dock-edit-btn,
+.arch-tool-pill,
+.arch-native-back,
+.archive-nav-item,
+.archive-nav-capsule {
+  touch-action: manipulation !important; /* 禁用系统双击缩放与手势等待 */
+  -webkit-tap-highlight-color: transparent !important;
+  cursor: pointer !important;
+}
+
+.dock-arrow-btn,
+.dock-edit-btn {
+  transform: translateZ(0); /* 强制提升到独立硬件图层，视口变大时瞬间重绘 */
 }
 
 
