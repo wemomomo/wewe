@@ -1,0 +1,824 @@
+/* ======================================================== */
+/* 美化中心 (Beautify Studio) - 高定极简冷灰列表          */
+/* ======================================================== */
+
+.app-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* 放大清晰的英文副标题 */
+.app-subtitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #8e8e93;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+/* 进入二级菜单时，彻底隐藏主顶栏大标题 */
+.app-page[data-page="beautify"].in-sub-page .app-header {
+  display: none !important;
+}
+
+.beautify-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ======================================================== */
+/* 1. 一级菜单列表 (纯净通透无框列表)                        */
+/* ======================================================== */
+.beautify-main-view {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 8px 16px 30px;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+  will-change: transform, opacity;
+}
+
+.beautify-main-view.slide-left {
+  transform: translateX(-30%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.app-page[data-page="beautify"] .app-content {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* 纯净无外框列表行 */
+.beautify-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f8f8fa;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.beautify-menu-item:active {
+  background-color: #f0f0f4;
+  transform: scale(0.985);
+}
+
+.beautify-menu-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #f8f8fa;
+  color: #A1A1A9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.beautify-menu-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.beautify-menu-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.beautify-menu-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c1c1e;
+  letter-spacing: 0.2px;
+}
+.beautify-menu-desc {
+  font-size: 11.5px;
+  color: #8e8e93;
+}
+
+.beautify-arrow {
+  width: 16px;
+  height: 16px;
+  stroke: #c7c7cc;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+/* ======================================================== */
+/* 2. 二级详情页面 (0 阴影，0 边框外溢)                      */
+/* ======================================================== */
+.beautify-sub-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(8px + var(--safe-top)) 16px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0.25s ease;
+  z-index: 5;
+  box-shadow: none !important;
+  will-change: transform;
+}
+.beautify-sub-view.active {
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.beautify-sub-header {
+  display: flex;
+  align-items: center;
+  padding: 2px 0 8px;
+}
+
+.beautify-sub-back {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #636366;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.beautify-sub-back svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.beautify-sub-back:active {
+  opacity: 0.5;
+}
+
+/* 详情通用设置卡片 */
+.beautify-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.beautify-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 精致小竖条 */
+.beautify-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1c1c1e;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.beautify-card-title::before {
+  content: '';
+  width: 3.5px;
+  height: 13px;
+  background: #636366;
+  border-radius: 2px;
+}
+
+.beautify-card-desc {
+  font-size: 11.5px;
+  color: #8e8e93;
+  line-height: 1.45;
+  padding-left: 9.5px;
+}
+
+/* 1. PWA 桌面图标网格 */
+.pwa-icons-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+.pwa-icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.pwa-icon-preview {
+  width: 62px;
+  height: 62px;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  border: 1.5px solid #e5e5ea;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #f2f2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.pwa-icon-item.active .pwa-icon-preview {
+  border-color: #8e8e93;
+  box-shadow: 0 0 0 2px rgba(142, 142, 147, 0.25);
+  transform: scale(1.03);
+}
+.pwa-icon-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pwa-svg-box {
+  width: 100%;
+  height: 100%;
+  background-color: #88abda;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 300;
+  user-select: none;
+}
+
+.pwa-custom-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #f8f9fb;
+  border: 1.5px dashed #c7c7cc;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8e8e93;
+}
+.pwa-custom-placeholder svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pwa-icon-name {
+  font-size: 11px;
+  color: #3a3a3c;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+.pwa-tip-box {
+  background: #f8f8fa;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #636366;
+  line-height: 1.5;
+}
+
+/* ======================================================== */
+/* 2. 左右等宽等高大卡片 (微缩主页组件 + 底部 Dock 栏全展示) */
+/* ======================================================== */
+.bg-dual-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* 左侧独立大预览卡片 */
+.bg-preview-card {
+  flex: 1;
+  min-width: 0;
+  height: 240px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 手机屏幕微缩大视口 */
+.bg-screen-preview {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  border: 1.5px solid #d1d1d6;
+  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px 6px 6px;
+  box-sizing: border-box;
+}
+
+.bg-screen-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  background-color: #f8f8fa;
+}
+
+.bg-screen-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+
+/* 1. 微缩个人卡片 */
+.mini-profile-card {
+  width: 100%;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 6px;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  box-sizing: border-box;
+}
+.mini-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d1d1d6;
+  flex-shrink: 0;
+}
+.mini-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5px;
+}
+.mini-line {
+  height: 2.5px;
+  background: #a1a1a9;
+  border-radius: 1px;
+}
+.mini-line.w-80 { width: 80%; }
+.mini-line.w-60 { width: 60%; }
+.mini-line.w-40 { width: 40%; }
+
+/* 2. 微缩消息卡片 */
+.mini-message-card {
+  width: 100%;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 6px;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 5px;
+  box-sizing: border-box;
+}
+.mini-msg-avatar {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #c7c7cc;
+  flex-shrink: 0;
+}
+.mini-msg-text {
+  flex: 1;
+  height: 3px;
+  background: #c7c7cc;
+  border-radius: 1.5px;
+}
+.mini-msg-badge {
+  width: 18px;
+  height: 7px;
+  border-radius: 3.5px;
+  background: #8e8e93;
+}
+
+/* 3. 微缩双列区域 */
+.mini-couple-section {
+  width: 100%;
+  display: flex;
+  gap: 4px;
+}
+.mini-icons-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+.mini-app-icon {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+.mini-couple-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mini-avatars-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+.mini-cp-avatar {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #d1d1d6;
+}
+.mini-date-card {
+  width: 100%;
+  height: 24px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
+/* 4. 微缩底部 Dock 栏 */
+.mini-tab-bar {
+  position: relative;
+  z-index: 1;
+  width: 86%;
+  height: 14px;
+  margin: 0 auto;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 4px;
+}
+.mini-tab-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #8e8e93;
+}
+
+/* 右侧独立控制卡片 */
+.bg-control-card {
+  flex: 1;
+  min-width: 0;
+  height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 14px;
+}
+
+.bg-control-card .beautify-card-header {
+  gap: 8px;
+}
+
+.bg-control-card .beautify-card-desc {
+  padding-left: 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.bg-actions-col {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: auto;
+}
+
+.beautify-action-btn {
+  width: 100%;
+  height: 38px;
+  border-radius: 10px;
+  background: #2c2c2e;
+  color: #ffffff;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.beautify-action-btn:active {
+  transform: scale(0.98);
+  opacity: 0.85;
+}
+.beautify-action-btn.secondary {
+  background: #f8f8fa;
+  color: #48484a;
+  border: 1px solid #d1d1d6;
+}
+
+/* ======================================================== */
+/* 3. 历史背景相册网格流                                     */
+/* ======================================================== */
+.bg-history-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.bg-history-item {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f2f2f7;
+  border: 1px solid #e5e5ea;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.bg-history-item:active {
+  transform: scale(0.95);
+  border-color: #8e8e93;
+}
+.bg-history-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bg-history-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 11.5px;
+  color: #c7c7cc;
+  padding: 16px 0;
+}
+
+/* ======================================================== */
+/* 4. 组件 UI 与 内部图标                                   */
+/* ======================================================== */
+.beautify-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e5e5ea;
+}
+.beautify-setting-row:last-child {
+  border-bottom: none;
+}
+.beautify-setting-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2c2c2e;
+}
+.beautify-pills-group {
+  display: flex;
+  gap: 6px;
+}
+.beautify-pill-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: #f2f2f7;
+  border: 1px solid #e5e5ea;
+  font-size: 11px;
+  font-weight: 600;
+  color: #636366;
+  cursor: pointer;
+}
+.beautify-pill-btn.active {
+  background: #2c2c2e;
+  border-color: #2c2c2e;
+  color: #ffffff;
+}
+
+/* 滑块 */
+.beautify-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 55%;
+}
+.beautify-slider-wrap input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  background: #d1d1d6;
+  border-radius: 2px;
+  outline: none;
+}
+.beautify-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2c2c2e;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+.beautify-slider-val {
+  font-size: 11px;
+  color: #636366;
+  width: 32px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.icon-style-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.icon-style-box {
+  padding: 14px 8px;
+  border-radius: 12px;
+  background: #f2f2f7;
+  border: 1.5px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.icon-style-box.active {
+  border-color: #8e8e93;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.icon-style-box span {
+  font-size: 11px;
+  color: #3a3a3c;
+  font-weight: 600;
+}
+
+/* 5. 显示与亮度 */
+.theme-switch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.theme-box-card {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.theme-box-card.light {
+  background: #f2f2f7;
+  color: #1c1c1e;
+  border-color: #e5e5ea;
+}
+.theme-box-card.dark {
+  background: #1c1e24;
+  color: #f0f4f8;
+  border-color: #2c2c2e;
+}
+.theme-box-card.active {
+  border-color: #8e8e93;
+  box-shadow: 0 0 0 2px rgba(142, 142, 147, 0.25);
+}
+.theme-box-card span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ======================================================== */
+/* 全局响应类                                               */
+/* ======================================================== */
+body.theme-dark {
+  background: #121316 !important;
+  color: #f2f2f7 !important;
+}
+body.theme-dark .app-page,
+body.theme-dark .beautify-sub-view {
+  background: #121316 !important;
+}
+body.theme-dark .beautify-card {
+  background: #1c1d22 !important;
+  border-color: #2c2d34 !important;
+}
+body.theme-dark .beautify-menu-title,
+body.theme-dark .beautify-card-title,
+body.theme-dark .beautify-sub-back {
+  color: #ffffff !important;
+}
+body.theme-dark .beautify-menu-item {
+  background: #1c1d22 !important;
+  border-color: #2c2d34 !important;
+}
+body.theme-dark .beautify-menu-icon {
+  background: #282a30 !important;
+  color: #aeaeb2 !important;
+}
+body.theme-dark .beautify-pill-btn {
+  background: #282a30 !important;
+  border-color: #34373f !important;
+  color: #aeaeb2 !important;
+}
+body.theme-dark .beautify-pill-btn.active {
+  background: #ffffff !important;
+  color: #121316 !important;
+}
+body.theme-dark .pwa-tip-box {
+  background: #24262c !important;
+  color: #8e8e93 !important;
+}
+body.theme-dark .pwa-icon-item.active .pwa-icon-preview {
+  border-color: #aeaeb2;
+  box-shadow: 0 0 0 2px rgba(174, 174, 178, 0.25);
+}
+body.theme-dark .bg-screen-preview {
+  border-color: #48484a;
+}
+body.theme-dark .mini-profile-card,
+body.theme-dark .mini-message-card,
+body.theme-dark .mini-app-icon,
+body.theme-dark .mini-date-card,
+body.theme-dark .mini-tab-bar {
+  background: rgba(36, 38, 44, 0.88);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.corner-sharp .profile-card,
+body.corner-sharp .message-card,
+body.corner-sharp .couple-date-card {
+  border-radius: 6px !important;
+}
+body.corner-soft .profile-card,
+body.corner-soft .message-card,
+body.corner-soft .couple-date-card {
+  border-radius: 26px !important;
+}
+
+body.icon-glow .couple-icon-circle,
+body.icon-glow .tab-icon svg {
+  filter: drop-shadow(0 2px 6px rgba(100, 100, 100, 0.5));
+}
+body.icon-emboss .couple-icon-circle {
+  box-shadow: inset 1px 1px 2px #ffffff, inset -1px -1px 2px rgba(0,0,0,0.15), 0 2px 5px rgba(0,0,0,0.08) !important;
+}
+
+.global-tint-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+
