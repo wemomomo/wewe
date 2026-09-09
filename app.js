@@ -2,12 +2,12 @@
 (function(){
   'use strict';
 
-  // ============ IndexedDB ============
+  // ============ IndexedDB 本地数据库 ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
   var STORE_NAME = 'appData';
   var db = null;
-
+  
   window._dbReady = false;
 
   function openDB(callback) {
@@ -63,12 +63,20 @@
   var dockEditBtn = document.querySelector('.tabbar-edit-btn');
 
   function initAppShells() {
-    var appPages = ['archive', 'imgbed', 'wechat', 'offline', 'settings', 'check'];
+    var appPages = ['beautify', 'archive', 'imgbed', 'wechat', 'offline', 'settings', 'check'];
     appPages.forEach(function(name) {
       var page = document.querySelector('[data-page="'+name+'"]');
       if (!page || page.querySelector('.app-header')) return;
-      var titleText = { archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗' }[name];
-      page.innerHTML = '<div class="app-header"><button class="icon-back-btn" data-back="home"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><div class="app-title">'+titleText+'</div></div><div class="app-content" id="'+name+'Content"></div>';
+      var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗' }[name];
+      
+      if (name === 'beautify') {
+        page.innerHTML = '<div class="app-header">'
+          + '<button class="icon-back-btn" data-back="home"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
+          + '<div class="app-title-group"><div class="app-title">'+titleText+'</div><div class="app-subtitle">DESIGN PROCESS</div></div>'
+          + '</div><div class="app-content" id="'+name+'Content"></div>';
+      } else {
+        page.innerHTML = '<div class="app-header"><button class="icon-back-btn" data-back="home"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><div class="app-title">'+titleText+'</div></div><div class="app-content" id="'+name+'Content"></div>';
+      }
     });
 
     var settingsContent = document.getElementById('settingsContent');
@@ -163,10 +171,31 @@
     }
   }
 
+  // ============ 全局统一导航与滑动统管 ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
         var targetTab = this.dataset.tab;
+        
+        if (targetTab === 'wechat') {
+          var DEV_PASSCODE = '0525'; 
+          var isDevUnlocked = sessionStorage.getItem('dev_wechat_unlocked');
+
+          if (isDevUnlocked === 'true') {
+            showPage('wechat');
+            return;
+          }
+
+          var inputCode = prompt('✦ 微信开发中 · 请输入开发者密匙 ✦');
+          if (inputCode === DEV_PASSCODE) {
+            sessionStorage.setItem('dev_wechat_unlocked', 'true');
+            showToast('✦ 开发者身份验证成功 ✦');
+            showPage('wechat');
+          } else if (inputCode !== null) {
+            showToast('✦ 密匙错误，暂未对公众开放 ✦');
+          }
+          return;
+        }
         if (targetTab === 'offline') {
           showToast('✦ 线下功能正在精心筹备中 ✦');
           return;
@@ -179,10 +208,23 @@
       });
     });
 
-    document.addEventListener('click', function(e) { var b = e.target.closest('[data-back]'); if (b) showPage(b.dataset.back); });
-    document.addEventListener('click', function(e) { var g = e.target.closest('[data-goto]'); if (g) showPage(g.dataset.goto); });
+    document.addEventListener('click', function(e) { 
+      var b = e.target.closest('[data-back]'); 
+      if (b) {
+        var backTarget = b.dataset.back;
+        if (backTarget === 'beautify-main') {
+          window.dispatchEvent(new Event('closeBeautifySub'));
+        } else {
+          showPage(backTarget);
+        }
+      }
+    });
+
+    document.addEventListener('click', function(e) { 
+      var g = e.target.closest('[data-goto]'); 
+      if (g) showPage(g.dataset.goto); 
+    });
     
-    // 打开指定独立 App
     document.addEventListener('click', function(e) {
       var appItem = e.target.closest('[data-open-app]');
       if (appItem && appItem.dataset.openApp) {
@@ -190,21 +232,14 @@
       }
     });
 
-    // 监听左侧图标点击（美化、世界书、论坛等开发中提示）
     document.addEventListener('click', function(e) {
       var coupleItem = e.target.closest('.couple-icon-item');
       if (coupleItem && !coupleItem.dataset.openApp && !coupleItem.dataset.goto) {
         var action = coupleItem.dataset.action;
-           if (action === 'beautify') {
-          showToast('✦ 美化功能正在精心筹备中 ✦');
-        } else if (action === 'worldbook') {
+        if (action === 'worldbook') {
           showToast('✦ 世界书系统正在载入中 ✦');
         } else if (action === 'forum') {
           showToast('✦ 论坛社区即将开放 ✦');
-        } else if (action === 'ai-image') {
-          if (window.AppAiImage && typeof window.AppAiImage.openStudio === 'function') {
-            window.AppAiImage.openStudio();
-          }
         } else {
           showToast('✦ 该功能正在精心研发中 ✦');
         }
@@ -212,31 +247,92 @@
     });
 
     document.querySelectorAll('.app-page').forEach(function(page) {
-      var startX = 0, currentX = 0, isDragging = false;
+      var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
+      var activeSubView = null;
+      var mainView = null;
+
       page.addEventListener('touchstart', function(e) { 
-        if (e.touches[0].clientX > 40) return; 
-        if (page.dataset.page === 'archive') return; // 档案页由专属逻辑接管
-        isDragging = true; 
+        if (e.touches[0].clientX > 45) return; 
+        if (page.dataset.page === 'archive') return;
+        
         startX = e.touches[0].clientX; 
-        page.style.transition = 'none'; 
+        startY = e.touches[0].clientY;
+        currentX = 0;
+        isDragging = true; 
+        isLocked = false;
+        isHoriz = false;
+
+        if (page.dataset.page === 'beautify') {
+          activeSubView = page.querySelector('.beautify-sub-view.active');
+          mainView = page.querySelector('.beautify-main-view');
+        } else {
+          activeSubView = null;
+          mainView = null;
+        }
+
+        if (activeSubView) {
+          activeSubView.style.transition = 'none';
+          if (mainView) mainView.style.transition = 'none';
+        } else {
+          page.style.transition = 'none'; 
+        }
       }, { passive: true });
 
       page.addEventListener('touchmove', function(e) { 
         if (!isDragging) return; 
-        currentX = e.touches[0].clientX - startX; 
-        if (currentX > 0) page.style.transform = 'translateX('+currentX+'px)'; 
+        var diffX = e.touches[0].clientX - startX;
+        var diffY = e.touches[0].clientY - startY;
+
+        if (!isLocked && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
+          isLocked = true;
+          isHoriz = Math.abs(diffX) > Math.abs(diffY);
+        }
+
+        if (!isHoriz) return;
+
+        if (diffX > 0) {
+          currentX = diffX;
+          if (activeSubView) {
+            activeSubView.style.transform = 'translateX(' + currentX + 'px)';
+            if (mainView) {
+              var mainOffset = -30 + (currentX / window.innerWidth) * 30;
+              mainView.style.transform = 'translateX(' + mainOffset + '%)';
+              mainView.style.opacity = Math.min(1, 0.4 + (currentX / window.innerWidth) * 0.6);
+            }
+          } else {
+            page.style.transform = 'translateX(' + currentX + 'px)'; 
+          }
+        }
       }, { passive: true });
 
       page.addEventListener('touchend', function() {
-        if (!isDragging) return; 
+        if (!isDragging || !isHoriz) {
+          isDragging = false;
+          return;
+        }
         isDragging = false;
-        page.style.transition = 'transform 0.3s cubic-bezier(0.2,0.8,0.2,1)';
-        var backBtn = page.querySelector('[data-back]');
-        if (currentX > window.innerWidth*0.3 && backBtn) { 
-          showPage(backBtn.dataset.back); 
-          setTimeout(function() { page.style.transform = ''; }, 300); 
-        } else { 
-          page.style.transform = 'translateX(0)'; 
+
+        if (activeSubView) {
+          if (currentX > window.innerWidth * 0.25) {
+            window.dispatchEvent(new Event('closeBeautifySub'));
+          } else {
+            activeSubView.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            activeSubView.style.transform = 'translateX(0)';
+            if (mainView) {
+              mainView.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease';
+              mainView.style.transform = 'translateX(-30%)';
+              mainView.style.opacity = '0.4';
+            }
+          }
+        } else {
+          page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          var backBtn = page.querySelector('[data-back]');
+          if (currentX > window.innerWidth * 0.28 && backBtn) { 
+            showPage(backBtn.dataset.back); 
+            setTimeout(function() { page.style.transform = ''; }, 280); 
+          } else { 
+            page.style.transform = 'translateX(0)'; 
+          }
         }
       });
     });
@@ -413,6 +509,7 @@
   // ============ 照片操作卡片 ============
   var photoActionCard=null,photoActionMask=null,photoActionOnSelect=null,photoActionOnDelete=null;
   function setupPhotoAction() {
+    if (photoActionMask) return;
     photoActionMask=document.createElement('div'); photoActionMask.className='photo-action-mask'; document.body.appendChild(photoActionMask);
     photoActionCard=document.createElement('div'); photoActionCard.className='photo-action-card';
     photoActionCard.innerHTML='<button id="paSelectBtn" type="button">选择照片</button><button id="paDeleteBtn" type="button">删除照片</button>';
@@ -421,9 +518,75 @@
     document.getElementById('paSelectBtn').addEventListener('click',function(e){e.stopPropagation();var cb=photoActionOnSelect;photoActionMask.classList.remove('show');photoActionCard.classList.remove('show');photoActionOnSelect=null;photoActionOnDelete=null;if(cb)cb();});
     document.getElementById('paDeleteBtn').addEventListener('click',function(e){e.stopPropagation();var cb=photoActionOnDelete;photoActionMask.classList.remove('show');photoActionCard.classList.remove('show');photoActionOnSelect=null;photoActionOnDelete=null;if(cb)cb();});
   }
-  window.PhotoAction={show:function(onSelect,onDelete){photoActionOnSelect=onSelect;photoActionOnDelete=onDelete;photoActionMask.classList.add('show');photoActionCard.classList.add('show');}};
+  window.PhotoAction={show:function(onSelect,onDelete){if(!photoActionMask)setupPhotoAction();photoActionOnSelect=onSelect;photoActionOnDelete=onDelete;photoActionMask.classList.add('show');photoActionCard.classList.add('show');}};
 
-  // ============ Toast（智能刷新·柔和冰蓝碎花框） ============
+  // ============ 全局高定「双选确认弹窗」引擎 ============
+  var appDialogMask = null, appDialogOnConfirm = null, appDialogOnCancel = null;
+  function setupAppDialog() {
+    if (appDialogMask) return;
+    appDialogMask = document.createElement('div');
+    appDialogMask.className = 'app-dialog-mask';
+    appDialogMask.innerHTML = '<div class="app-dialog-card">'
+      + '<div class="app-dialog-title" id="appDialogTitle">提示</div>'
+      + '<div class="app-dialog-desc" id="appDialogDesc">确定执行此操作吗？</div>'
+      + '<div class="app-dialog-btns">'
+      + '<button class="app-dialog-btn cancel" id="appDialogCancelBtn" type="button">取消</button>'
+      + '<button class="app-dialog-btn confirm" id="appDialogConfirmBtn" type="button">确定</button>'
+      + '</div>'
+      + '</div>';
+    document.body.appendChild(appDialogMask);
+
+    function closeDialog() {
+      appDialogMask.classList.remove('show');
+      appDialogOnConfirm = null;
+      appDialogOnCancel = null;
+    }
+
+    appDialogMask.addEventListener('click', function(e) {
+      if (e.target === appDialogMask) {
+        var cb = appDialogOnCancel;
+        closeDialog();
+        if (cb) cb();
+      }
+    });
+
+    document.getElementById('appDialogCancelBtn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      var cb = appDialogOnCancel;
+      closeDialog();
+      if (cb) cb();
+    });
+
+    document.getElementById('appDialogConfirmBtn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      var cb = appDialogOnConfirm;
+      closeDialog();
+      if (cb) cb();
+    });
+  }
+
+  window.AppDialog = {
+    confirm: function(options, onConfirm, onCancel) {
+      if (!appDialogMask) setupAppDialog();
+      options = options || {};
+      document.getElementById('appDialogTitle').textContent = options.title || '提示';
+      document.getElementById('appDialogDesc').textContent = options.desc || '确定执行此操作吗？';
+      
+      var confirmBtn = document.getElementById('appDialogConfirmBtn');
+      confirmBtn.textContent = options.confirmText || '确定';
+      if (options.isDanger) {
+        confirmBtn.className = 'app-dialog-btn danger';
+      } else {
+        confirmBtn.className = 'app-dialog-btn confirm';
+      }
+
+      appDialogOnConfirm = onConfirm;
+      appDialogOnCancel = onCancel;
+      appDialogMask.classList.add('show');
+    }
+  };
+
+  // ============ Toast 提示 ============
   var currentToastTimer = null;
   function showToast(message) {
     var existing = document.querySelector('.toast-message');
@@ -446,63 +609,13 @@
 
   window.AppNav = { showPage: showPage, showToast: showToast };
 
-  // ============ 初始化 ============
+  // ============ 初始化启动 (纯净秒开) ============
   openDB(function() {
     setupPhotoAction();
+    setupAppDialog();
     initAppShells();
     setupDesktopSlider();
     bindNavigation();
   });
-
-  // ============ 全局高定双选确认弹窗 (替代系统丑陋原生 confirm) ============
-  var dialogMask = null, onDialogConfirmCb = null, onDialogCancelCb = null;
-  function setupAppDialog() {
-    dialogMask = document.createElement('div');
-    dialogMask.className = 'app-dialog-mask';
-    dialogMask.innerHTML = '<div class="app-dialog-card">'
-      + '<div class="app-dialog-title" id="appDialogTitle">提示</div>'
-      + '<div class="app-dialog-desc" id="appDialogDesc"></div>'
-      + '<div class="app-dialog-btns">'
-      + '<button class="app-dialog-btn cancel" id="appDialogCancel" type="button">取消</button>'
-      + '<button class="app-dialog-btn confirm" id="appDialogConfirm" type="button">确定</button>'
-      + '</div></div>';
-    document.body.appendChild(dialogMask);
-
-    document.getElementById('appDialogCancel').addEventListener('click', function() {
-      dialogMask.classList.remove('show');
-      if (onDialogCancelCb) onDialogCancelCb();
-    });
-    document.getElementById('appDialogConfirm').addEventListener('click', function() {
-      dialogMask.classList.remove('show');
-      if (onDialogConfirmCb) onDialogConfirmCb();
-    });
-    dialogMask.addEventListener('click', function(e) {
-      if (e.target === dialogMask) {
-        dialogMask.classList.remove('show');
-        if (onDialogCancelCb) onDialogCancelCb();
-      }
-    });
-  }
-
-  window.AppDialog = {
-    confirm: function(options, onConfirm, onCancel) {
-      if (!dialogMask) setupAppDialog();
-      var title = typeof options === 'string' ? '提示' : (options.title || '提示');
-      var desc = typeof options === 'string' ? options : (options.desc || '');
-      var confirmText = (options && options.confirmText) || '确定';
-      var isDanger = options && options.isDanger;
-
-      document.getElementById('appDialogTitle').textContent = title;
-      document.getElementById('appDialogDesc').textContent = desc;
-      var confirmBtn = document.getElementById('appDialogConfirm');
-      confirmBtn.textContent = confirmText;
-      if (isDanger) confirmBtn.className = 'app-dialog-btn danger';
-      else confirmBtn.className = 'app-dialog-btn confirm';
-
-      onDialogConfirmCb = onConfirm;
-      onDialogCancelCb = onCancel;
-      dialogMask.classList.add('show');
-    }
-  };
 
 })();
