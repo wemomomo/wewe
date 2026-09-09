@@ -1,11 +1,11 @@
 
 /* =========================================================
-   角色专属卡片通用舞台与基础
+   角色专属卡片通用舞台与基础 (统一 585px 满血高度)
 ========================================================= */
 .char-card-base {
   width: 100%;
-  height: 585px !important;
-  max-height: 585px !important;
+  height: 610px !important;
+  max-height: 610px !important;
   background: #ffffff;
   position: relative;
   box-shadow: 0 16px 40px rgba(74, 107, 143, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -36,7 +36,7 @@
   height: 100%;
   object-fit: cover;
   display: none;
-  z-index: 1;
+  z-index: 30;
 }
 
 .char-card-base .photo-box.has-img img { display: block; }
@@ -51,7 +51,7 @@
   justify-content: center;
   gap: 6px;
   color: #94a3b8;
-  z-index: 2;
+  z-index: 30;
 }
 .char-card-base .photo-empty svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.5; }
 .char-card-base .photo-empty span { font-size: 11px; font-weight: 500; }
@@ -61,11 +61,11 @@
 }
 
 /* =========================================================
-   模板 1：【冷调精美档案卡】(theme-archive)
+   模板 1：【冷调精美档案卡 · 无黑框纯四角卡扣版】(theme-archive)
 ========================================================= */
 .char-card-base.theme-archive {
   border-radius: 18px;
-  padding: 16px 14px 18px;
+  padding: 16px 14px 14px;
   border: 1px solid rgba(176, 204, 232, 0.45);
   background: #ffffff;
   justify-content: space-between;
@@ -83,19 +83,19 @@
 .theme-archive .card-serial { font-size: 10px; font-family: monospace; font-weight: 700; letter-spacing: 2px; color: #64748b; }
 .theme-archive .card-brand { font-size: 9px; letter-spacing: 3px; color: #88abda; text-transform: uppercase; font-weight: 700; }
 
-.theme-archive .photo-frame-wrap { position: relative; width: 100%; padding: 0 16px 0 24px; flex-shrink: 0; }
+.theme-archive .photo-frame-wrap { position: relative; width: 100%; padding: 4px 16px 6px 24px; flex-shrink: 0; }
 .theme-archive .left-deco-bar {
-  position: absolute; left: 4px; top: 12px; bottom: 12px;
+  position: absolute; left: 4px; top: 14px; bottom: 14px;
   display: flex; flex-direction: column; align-items: center; justify-content: space-between; pointer-events: none;
 }
 .theme-archive .vert-text { writing-mode: vertical-rl; text-orientation: mixed; font-size: 8px; letter-spacing: 2px; color: #94a3b8; font-family: monospace; font-weight: 600; }
 .theme-archive .right-deco-line {
-  position: absolute; right: 4px; top: 16px; bottom: 16px;
+  position: absolute; right: 4px; top: 20px; bottom: 20px;
   display: flex; flex-direction: column; align-items: center; justify-content: space-around; pointer-events: none;
 }
 .theme-archive .star-icon { width: 10px; height: 10px; fill: #4a6b8f; }
 
-/* 相框高度（墨墨可以在这里微调相框高） */
+/* 无黑框相框 */
 .theme-archive .photo-box {
   height: 345px !important;
   border: none;
@@ -103,7 +103,7 @@
   box-shadow: 0 4px 16px rgba(0,0,0,0.05);
 }
 .theme-archive .frame-corner {
-  position: absolute; width: 9px; height: 9px; border: 1.5px solid #1e293b; pointer-events: none; z-index: 2;
+  position: absolute; width: 9px; height: 9px; border: 1.5px solid #1e293b; pointer-events: none; z-index: 30;
 }
 .theme-archive .c-tl { top: 2px; left: 2px; border-right: none; border-bottom: none; }
 .theme-archive .c-tr { top: 2px; right: 2px; border-left: none; border-bottom: none; }
@@ -112,37 +112,61 @@
 
 .theme-archive .archive-bottom-zone { display: flex; flex-direction: column; gap: 6px; padding: 2px 4px 0; flex-shrink: 0; }
 .theme-archive .char-spec-header { display: flex; justify-content: space-between; align-items: flex-end; position: relative; padding-bottom: 2px; }
-.theme-archive .name-block { display: flex; flex-direction: column; gap: 2px; z-index: 2; }
+.theme-archive .name-block { display: flex; flex-direction: column; gap: 2px; z-index: 30; }
 .theme-archive .char-name { font-size: 24px; font-weight: 900; letter-spacing: 2px; color: #121316; line-height: 1; }
 .theme-archive .char-en-sub { font-size: 8.5px; font-family: monospace; font-weight: 700; color: #88abda; letter-spacing: 1.5px; text-transform: uppercase; }
 .theme-archive .huge-shadow-num {
-  font-size: 44px; font-family: -apple-system, BlinkMacSystemFont, "Impact", "SF Pro Display", sans-serif;
+  font-size: 46px; font-family: -apple-system, BlinkMacSystemFont, "Impact", "SF Pro Display", sans-serif;
   font-weight: 900; font-style: italic; line-height: 0.75; color: #121316; opacity: 0.12;
   text-shadow: 3px 3px 0px rgba(136, 171, 218, 0.75), 0 0 16px rgba(136, 171, 218, 0.3);
-  letter-spacing: -3px; user-select: none; z-index: 1;
+  letter-spacing: -3px; user-select: none; z-index: 30;
 }
 .theme-archive .precision-axis-line { display: flex; align-items: center; gap: 8px; width: 100%; margin: 1px 0 2px; }
 .theme-archive .axis-dot { width: 3px; height: 3px; border-radius: 50%; background: #88abda; }
 .theme-archive .axis-line { flex: 1; height: 1px; background: linear-gradient(to right, rgba(136, 171, 218, 0.4), rgba(74, 107, 143, 0.15)); }
 .theme-archive .axis-cross { font-size: 9px; font-family: monospace; font-weight: 700; color: #88abda; }
-.theme-archive .char-intro-text { font-size: 11.5px; line-height: 1.55; color: #334155; letter-spacing: 0.3px; padding: 0 2px; }
+.theme-archive .char-intro-text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: #334155;
+  letter-spacing: 0.3px;
+  padding: 0 2px;
+  font-weight: 500;   /* 新增：加粗 */
+}
 
+/* 找回完整的条形码区域，绝不截断 */
 .theme-archive .card-footer-bar {
-  display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 0; border-top: 1px solid rgba(203, 213, 225, 0.4); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 0; border-top: 1px solid rgba(203, 213, 225, 0.4); flex-shrink: 0;
 }
 .theme-archive .qr-box {
   width: 26px; height: 26px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px; background: #fff;
   display: flex; align-items: center; justify-content: center;
 }
 .theme-archive .qr-box svg { width: 100%; height: 100%; fill: #1e293b; }
-.theme-archive .barcode-horiz { display: flex; gap: 1.5px; height: 18px; align-items: flex-end; }
-.theme-archive .barcode-horiz span { background: #1e293b; display: inline-block; height: 100%; }
-.theme-archive .b1 { width: 1px; }
-.theme-archive .b2 { width: 2px; }
-.theme-archive .b3 { width: 3px; }
+.theme-archive .barcode-horiz {
+  display: flex !important;
+  gap: 3px !important;            /* 条形码之间的空隙拉开 */
+  width: 90px !important;         /* 核心：横向强制拉长到 90px */
+  height: 24px !important;        /* 垂直高度拉高到 24px */
+  align-items: stretch !important;
+  justify-content: flex-end !important;
+  flex-shrink: 0 !important;
+}
+
+.theme-archive .barcode-horiz span {
+  background: #1e293b !important;
+  display: inline-block !important;
+  height: 100% !important;
+  flex-shrink: 0 !important;
+}
+
+/* 粗细分明，极具设计感 */
+.theme-archive .b1 { width: 1.5px !important; }
+.theme-archive .b2 { width: 3px !important; }
+.theme-archive .b3 { width: 5px !important; }
 
 /* =========================================================
-   模板 2：【机能手账】(theme-notebook)
+   模板 2：【机能手账 · 纯正黑白灰纸质版】(theme-notebook)
 ========================================================= */
 .char-card-base.theme-notebook {
   border-radius: 4px;
@@ -151,37 +175,38 @@
   background: #ffffff;
   justify-content: space-between;
 }
-.theme-notebook .nb-outer-border { position: absolute; inset: 5px; border: 1px solid #000000; pointer-events: none; z-index: 1; }
+.theme-notebook .nb-outer-border { position: absolute; inset: 5px; border: 1px solid #000000; pointer-events: none; z-index: 30; }
 .theme-notebook .nb-outer-border::after { content: ''; position: absolute; inset: 3px; border: 0.5px dashed rgba(0, 0, 0, 0.2); }
 .theme-notebook .nb-corner-tl {
   position: absolute; top: 5px; left: 5px; width: 16px; height: 16px;
-  border-right: 1px solid #000000; border-bottom: 1px solid #000000; background: #ffffff; z-index: 2;
+  border-right: 1px solid #000000; border-bottom: 1px solid #000000; background: #ffffff; z-index: 30;
 }
 .theme-notebook .nb-corner-br {
   position: absolute; bottom: 5px; right: 5px; width: 22px; height: 22px;
-  background: #000000; display: flex; align-items: center; justify-content: center; z-index: 2;
+  background: #000000; display: flex; align-items: center; justify-content: center; z-index: 30;
 }
 .theme-notebook .nb-corner-br svg { width: 12px; height: 12px; fill: #ffffff; }
 
 .theme-notebook .nb-top-bar {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 0 2px 8px; border-bottom: 1.5px solid #000000; position: relative; z-index: 2; flex-shrink: 0;
+  padding: 0 2px 8px; border-bottom: 1.5px solid #000000; position: relative; z-index: 30; flex-shrink: 0;
 }
-.theme-notebook .nb-top-title { font-size: 10px; font-family: monospace; font-weight: 800; letter-spacing: 1.5px; color: #18181b; }
+.theme-notebook .nb-top-title { font-size: 12px; font-family: monospace; font-weight: 800; letter-spacing: 1.5px; color: #18181b; }
 .theme-notebook .nb-top-tag {
   background: #000000; color: #ffffff; font-size: 8px; font-family: monospace;
   padding: 2px 6px; font-weight: 700; letter-spacing: 1px; border-radius: 2px;
 }
 
-.theme-notebook .nb-main-layout { display: flex; gap: 8px; position: relative; z-index: 2; flex-shrink: 0; }
+/* 完美拉开左侧间隙，彻底告别拥挤 */
+.theme-notebook .nb-main-layout { display: flex; gap: 8px; position: relative; z-index: 30; flex-shrink: 0; margin-top: 6px; align-items: stretch; }
 .theme-notebook .nb-sidebar-left {
-  display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 20px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 20px; flex-shrink: 0; padding: 2px 0;
 }
 .theme-notebook .nb-vert-text {
   writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
   font-size: 7.5px; font-family: monospace; letter-spacing: 1.5px; color: #71717a; white-space: nowrap;
 }
-.theme-notebook .nb-vert-barcode { width: 12px; height: 120px; display: flex; gap: 1.5px; }
+.theme-notebook .nb-vert-barcode { width: 12px; height: 80px; display: flex; gap: 1.5px; }
 .theme-notebook .nb-vert-barcode span { height: 100%; background: #000000; display: inline-block; }
 .theme-notebook .nb-mini-qr {
   width: 16px; height: 16px; border: 1px solid #000000; padding: 1.5px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
@@ -189,9 +214,9 @@
 .theme-notebook .nb-mini-qr span { background: #000000; }
 .theme-notebook .nb-mini-qr span:nth-child(2), .theme-notebook .nb-mini-qr span:nth-child(6) { background: transparent; }
 
-/* 手账相框高度 */
-.theme-notebook .photo-box { height: 265px !important; background: #f4f4f5; border: 1.5px solid #000000; flex: 1; }
-.theme-notebook .frame-cross { position: absolute; width: 8px; height: 8px; pointer-events: none; z-index: 2; }
+/* 手账相框 */
+.theme-notebook .photo-box { height: 350px !important; background: #f4f4f5; border: 1.5px solid #000000; flex: 1; }
+.theme-notebook .frame-cross { position: absolute; width: 8px; height: 8px; pointer-events: none; z-index: 30; }
 .theme-notebook .frame-cross.tl { top: 3px; left: 3px; border-top: 1.5px solid #000000; border-left: 1.5px solid #000000; }
 .theme-notebook .frame-cross.tr { top: 3px; right: 3px; border-top: 1.5px solid #000000; border-right: 1.5px solid #000000; }
 .theme-notebook .frame-cross.bl { bottom: 3px; left: 3px; border-bottom: 1.5px solid #000000; border-left: 1.5px solid #000000; }
@@ -205,7 +230,7 @@
 .theme-notebook .geo-dots { display: flex; flex-direction: column; gap: 3px; }
 .theme-notebook .geo-dots span { width: 3px; height: 3px; border-radius: 50%; background: #000000; }
 
-.theme-notebook .nb-bottom-section { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 2; flex-shrink: 0; }
+.theme-notebook .nb-bottom-section { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 30; margin-top: 6px; flex-shrink: 0; }
 .theme-notebook .nb-name-row { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 2px; }
 .theme-notebook .char-name { font-size: 22px; font-weight: 900; letter-spacing: 2px; line-height: 1; color: #18181b; }
 .theme-notebook .nb-char-serial { font-size: 9px; font-family: monospace; font-weight: 700; color: #71717a; letter-spacing: 1px; }
@@ -214,22 +239,22 @@
 .theme-notebook .spec-cell {
   background: #fafafa; border: 1px solid #d4d4d8; border-radius: 3px; padding: 4px 6px; display: flex; flex-direction: column; gap: 1px;
 }
-.theme-notebook .cell-label { font-size: 7px; font-family: monospace; font-weight: 700; color: #71717a; letter-spacing: 0.5px; }
-.theme-notebook .cell-val { font-size: 9.5px; font-family: monospace; font-weight: 800; color: #18191b; }
+.theme-notebook .cell-label { font-size: 8.5px; font-family: monospace; font-weight: 700; color: #71717a; letter-spacing: 0.5px; }
+.theme-notebook .cell-val { font-size: 10px; font-family: monospace; font-weight: 800; color: #18181b; }
 
 .theme-notebook .nb-memo-container {
   background: #fafafa; border: 1px dashed #d4d4d8; border-radius: 4px; padding: 8px 10px; position: relative;
   background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
   background-size: 8px 8px;
 }
 .theme-notebook .memo-tape-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .theme-notebook .tape-tag {
-  font-size: 7.5px; font-weight: 800; font-family: monospace; background: #000000; color: #ffffff; padding: 1px 5px; border-radius: 2px; letter-spacing: 1px;
+  font-size: 8.5px; font-weight: 800; font-family: monospace; background: #000000; color: #ffffff; padding: 1px 5px; border-radius: 2px; letter-spacing: 1px;
 }
-.theme-notebook .memo-date { font-size: 8px; font-family: monospace; color: #71717a; }
-.theme-notebook .char-intro-text { font-size: 11.5px; line-height: 1.55; color: #27272a; font-style: italic; }
+.theme-notebook .memo-date { font-size: 8.5px; font-family: monospace; color: #71717a; }
+.theme-notebook .char-intro-text { font-size: 14.5px; line-height: 1.55; color: #27272a; font-style: italic; }
 
 .theme-notebook .nb-footer-holes {
   display: flex; justify-content: space-between; align-items: center; padding: 4px 4px 0; border-top: 1px solid #d4d4d8; flex-shrink: 0;
@@ -239,80 +264,142 @@
 .theme-notebook .nb-foot-code { font-size: 7.5px; font-family: monospace; color: #71717a; letter-spacing: 1.5px; }
 
 /* =========================================================
-   模板 3：【暗夜未来特工令】(theme-tactical) · 第3顺位
+   模板 3：【暗夜未来特工令】(theme-tactical) · 第3顺位 (细节全数找回)
 ========================================================= */
 .char-card-base.theme-tactical {
-  background: #08090d;
-  border: 1.5px solid rgba(136, 171, 218, 0.5);
+  background: #08090d !important;
+  border: 1.5px solid rgba(136, 171, 218, 0.5) !important;
   color: #f8fafc;
-  padding: 16px 14px 18px;
+  padding: 14px 14px 14px;
   border-radius: 8px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(136, 171, 218, 0.05);
-  justify-content: space-between;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(136, 171, 218, 0.05) !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
 }
+
 .theme-tactical .tac-top-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 1px solid rgba(136, 171, 218, 0.2); padding-bottom: 6px; flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(136, 171, 218, 0.2) !important;
+  padding-bottom: 8px;
+  margin-bottom: 10px !important;
+  flex-shrink: 0;
 }
+
 .theme-tactical .tac-badge {
-  font-size: 8.5px; font-weight: 900; color: #08090d; background: var(--accent-blue);
-  padding: 2px 7px; border-radius: 2px; letter-spacing: 1.5px; box-shadow: 0 0 10px rgba(136, 171, 218, 0.4);
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important; /* 文字严格靠左 */
+  justify-content: center !important;
+  /* 👈 核心：宽度一口气拉长到 160px，稳稳延伸到卡片正中间！ */
+  width: 180px !important;
+  padding: 4px 10px !important;
+  border-radius: 2px !important;
+  background: var(--accent-blue, #88abda) !important;
+  color: #08090d !important;
+  font-family: monospace, sans-serif !important;
+  text-align: left !important;
+  line-height: 1.15 !important;
+  box-shadow: 0 0 10px rgba(136, 171, 218, 0.4) !important;
+  flex-shrink: 0 !important;
+}
+
+/* 第一行 TOP SECRET 靠左 */
+.theme-tactical .tac-badge span:first-child {
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1px !important;
+  text-align: left !important;
+}
+
+/* 第二行 CLASSIFIED 靠左 */
+.theme-tactical .tac-badge span:last-child {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.5px !important;
+  opacity: 0.9 !important;
+  text-align: left !important;
 }
 .theme-tactical .tac-sync-rate {
-  font-size: 9px; font-family: monospace; font-weight: 700; color: var(--accent-blue);
+  font-size: 10px; font-family: monospace; font-weight: 700; color: var(--accent-blue, #88abda);
   letter-spacing: 1px; display: flex; align-items: center; gap: 4px;
 }
-.theme-tactical .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
+.theme-tactical .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-blue, #88abda); box-shadow: 0 0 6px var(--accent-blue, #88abda); }
 
-/* 特工相框高度 */
+/* 特工相框 */
 .theme-tactical .photo-box {
   height: 340px !important;
-  background: #0f1118;
-  border: 1px solid rgba(136, 171, 218, 0.35);
-  border-radius: 6px;
+  background: #0f1118 !important;
+  border: 1px solid rgba(136, 171, 218, 0.35) !important;
+  border-radius: 0 !important;
 }
+
 .theme-tactical .tac-grid-bg {
-  position: absolute; inset: 0;
+  position: absolute;
+  inset: 0;
   background-image: 
     linear-gradient(to right, rgba(136, 171, 218, 0.16) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(136, 171, 218, 0.16) 1px, transparent 1px);
-  background-size: 24px 24px; pointer-events: none; z-index: 2;
+  background-size: 20px 20px !important; /* 👈 改为 20px 精密微型战术网格 */
+  background-position: center center !important; /* 👈 核心：居中对齐，左右两侧绝对对称，绝不再切成半个！ */
+  pointer-events: none;
+  z-index: 35;
 }
 .theme-tactical .target-lock-text {
-  position: absolute; top: 8px; left: 8px; font-size: 7.5px; font-family: monospace;
-  color: var(--accent-blue); letter-spacing: 1px; background: rgba(8, 9, 13, 0.6); padding: 1px 4px; border-radius: 2px; z-index: 2;
+  position: absolute; top: 8px; left: 8px; font-size: 10px; font-family: monospace;
+  color: var(--accent-blue, #88abda); letter-spacing: 1px; background: rgba(8, 9, 13, 0.6); padding: 1px 4px; border-radius: 2px; z-index: 35;
 }
 .theme-tactical .tac-stamp {
-  position: absolute; bottom: 8px; right: 8px; border: 1px solid var(--accent-blue);
-  color: var(--accent-blue); font-size: 8px; font-weight: 900; padding: 2px 6px;
+  position: absolute; bottom: 8px; right: 8px; border: 1px solid var(--accent-blue, #88abda);
+  color: var(--accent-blue, #88abda); font-size: 10px; font-weight: 900; padding: 3px 7px;
   letter-spacing: 1.5px; transform: rotate(-8deg); border-radius: 2px; background: rgba(8, 9, 13, 0.75);
-  backdrop-filter: blur(4px); box-shadow: 0 0 8px rgba(136, 171, 218, 0.3); pointer-events: none; z-index: 2;
+  backdrop-filter: blur(4px); box-shadow: 0 0 8px rgba(136, 171, 218, 0.3); pointer-events: none; z-index: 35;
 }
 
-.theme-tactical .tac-content { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.theme-tactical .tac-content { margin-top: 22px !important; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
 .theme-tactical .name-row { display: flex; justify-content: space-between; align-items: baseline; }
 .theme-tactical .char-name { font-size: 24px; font-weight: 900; letter-spacing: 3px; color: #ffffff; text-shadow: 0 0 12px rgba(136, 171, 218, 0.3); }
-.theme-tactical .char-tag { font-size: 9px; font-weight: 700; color: var(--accent-blue); letter-spacing: 1.5px; font-family: monospace; }
+.theme-tactical .char-tag { font-size: 11px; font-weight: 700; color: var(--accent-blue, #88abda); letter-spacing: 1.5px; font-family: monospace; }
 .theme-tactical .char-intro-text {
-  font-size: 11.5px; color: #cbd5e1; line-height: 1.55; background: rgba(136, 171, 218, 0.05);
-  border-left: 2px solid #88abda; padding: 6px 10px; border-radius: 0 4px 4px 0;
+  font-size: 13.5px; color: #cbd5e1; line-height: 1.75; background: rgba(136, 171, 218, 0.05);
+  border-left: 2px solid var(--accent-blue, #88abda); padding: 10px 10px; border-radius: 0 4px 4px 0;
 }
 .theme-tactical .tac-bottom-matrix {
-  display: flex; justify-content: space-between; align-items: center;
-  border-top: 1px solid rgba(136, 171, 218, 0.15); padding-top: 6px; margin-top: 2px;
-  font-size: 8px; font-family: monospace; color: rgba(136, 171, 218, 0.6); flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(136, 171, 218, 0.15) !important;
+  padding-top: 8px;
+  margin-top: 14px;
+  font-size: 10px;
+  color: rgba(136, 171, 218, 0.6) !important;
+  flex-shrink: 0;
 }
-.theme-tactical .tac-signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
-.theme-tactical .sig-bar { width: 2px; background: var(--accent-blue); border-radius: 1px; }
+.theme-tactical .tac-signal-bars {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 3px !important;       /* 柱子间距拉开到 3px */
+  height: 14px !important;    /* 总高度拉高到 14px */
+}
+.theme-tactical .sig-bar {
+  width: 3px !important;     /* 柱子加粗到 3px */
+  background: var(--accent-blue, #88abda) !important;
+  border-radius: 1px !important;
+}
+.theme-tactical .sig-bar:nth-child(1) { height: 5px !important; }
+.theme-tactical .sig-bar:nth-child(2) { height: 9px !important; }
+.theme-tactical .sig-bar:nth-child(3) { height: 14px !important; }
+.theme-tactical .sig-bar:nth-child(4) { height: 11px !important; }
 
 /* =========================================================
-   模板 4：【暗红血月 × 发光月银塔罗】(theme-astral) · 第4顺位
+   模板 4：【暗红血月 × 发光月银塔罗】(theme-astral) · 第4顺位 (细节全数找回)
 ========================================================= */
 .char-card-base.theme-astral {
   background: radial-gradient(circle at 50% 15%, #2a060a 0%, #190306 55%, #090103 100%);
   border: 1.5px solid #f1f5f9;
   border-radius: 12px;
-  padding: 16px 14px 18px;
+  padding: 16px 18px 18px;
   color: #f1f5f9;
   box-shadow: 
     0 24px 60px rgba(0, 0, 0, 0.95), 
@@ -322,7 +409,7 @@
   justify-content: space-between;
 }
 .theme-astral .astral-inner-frame {
-  position: absolute; inset: 5px; border: 1px solid rgba(226, 232, 240, 0.35); border-radius: 9px; pointer-events: none; z-index: 1;
+  position: absolute; inset: 5px; border: 1px solid rgba(226, 232, 240, 0.35); border-radius: 9px; pointer-events: none; z-index: 30;
   box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
 }
 .theme-astral .astral-inner-frame::after {
@@ -330,7 +417,7 @@
 }
 .theme-astral .astral-top-bar {
   display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(241, 245, 249, 0.2);
-  padding-bottom: 6px; position: relative; z-index: 2; flex-shrink: 0;
+  padding-bottom: 6px; position: relative; z-index: 30; flex-shrink: 0;
 }
 .theme-astral .astral-arcana-num {
   font-size: 11px; font-weight: 700; letter-spacing: 3px; color: #f1f5f9; text-shadow: 0 0 8px rgba(241, 245, 249, 0.4); text-transform: uppercase;
@@ -339,14 +426,34 @@
 .theme-astral .moon-dot { width: 6px; height: 6px; border-radius: 50%; border: 1px solid #cbd5e1; background: transparent; }
 .theme-astral .moon-dot.eclipse { background: #ff2a44; border-color: #ffffff; box-shadow: 0 0 10px #ff2a44, 0 0 4px #ffffff; }
 
-/* 塔罗相框高度 */
+/* 塔罗相框 */
 .theme-astral .photo-box {
   height: 320px !important;
-  border: 1px solid rgba(226, 232, 240, 0.35); border-radius: 6px; background: #100204;
-  box-shadow: 0 10px 28px rgba(0,0,0,0.7), 0 0 12px rgba(255,255,255,0.06); z-index: 2;
+  background: #100204 !important; /* 👈 1. 彻底把相框底色也锁定为暗红黑（防止没加载图片时泛白） */
+  border: none !important;        /* 👈 2. 彻底拿掉容易被相片挡住的物理 border */
+  border-radius: 6px;
+  z-index: 30;
+
+  /* 👈 3. 核心：用 inset 强制在相片最上层画一圈「暗夜银灰色」细边框，绝不被相片盖住！ */
+  box-shadow: 
+    0 10px 28px rgba(0, 0, 0, 0.7), 
+    inset 0 0 0 1px rgba(241, 245, 249, 0.2) !important; 
+  
+  /* 💡 如果想把这圈边框调得更暗、更红或者更显眼：
+     - 想更暗：把上面的 0.2 改小（比如 0.1 或者 0.08）
+     - 想带暗红：把 rgba(241, 245, 249, 0.2) 换成 rgba(181, 34, 52, 0.4) */
 }
 .theme-astral .tarot-corner {
-  position: absolute; width: 10px; height: 10px; border: 1.5px solid #f1f5f9; pointer-events: none; z-index: 3; filter: drop-shadow(0 0 3px rgba(241, 245, 249, 0.4));
+  position: absolute;
+  width: 10px;
+  height: 10px;
+
+  /* 👈 改这里！四角卡扣原本是刺眼的 #f1f5f9 白色，改成低调暗银色 */
+  border: 1.5px solid rgba(241, 245, 249, 0.35) !important;
+  
+  pointer-events: none;
+  z-index: 35;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6)) !important; /* 拿掉刺眼白发光 */
 }
 .theme-astral .tc-tl { top: 4px; left: 4px; border-right: none; border-bottom: none; }
 .theme-astral .tc-tr { top: 4px; right: 4px; border-left: none; border-bottom: none; }
@@ -354,12 +461,12 @@
 .theme-astral .tc-br { bottom: 4px; right: 4px; border-left: none; border-top: none; }
 .theme-astral .astral-badge-seal {
   position: absolute; bottom: 8px; right: 8px; background: rgba(10, 2, 4, 0.88); border: 1px solid #f1f5f9;
-  color: #ffffff; font-size: 8px; padding: 2px 7px; border-radius: 3px; letter-spacing: 1.5px; z-index: 3;
+  color: #ffffff; font-size: 8px; padding: 2px 7px; border-radius: 3px; letter-spacing: 1.5px; z-index: 35;
   backdrop-filter: blur(4px); box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .theme-astral .astral-info-sec {
-  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; position: relative; z-index: 2; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; position: relative; z-index: 30; flex-shrink: 0;
 }
 .theme-astral .char-tag {
   font-size: 8px; letter-spacing: 3px; color: #ffffff; text-transform: uppercase; border: 0.5px solid rgba(255, 255, 255, 0.45);
@@ -372,7 +479,7 @@
 .theme-astral .glyph-line { flex: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4), transparent); }
 .theme-astral .glyph-symbol { font-size: 10px; color: #ffffff; text-shadow: 0 0 8px rgba(241, 245, 249, 0.4); }
 .theme-astral .char-intro-text {
-  font-size: 11.5px; line-height: 1.6; color: #f1f5f9; font-style: italic; padding: 6px 12px;
+  font-size: 13px; line-height: 1.6; color: #f1f5f9; font-style: italic; padding: 6px 12px;
   background: rgba(255, 255, 255, 0.04); border-top: 1px solid rgba(255, 255, 255, 0.18); border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 4px; width: 100%; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
@@ -385,30 +492,30 @@
    模板 5：【法式极简画报】(theme-french) · 第5顺位
 ========================================================= */
 .char-card-base.theme-french {
-  background: #ffffff; border: 1px solid #111215; padding: 20px 18px 20px; border-radius: 2px;
+  background: #ffffff; border: 1px solid #111215; padding: 20px 20px 20px; border-radius: 2px;
   justify-content: space-between;
 }
-.theme-french .french-outer-border { position: absolute; inset: 6px; border: 1.5px solid #111215; pointer-events: none; z-index: 1; }
+.theme-french .french-outer-border { position: absolute; inset: 6px; border: 1.5px solid #111215; pointer-events: none; z-index: 30; }
 .theme-french .french-outer-border::after { content: ''; position: absolute; inset: 3.5px; border: 0.5px solid rgba(17, 18, 21, 0.35); }
 
 .theme-french .french-header {
   display: flex; flex-direction: column; align-items: center; text-align: center;
-  padding-bottom: 8px; border-bottom: 0.5px solid rgba(17, 18, 21, 0.15); position: relative; z-index: 2; flex-shrink: 0;
+  padding-bottom: 8px; border-bottom: 0.5px solid rgba(17, 18, 21, 0.15); position: relative; z-index: 30; flex-shrink: 0;
 }
 .theme-french .french-logo { font-size: 24px; font-weight: 600; letter-spacing: 5px; text-transform: uppercase; color: #111215; line-height: 1.1; font-family: "Didot", "Playfair Display", serif; }
 .theme-french .french-sub-head { font-size: 7.5px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; letter-spacing: 3px; text-transform: uppercase; color: #9e8a78; margin-top: 3px; font-weight: 600; }
 
-/* 画报相框高度 */
-.theme-french .photo-box { height: 330px !important; background: #f8f8f7; border: 0.5px solid rgba(17, 18, 21, 0.2); z-index: 2; }
-.theme-french .french-content { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; position: relative; z-index: 2; flex-shrink: 0; }
+/* 画报相框 */
+.theme-french .photo-box { height: 330px !important; background: #f8f8f7; border: 0.5px solid rgba(17, 18, 21, 0.2); z-index: 30; }
+.theme-french .french-content { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; position: relative; z-index: 30; flex-shrink: 0; }
 .theme-french .char-name { font-size: 22px; font-weight: 700; letter-spacing: 3px; color: #111215; font-family: "Didot", "Playfair Display", serif; }
 .theme-french .char-tag { font-size: 8.5px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: #9e8a78; }
 .theme-french .french-divider-line { width: 28px; height: 1px; background: #111215; opacity: 0.25; margin: 1px 0; }
-.theme-french .char-intro-text { font-size: 12px; line-height: 1.6; color: #6e6d7a; font-family: "Didot", "Times New Roman", serif; font-style: italic; padding: 0 8px; }
+.theme-french .char-intro-text { font-size: 14px; line-height: 1.6; color: #6e6d7a; font-family: "Didot", "Times New Roman", serif; font-style: italic; padding: 0 8px; }
 
 .theme-french .french-footer {
   padding-top: 6px; border-top: 0.5px solid rgba(17, 18, 21, 0.12);
   display: flex; justify-content: space-between; align-items: center; width: 100%;
   font-size: 7.5px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", monospace;
-  letter-spacing: 1.5px; color: #9c9a9e; text-transform: uppercase; position: relative; z-index: 2; flex-shrink: 0;
+  letter-spacing: 1.5px; color: #9c9a9e; text-transform: uppercase; position: relative; z-index: 30; flex-shrink: 0;
 }
