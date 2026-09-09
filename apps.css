@@ -15,7 +15,10 @@
   justify-content: center;
   gap: 5px;
   cursor: pointer;
-  width: 100%;
+  width: auto;
+  touch-action: manipulation; /* 消除 iOS 双击放大延迟 */
+  -webkit-user-select: none;  /* 防止长按选中文字 */
+  user-select: none;
 }
 .couple-icon-item:active {
   opacity: 0.5;
@@ -44,22 +47,44 @@
   width: 27px;
   height: 27px;
   stroke: #8e8e93;
-  stroke-width: 1;
+  stroke-width: 1.35;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
+  color: #8e8e93;
 }
 
-/* 美化图标的星星用填充 */
+/* 1. 美化图标专属：同色实心星星 + 纯镂空气泡 */
 .couple-icon-item[data-action="beautify"] .couple-icon-circle svg .star-fill {
   fill: #8e8e93;
-  stroke: none;
+  stroke: #8e8e93;
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+.couple-icon-item[data-action="beautify"] .couple-icon-circle svg circle {
+  fill: none !important;
 }
 
-/* 情侣空间爱心用填充 */
-.couple-icon-item[data-action="couple-space"] .couple-icon-circle svg .heart-fill {
-  fill: #8e8e93;
-  stroke: none;
+/* 2. 世界书专属：纯通透镂空藏书 + 实心小星芒 */
+.couple-icon-item[data-action="worldbook"] .couple-icon-circle svg {
+  stroke-width: 1.35;
+}
+.couple-icon-item[data-action="worldbook"] .couple-icon-circle svg rect {
+  fill: none !important; /* 彻底去除白底，纯透镂空 */
+}
+
+/* 3. 论坛专属：纯通透镂空星环与地球经纬线 */
+.couple-icon-item[data-action="forum"] .couple-icon-circle svg {
+  stroke-width: 1.35;
+}
+.couple-icon-item[data-action="forum"] .couple-icon-circle svg circle,
+.couple-icon-item[data-action="forum"] .couple-icon-circle svg path {
+  fill: none !important; /* 彻底去除白底，纯透镂空 */
+}
+
+/* 4. 档案专属：统一线条粗细 */
+.couple-icon-item[data-action="archive"] .couple-icon-circle svg {
+  stroke-width: 1.35;
 }
 
 .couple-icon-item span {
@@ -69,4 +94,15 @@
   font-weight: 500;
   text-align: center;
   line-height: 1.2;
+}
+
+/* ========== 第二页 自由应用排列区 ========== */
+.desktop-apps-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 20px;
+  padding: 16px 8px 40px;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
