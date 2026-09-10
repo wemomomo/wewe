@@ -34,9 +34,16 @@
       + '</div>'
       + '<div class="app-content ai-image-page-content">'
       
-      // 1. 模型选择区
-      + '<div class="ai-model-section">'
-      + '<div class="ai-section-label-row">'
+      // 1. API 渠道与模型配置区
+      + '<div class="ai-channel-section">'
+      + '<div class="ai-channel-header-row">'
+      + '<span class="ai-field-label">API 渠道</span>'
+      + '</div>'
+      + '<div class="ai-api-select-wrap">'
+      + '<select class="ai-api-select" id="aiApiChannelSelect"></select>'
+      + '</div>'
+      + '<div class="ai-model-input-row">'
+      + '<div class="ai-channel-header-row">'
       + '<span class="ai-field-label">生图模型 (极速通道)</span>'
       + '<div class="ai-quick-models">'
       + '<button class="ai-quick-model-btn" data-model="flux-schnell" type="button">⚡极速Flux</button>'
@@ -45,6 +52,7 @@
       + '</div>'
       + '</div>'
       + '<input type="text" class="ai-custom-input" id="aiCustomModelInput" placeholder="输入模型名 (如 flux-schnell / dall-e-3)">'
+      + '</div>'
       + '</div>'
 
       // 2. 提示词输入区
@@ -112,6 +120,48 @@
       + '</div>';
   }
 
+  function loadAndPopulateApiChannels(selectEl, customModelInput) {
+    if (!selectEl || !window.AppDB) return;
+
+    AppDB.get('api_configs', function(configs) {
+      var list = Array.isArray(configs) ? configs : [];
+      AppDB.get('active_api', function(active) {
+        selectEl.innerHTML = '';
+
+        if (!list.length) {
+          var opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = '暂无配置 (请前往设置添加)';
+          selectEl.appendChild(opt);
+          return;
+        }
+
+        var selectedIndex = 0;
+        list.forEach(function(cfg, idx) {
+          var opt = document.createElement('option');
+          opt.value = idx;
+          opt.textContent = cfg.name + ' (' + (cfg.model || '未设定模型') + ')';
+          if (active && active.name === cfg.name) {
+            selectedIndex = idx;
+          }
+          selectEl.appendChild(opt);
+        });
+
+        selectEl.selectedIndex = selectedIndex;
+
+        // 同步填入当前所选通道的模型
+        var currentCfg = list[selectedIndex];
+        if (currentCfg && customModelInput) {
+          if (currentCfg.model && /(image|flux|dall|sd|midjourney)/i.test(currentCfg.model)) {
+            customModelInput.value = currentCfg.model;
+          } else {
+            customModelInput.value = 'flux-schnell';
+          }
+        }
+      });
+    });
+  }
+
   function bindPageEvents(page) {
     var startBtn = page.querySelector('#aiStartGenBtn');
     var adoptBtn = page.querySelector('#aiAdoptBtn');
@@ -120,6 +170,7 @@
     var autoPromptBtn = page.querySelector('#aiAutoPromptBtn');
     var promptInput = page.querySelector('#aiPromptInput');
     var customModelInput = page.querySelector('#aiCustomModelInput');
+    var apiSelect = page.querySelector('#aiApiChannelSelect');
     var resultImg = page.querySelector('#aiResultImg');
 
     var adoptMask = page.querySelector('#aiAdoptMask');
@@ -128,13 +179,30 @@
     var adoptToCharBtn = page.querySelector('#adoptToCharBtn');
     var adoptCancelBtn = page.querySelector('#adoptCancelBtn');
 
-    var activeApi = (window.ApiConfig && typeof window.ApiConfig.getActive === 'function') ? window.ApiConfig.getActive() : null;
-    if (customModelInput) {
-      if (activeApi && activeApi.model && /(image|flux|dall|sd|midjourney)/i.test(activeApi.model)) {
-        customModelInput.value = activeApi.model;
-      } else {
-        customModelInput.value = 'flux-schnell';
-      }
+    // 载入并渲染 API 渠道列表
+    loadAndPopulateApiChannels(apiSelect, customModelInput);
+
+    // 监听 API 渠道切换
+    if (apiSelect) {
+      apiSelect.addEventListener('change', function() {
+        var idx = parseInt(this.value, 10);
+        if (isNaN(idx) || !window.AppDB) return;
+
+        AppDB.get('api_configs', function(configs) {
+          var list = Array.isArray(configs) ? configs : [];
+          if (list[idx]) {
+            var selectedCfg = list[idx];
+            if (customModelInput) {
+              if (selectedCfg.model && /(image|flux|dall|sd|midjourney)/i.test(selectedCfg.model)) {
+                customModelInput.value = selectedCfg.model;
+              } else {
+                customModelInput.value = 'flux-schnell';
+              }
+            }
+            if (window.AppNav) AppNav.showToast('✦ 已切换通道: ' + selectedCfg.name + ' ✦');
+          }
+        });
+      });
     }
 
     page.querySelectorAll('.ai-quick-model-btn').forEach(function(btn) {
@@ -351,103 +419,112 @@
   }
 
   function executeDualEngineGeneration(prompt, page) {
-    var activeApi = (window.ApiConfig && typeof window.ApiConfig.getActive === 'function') ? window.ApiConfig.getActive() : null;
     var debugBox = page.querySelector('#aiDebugErrorBox');
     if (debugBox) {
       debugBox.classList.remove('show');
       debugBox.textContent = '';
     }
 
-    if (!activeApi || !activeApi.url || !activeApi.key) {
-      if (window.AppNav) AppNav.showToast('请先在「设置 ➔ API配置」中配置接口');
-      return;
-    }
-
+    var apiSelect = page.querySelector('#aiApiChannelSelect');
     var customModelInput = page.querySelector('#aiCustomModelInput');
-    var chosenModel = (customModelInput && customModelInput.value.trim()) ? customModelInput.value.trim() : (activeApi.model || 'flux-schnell');
 
-    var cleanBase = activeApi.url.replace(/\/+$/, '');
-    var rootUrl = cleanBase.endsWith('/v1') ? cleanBase : (cleanBase + '/v1');
-    var imagesUrl = rootUrl + '/images/generations';
-    var chatUrl = rootUrl + '/chat/completions';
+    if (!window.AppDB) return;
 
-    setGeneratingState(true, page);
+    AppDB.get('api_configs', function(configs) {
+      var list = Array.isArray(configs) ? configs : [];
+      var selectedIdx = apiSelect ? parseInt(apiSelect.value, 10) : 0;
+      var targetApi = list[selectedIdx] || ((window.ApiConfig && typeof window.ApiConfig.getActive === 'function') ? window.ApiConfig.getActive() : null);
 
-    try {
-      localStorage.setItem(STORAGE_TASK_KEY, JSON.stringify({ prompt: prompt, model: chosenModel, time: Date.now() }));
-    } catch(e){}
+      if (!targetApi || !targetApi.url || !targetApi.key) {
+        if (window.AppNav) AppNav.showToast('当前所选 API 无效，请前往设置检查');
+        return;
+      }
 
-    fetch(imagesUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + activeApi.key },
-      body: JSON.stringify({ model: chosenModel, prompt: prompt, n: 1, size: '1024x1024' })
-    })
-    .then(function(res) {
-      return res.text().then(function(rawText) {
-        var data = null;
-        try { data = JSON.parse(rawText); } catch(e) { data = rawText; }
-        if (!res.ok) {
-          var msg = (data && data.error && data.error.message) ? data.error.message : (typeof data === 'string' ? data : ('HTTP ' + res.status));
-          throw new Error('IMG_FAILED:' + msg);
-        }
-        var foundImg = deeplyExtractImage(data);
-        if (foundImg) {
-          onSuccess(foundImg);
-          return null;
-        } else {
-          throw new Error('IMG_FAILED:转入Chat协议');
-        }
-      });
-    })
-    .catch(function(imgErr) {
-      var statusText = page.querySelector('#aiProgressStatusText');
-      if (statusText) statusText.textContent = '🔄 切换对话画师协议中...';
+      var chosenModel = (customModelInput && customModelInput.value.trim()) ? customModelInput.value.trim() : (targetApi.model || 'flux-schnell');
 
-      fetch(chatUrl, {
+      var cleanBase = targetApi.url.replace(/\/+$/, '');
+      var rootUrl = cleanBase.endsWith('/v1') ? cleanBase : (cleanBase + '/v1');
+      var imagesUrl = rootUrl + '/images/generations';
+      var chatUrl = rootUrl + '/chat/completions';
+
+      setGeneratingState(true, page);
+
+      try {
+        localStorage.setItem(STORAGE_TASK_KEY, JSON.stringify({ prompt: prompt, model: chosenModel, time: Date.now() }));
+      } catch(e){}
+
+      fetch(imagesUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + activeApi.key },
-        body: JSON.stringify({
-          model: chosenModel,
-          messages: [{ role: 'user', content: 'Draw an image: ' + prompt }]
-        })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + targetApi.key },
+        body: JSON.stringify({ model: chosenModel, prompt: prompt, n: 1, size: '1024x1024' })
       })
-      .then(function(cRes) {
-        return cRes.text().then(function(cText) {
-          var cData = null;
-          try { cData = JSON.parse(cText); } catch(e) { cData = cText; }
-          if (!cRes.ok) {
-            var cMsg = (cData && cData.error && cData.error.message) ? cData.error.message : (typeof cData === 'string' ? cData : ('HTTP ' + cRes.status));
-            throw new Error(cMsg);
+      .then(function(res) {
+        return res.text().then(function(rawText) {
+          var data = null;
+          try { data = JSON.parse(rawText); } catch(e) { data = rawText; }
+          if (!res.ok) {
+            var msg = (data && data.error && data.error.message) ? data.error.message : (typeof data === 'string' ? data : ('HTTP ' + res.status));
+            throw new Error('IMG_FAILED:' + msg);
           }
-          var chatImg = deeplyExtractImage(cData);
-          if (chatImg) {
-            onSuccess(chatImg);
+          var foundImg = deeplyExtractImage(data);
+          if (foundImg) {
+            onSuccess(foundImg);
+            return null;
           } else {
-            var rawPreview = typeof cData === 'object' ? JSON.stringify(cData) : String(cData);
-            throw new Error('中转未给出图片链接: ' + rawPreview.slice(0, 100));
+            throw new Error('IMG_FAILED:转入Chat协议');
           }
         });
       })
-      .catch(function(finalErr) {
-        setGeneratingState(false, page);
-        try { localStorage.removeItem(STORAGE_TASK_KEY); } catch(e){}
-        if (debugBox) {
-          debugBox.classList.add('show');
-          debugBox.textContent = '【排查提示】' + (finalErr.message || '请求失败');
-        }
-        if (window.AppNav) AppNav.showToast('绘图遇到阻碍，请看下方提示');
-      });
-    });
+      .catch(function(imgErr) {
+        var statusText = page.querySelector('#aiProgressStatusText');
+        if (statusText) statusText.textContent = '🔄 切换对话画师协议中...';
 
-    function onSuccess(url) {
-      setGeneratingState(false, page);
-      try {
-        localStorage.removeItem(STORAGE_TASK_KEY);
-        localStorage.setItem(STORAGE_LAST_RESULT_KEY, url);
-      } catch(e){}
-      showGeneratedResult(url, page);
-      if (window.AppNav) AppNav.showToast('✦ 绘制成功 ✦');
-    }
+        fetch(chatUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + targetApi.key },
+          body: JSON.stringify({
+            model: chosenModel,
+            messages: [{ role: 'user', content: 'Draw an image: ' + prompt }]
+          })
+        })
+        .then(function(cRes) {
+          return cRes.text().then(function(cText) {
+            var cData = null;
+            try { cData = JSON.parse(cText); } catch(e) { cData = cText; }
+            if (!cRes.ok) {
+              var cMsg = (cData && cData.error && cData.error.message) ? cData.error.message : (typeof cData === 'string' ? cData : ('HTTP ' + cRes.status));
+              throw new Error(cMsg);
+            }
+            var chatImg = deeplyExtractImage(cData);
+            if (chatImg) {
+              onSuccess(chatImg);
+            } else {
+              var rawPreview = typeof cData === 'object' ? JSON.stringify(cData) : String(cData);
+              throw new Error('中转未给出图片链接: ' + rawPreview.slice(0, 100));
+            }
+          });
+        })
+        .catch(function(finalErr) {
+          setGeneratingState(false, page);
+          try { localStorage.removeItem(STORAGE_TASK_KEY); } catch(e){}
+          if (debugBox) {
+            debugBox.classList.add('show');
+            debugBox.textContent = '【排查提示】' + (finalErr.message || '请求失败');
+          }
+          if (window.AppNav) AppNav.showToast('绘图遇到阻碍，请看下方提示');
+        });
+      });
+
+      function onSuccess(url) {
+        setGeneratingState(false, page);
+        try {
+          localStorage.removeItem(STORAGE_TASK_KEY);
+          localStorage.setItem(STORAGE_LAST_RESULT_KEY, url);
+        } catch(e){}
+        showGeneratedResult(url, page);
+        if (window.AppNav) AppNav.showToast('✦ 绘制成功 ✦');
+      }
+    });
   }
 
   function setGeneratingState(generating, page) {
@@ -522,9 +599,14 @@
       AppNav.showPage('ai-image');
     }
     var page = document.querySelector('[data-page="ai-image"]');
-    if (page && options && options.defaultPrompt) {
-      var promptInput = page.querySelector('#aiPromptInput');
-      if (promptInput) promptInput.value = options.defaultPrompt;
+    if (page) {
+      if (options && options.defaultPrompt) {
+        var promptInput = page.querySelector('#aiPromptInput');
+        if (promptInput) promptInput.value = options.defaultPrompt;
+      }
+      var apiSelect = page.querySelector('#aiApiChannelSelect');
+      var customModelInput = page.querySelector('#aiCustomModelInput');
+      loadAndPopulateApiChannels(apiSelect, customModelInput);
     }
   }
 
