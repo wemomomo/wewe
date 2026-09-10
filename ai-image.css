@@ -13,18 +13,18 @@
   box-sizing: border-box;
 }
 
-/* ========== 1. 模型选择区 ========== */
-.ai-model-section {
+/* ========== 1. API 渠道与模型选择区 ========== */
+.ai-channel-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   background: #f8fafc;
-  padding: 8px 10px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.ai-section-label-row {
+.ai-channel-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -35,6 +35,42 @@
   font-weight: 700;
   color: #64748b;
   letter-spacing: 0.5px;
+}
+
+.ai-api-select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.ai-api-select {
+  width: 100%;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #18191c;
+  outline: none;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+}
+.ai-api-select:focus {
+  border-color: #88abda;
+}
+
+.ai-model-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed #e2e8f0;
 }
 
 .ai-quick-models {
@@ -213,7 +249,6 @@
   display: none;
 }
 
-/* 生图中的凝晶动画 */
 .ai-generating-box {
   display: none;
   flex-direction: column;
