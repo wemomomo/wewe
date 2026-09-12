@@ -367,7 +367,7 @@
     }
   }
 
-  // ============ 页面外壳与导航 ============
+  // ============ 页面外壳与导航 (纯粹单页 JS 渲染模式) ============
   var dock = document.querySelector('.tab-bar');
   var dockEditBtn = document.querySelector('.tabbar-edit-btn');
 
@@ -407,13 +407,7 @@
     });
   }
 
-  // ============ 统一路由与历史栈沙盒 (核心：完美拦截系统后退) ============
-  var isInternalPop = false;
-
-  // 初始化基础栈
-  history.replaceState({ page: 'home', isSub: false }, "");
-
-  function showPage(name, skipPushHistory) {
+  function showPage(name) {
     var allPages = document.querySelectorAll('.page');
     allPages.forEach(function(p) {
       if (p.dataset.page === name) { p.classList.add('active'); p.style.transform = ''; }
@@ -431,58 +425,8 @@
       if (desktopPagination) desktopPagination.style.display = 'none';
     }
 
-    if (!skipPushHistory && name !== 'home') {
-      history.pushState({ page: name, isSub: false }, "");
-    }
-
     window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: name } }));
   }
-
-  // 全局历史栈变化监测 (无论是物理返回、系统右滑，还是 JS pop 触发)
-  window.addEventListener('popstate', function(event) {
-    var activePage = document.querySelector('.page.active');
-    if (!activePage) return;
-
-    var pageName = activePage.dataset.page;
-
-    // 1. 美化中心子视图返回
-    if (pageName === 'beautify') {
-      var activeSub = activePage.querySelector('.beautify-sub-view.active');
-      if (activeSub) {
-        activeSub.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        activeSub.style.transform = 'translateX(100%)';
-        setTimeout(function() {
-          activeSub.classList.remove('active');
-          activeSub.style.transform = '';
-        }, 220);
-        
-        var mainView = activePage.querySelector('.beautify-main-view');
-        if (mainView) {
-          mainView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease';
-          mainView.style.transform = 'translateX(0)';
-          mainView.style.opacity = '1';
-          setTimeout(function() {
-            mainView.classList.remove('slide-left');
-            mainView.style.transform = '';
-            mainView.style.opacity = '';
-          }, 220);
-        }
-        activePage.classList.remove('in-sub-page');
-        return;
-      }
-    }
-
-    // 2. 世界书多级子页面返回
-    if (pageName === 'worldbook') {
-      window.dispatchEvent(new CustomEvent('wbStepBack'));
-      return;
-    }
-
-    // 3. 一级页面直接回退到 home 桌面
-    if (pageName !== 'home') {
-      showPage('home', true);
-    }
-  });
 
   // ============ 桌面双屏滑动交互 ============
   function setupDesktopSlider() {
@@ -539,7 +483,7 @@
     }
   }
 
-  // ============ 统一事件拦截与导航绑定 ============
+  // ============ 统一点击导航绑定 (完全走 JS 内部路由，安全稳定) ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -576,20 +520,16 @@
       });
     });
 
-    // 拦截任何形式的点击返回（全部转换为 history.back，保持历史沙盒一致性）
+    // 点击返回直接走 showPage 切换，100% 独立，不破坏浏览器历史记录！
     document.addEventListener('click', function(e) { 
       var b = e.target.closest('[data-back]'); 
       if (b) {
-        e.preventDefault();
-        history.back();
-      }
-    });
-
-    // 点击二级页面的专用微型返回按钮
-    document.addEventListener('click', function(e) {
-      if (e.target.closest('.beautify-sub-back') || e.target.closest('#wbBtnEditBack') || e.target.closest('#wbBtnMetaBack') || e.target.closest('.wb-nav-back-btn') || e.target.closest('.icon-back-btn') || e.target.closest('.wb-edit-back-btn') || e.target.closest('.wb-meta-back-btn')) {
-        e.preventDefault();
-        history.back();
+        var backTarget = b.dataset.back;
+        if (backTarget === 'beautify-main') {
+          window.dispatchEvent(new Event('closeBeautifySub'));
+        } else {
+          showPage(backTarget);
+        }
       }
     });
 
@@ -619,27 +559,15 @@
       }
     });
 
-    // 拦截进入任何二级子页面的操作，并自动推入一个“历史沙盒栈”
-    document.addEventListener('click', function(e) {
-      var isEnteringSub = e.target.closest('.beautify-menu-item') || 
-                          e.target.closest('[data-enter-wb]') || 
-                          e.target.closest('.wb-main-card') || 
-                          e.target.closest('#wbNavBtnNewEntry') || 
-                          e.target.closest('[data-open-entry]') || 
-                          e.target.closest('[data-entry-act="edit"]');
-      if (isEnteringSub) {
-        history.pushState({ isSub: true }, "");
-      }
-    }, true);
-
-    // ============ iOS & Android 手势跟手滑动拖拽回退管辖 ============
+    // ============ 全局多级跟手滑动 (闭环手势，完美阻断浏览器后退) ============
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
       var mainView = null;
+      var isWorldbook = false;
 
       page.addEventListener('touchstart', function(e) { 
-        if (e.touches[0].clientX > 60) return; 
+        if (e.touches[0].clientX > 45) return; 
         if (page.dataset.page === 'archive') return;
         
         startX = e.touches[0].clientX; 
@@ -652,7 +580,10 @@
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
-        } else if (page.dataset.page === 'worldbook') {
+          isWorldbook = false;
+        } 
+        else if (page.dataset.page === 'worldbook') {
+          isWorldbook = true;
           activeSubView = null;
           mainView = null;
           var editView = page.querySelector('#wbEditView');
@@ -669,6 +600,7 @@
         } else {
           activeSubView = null;
           mainView = null;
+          isWorldbook = false;
         }
 
         if (activeSubView) {
@@ -691,8 +623,8 @@
 
         if (!isHoriz) return;
 
-        // 如果向右滑，强行吞掉安卓浏览器的原生切页，让我们手势跟手
         if (diffX > 0) {
+          // 彻底取消事件传播，不让浏览器原生后退接管！
           if (e.cancelable) e.preventDefault();
           currentX = diffX;
           if (activeSubView) {
@@ -715,10 +647,18 @@
         }
         isDragging = false;
 
-        // 手势拖拽达到判定距离，直接触发统一的 history.back()
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.22) {
-            history.back();
+            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            activeSubView.style.transform = 'translateX(100%)';
+            setTimeout(function() {
+              activeSubView.style.transform = '';
+              if (isWorldbook) {
+                window.dispatchEvent(new CustomEvent('wbStepBack'));
+              } else {
+                window.dispatchEvent(new Event('closeBeautifySub'));
+              }
+            }, 220);
           } else {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
             activeSubView.style.transform = 'translateX(0)';
@@ -729,10 +669,13 @@
             }
           }
         } else {
-          if (currentX > window.innerWidth * 0.25) {
-            history.back();
-          } else {
-            page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          var backBtn = page.querySelector('[data-back]');
+          if (currentX > window.innerWidth * 0.28) { 
+            var targetBack = backBtn ? backBtn.dataset.back : 'home';
+            showPage(targetBack); 
+            setTimeout(function() { page.style.transform = ''; }, 280); 
+          } else { 
             page.style.transform = 'translateX(0)'; 
           }
         }
@@ -1028,4 +971,3 @@
   });
 
 })();
-
