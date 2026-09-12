@@ -490,7 +490,7 @@
   color: #ffffff;
   border: none;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -498,10 +498,10 @@
 
 /* 词条卡片加高至 56px，内边距加大 */
 .wb-entry-item-card {
-  background: #ffffff;
+  background: #e5e5ea;
   border: 1px solid var(--wb-border-line);
   border-radius: 12px;
-  height: 56px;
+  height: 64px;
   padding: 0 12px 0 14px;
   display: flex;
   align-items: center;
@@ -525,7 +525,7 @@
   flex-shrink: 0;
 }
 .wb-entry-title-text {
-  font-size: 15px; /* 字体加大 */
+  font-size: 16px; /* 字体加大 */
   font-weight: 600;
   color: #1c1c1e;
   white-space: nowrap;
@@ -536,7 +536,7 @@
 .wb-entry-icons-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -549,14 +549,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8e8e93;
+  color: #1c1c1e;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .wb-entry-icon-btn:active { background: #f0f0f4; color: #1c1c1e; }
 .wb-entry-icon-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   stroke: currentColor;
   stroke-width: 1.8;
   fill: none;
