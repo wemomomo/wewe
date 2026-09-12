@@ -1,17 +1,8 @@
 
-(function(){
+(function() {
   'use strict';
-
-  // 修复 iOS Safari 点击不冒泡 Bug，确保苹果手机上所有 div 上的点击都能顺畅触发
-  if (document.body) {
-    document.body.style.cursor = 'pointer';
-  } else {
-    document.addEventListener('DOMContentLoaded', function() {
-      if (document.body) document.body.style.cursor = 'pointer';
-    });
-  }
-
-  // ============ IndexedDB ============
+  
+  // ============ IndexedDB 存储引擎 ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
   var STORE_NAME = 'appData';
@@ -100,7 +91,6 @@
         userInfo: { username: session.username }
       };
     }
-
     return null;
   }
 
@@ -118,7 +108,6 @@
       callback(cookieDev);
       return;
     }
-
     try {
       var localDev = localStorage.getItem('shared_device_id');
       if (localDev) {
@@ -133,7 +122,6 @@
         callback(savedId);
         return;
       }
-
       var w = Math.min(screen.width, screen.height);
       var h = Math.max(screen.width, screen.height);
       var cores = navigator.hardwareConcurrency || 4;
@@ -172,23 +160,14 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
-    function hideMask() {
-      mask.classList.remove('show');
-    }
-
-    function showMask() {
-      mask.classList.add('show');
-    }
-
     function onLoginVerified(token, userInfo) {
-      try {
-        localStorage.setItem('app_auth_token', token);
-        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-      } catch(e) {}
-
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          hideMask();
+          try {
+            localStorage.setItem('app_auth_token', token);
+            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+          } catch(e) {}
+          mask.classList.remove('show');
         });
       });
     }
@@ -197,7 +176,7 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
-          showMask();
+          mask.classList.add('show');
           if (message) showToast(message);
         });
       });
@@ -217,30 +196,40 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          if (data && data.kickOut === true) {
-            kickOut(data.message || '账号已失效');
+          if (data && data.isBanned === true) {
+            kickOut(data.message || '账号已被封禁');
           }
         })
         .catch(function() {});
       });
     }
 
-    dbGet('app_user_info', function(userInfo) {
-      dbGet('app_auth_token', function(token) {
-        if (token && userInfo && userInfo.username) {
-          hideMask();
-          realTimeVerify(userInfo);
-        } else {
-          var session = getGlobalSession();
-          if (session && session.token && session.userInfo && session.userInfo.username) {
-            onLoginVerified(session.token, session.userInfo);
-            realTimeVerify(session.userInfo);
+    var localToken = localStorage.getItem('app_auth_token');
+    var localInfoStr = localStorage.getItem('app_user_info');
+    var localInfo = null;
+    try { if (localInfoStr) localInfo = JSON.parse(localInfoStr); } catch(e) {}
+
+    if (localToken && localInfo && localInfo.username) {
+      mask.classList.remove('show');
+      realTimeVerify(localInfo);
+    } else {
+      dbGet('app_user_info', function(userInfo) {
+        dbGet('app_auth_token', function(token) {
+          if (token && userInfo && userInfo.username) {
+            mask.classList.remove('show');
+            realTimeVerify(userInfo);
           } else {
-            showMask();
+            var session = getGlobalSession();
+            if (session && session.token && session.userInfo && session.userInfo.username) {
+              onLoginVerified(session.token, session.userInfo);
+              realTimeVerify(session.userInfo);
+            } else {
+              mask.classList.add('show');
+            }
           }
-        }
+        });
       });
-    });
+    }
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
@@ -422,12 +411,9 @@
     var allPages = document.querySelectorAll('.page');
     allPages.forEach(function(p) {
       if (p.dataset.page === name) { p.classList.add('active'); p.style.transform = ''; }
-      else { p.classList.remove('active'); p.style.transform = ''; }
+      else { p.classList.remove('active'); }
     });
     
-    var homePage = document.querySelector('[data-page="home"]');
-    if (homePage) homePage.style.transform = '';
-
     var desktopPagination = document.getElementById('desktopPagination');
     if (name === 'home') { 
       if (dock) dock.style.display = 'flex'; 
@@ -496,7 +482,7 @@
     }
   }
 
-  // ============ 全局统一导航与多级滑动统管 ============
+  // ============ 统一点击导航绑定 ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -571,7 +557,7 @@
       }
     });
 
-    // 核心多级滑动返回引擎：美化中心、世界书三级、基础页面统管
+    // ============ 全局边缘滑动返回 (多级阻断，不越级) ============
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
@@ -581,7 +567,7 @@
       page.addEventListener('touchstart', function(e) { 
         if (e.touches[0].clientX > 45) return; 
         
-        // 1. 【档案】完全由 archive.js 自身手势独立接管，app.js 绝对不碰，彻底封死越级
+        // 档案自身全权管理内部手势
         if (page.dataset.page === 'archive') return;
         
         startX = e.touches[0].clientX; 
@@ -591,19 +577,16 @@
         isLocked = false;
         isHoriz = false;
 
-        // 2. 【美化中心】多级视图检测
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
           isWorldbook = false;
         } 
-        // 3. 【世界书】专属三级视图检测 (词条编辑 / 词条列表 / 封面修改 / 首页)
         else if (page.dataset.page === 'worldbook') {
           isWorldbook = true;
           activeSubView = null;
           mainView = null;
           
-          // 只要处于非 home 状态，严格捕获对应的活动子层
           if (window.WorldbookState && window.WorldbookState.currentLevel && window.WorldbookState.currentLevel !== 'home') {
             if (window.WorldbookState.currentLevel === 'edit') {
               activeSubView = page.querySelector('#wbEditView');
@@ -611,18 +594,6 @@
               activeSubView = page.querySelector('#wbBookMetaView');
             } else if (window.WorldbookState.currentLevel === 'entries') {
               activeSubView = page.querySelector('#wbEntriesView');
-            }
-          } else {
-            var editView = page.querySelector('#wbEditView');
-            var entriesView = page.querySelector('#wbEntriesView');
-            var metaView = page.querySelector('#wbBookMetaView');
-            
-            if (editView && !editView.classList.contains('wb-view-hidden') && editView.style.display !== 'none') {
-              activeSubView = editView;
-            } else if (metaView && !metaView.classList.contains('wb-view-hidden') && metaView.style.display !== 'none') {
-              activeSubView = metaView;
-            } else if (entriesView && !entriesView.classList.contains('wb-view-hidden') && entriesView.style.display !== 'none') {
-              activeSubView = entriesView;
             }
           }
         } else {
@@ -673,7 +644,6 @@
         }
         isDragging = false;
 
-        // 子视图右滑返回上一级 (词条编辑 -> 列表 -> 首页)
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.25) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -681,7 +651,6 @@
             setTimeout(function() {
               activeSubView.style.transform = '';
               if (isWorldbook) {
-                // 通知世界书按层级后退一步
                 window.dispatchEvent(new CustomEvent('wbStepBack'));
               } else {
                 window.dispatchEvent(new Event('closeBeautifySub'));
@@ -697,7 +666,6 @@
             }
           }
         } 
-        // 顶层 App 页面右滑返回桌面 (Home)
         else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
@@ -828,9 +796,9 @@
     else if (cropDragMode==='l') { var ra=sc.x+sc.w; var nx=Math.max(0,Math.min(ra-CROP_MIN,sc.x+dx)); cropBox.x=nx; cropBox.w=ra-nx; }
     else if (cropDragMode==='b') { cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
     else if (cropDragMode==='t') { var ba=sc.y+sc.h; var ny=Math.max(0,Math.min(ba-CROP_MIN,sc.y+dy)); cropBox.y=ny; cropBox.h=ba-ny; }
-    else if (cropDragMode==='br') { cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
+    else if (cropDragMode==='br') { cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.h=Math.max(CROP_MIN,cropDisplayH-sc.y,sc.h+dy)); }
     else if (cropDragMode==='bl') { var ra2=sc.x+sc.w; var nx2=Math.max(0,Math.min(ra2-CROP_MIN,sc.x+dx)); cropBox.x=nx2; cropBox.w=ra2-nx2; cropBox.h=Math.max(CROP_MIN,cropDisplayH-sc.y,sc.h+dy)); }
-    else if (cropDragMode==='tr') { var ba2=sc.y+sc.h; var ny2=Math.max(0,Math.min(ba2-CROP_MIN,sc.y+dy)); cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.y=ny2; cropBox.h=ba2-ny2; }
+    else if (cropDragMode==='tr') { var ba2=sc.y+sc.h; var ny2=Math.max(0,Math.min(ba2-CROP_MIN,sc.y+dy)); cropBox.w=Math.max(CROP_MIN,cropDisplayW-sc.x,sc.w+dx)); cropBox.y=ny2; cropBox.h=ba2-ny2; }
     else if (cropDragMode==='tl') { var ra3=sc.x+sc.w; var ba3=sc.y+sc.h; var nx3=Math.max(0,Math.min(ra3-CROP_MIN,sc.x+dx)); var ny3=Math.max(0,Math.min(ba3-CROP_MIN,sc.y+dy)); cropBox.x=nx3; cropBox.w=ra3-nx3; cropBox.y=ny3; cropBox.h=ba3-ny3; }
     if (cropLockedRatio) {
       if (cropDragMode==='r'||cropDragMode==='l'||cropDragMode==='tr'||cropDragMode==='tl') cropBox.h=cropBox.w/cropLockedRatio;
