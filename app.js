@@ -91,6 +91,7 @@
         userInfo: { username: session.username }
       };
     }
+
     return null;
   }
 
@@ -154,7 +155,7 @@
     return '/api/' + action;
   }
 
-  // ============ 登录门禁逻辑 ============
+  // ============ 登录门禁逻辑 (彻底防止重新部署误踢退出) ============
   function checkActivation() {
     var mask = document.getElementById('authGateMask');
     var usernameInput = document.getElementById('authUsernameInput');
@@ -163,12 +164,12 @@
     if (!mask) return;
 
     function onLoginVerified(token, userInfo) {
+      try {
+        localStorage.setItem('app_auth_token', token);
+        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+      } catch(e) {}
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          try {
-            localStorage.setItem('app_auth_token', token);
-            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-          } catch(e) {}
           mask.classList.remove('show');
         });
       });
@@ -198,7 +199,8 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          if (!data.success) {
+          // 只有在明确返回 kickOut 时才退出，服务器冷启动或重启绝不踢出用户！
+          if (data && data.kickOut === true) {
             kickOut(data.message || '账号已失效');
           }
         })
@@ -359,7 +361,7 @@
     }
   }
 
-  // ============ 页面外壳与导航 ============
+  // ============ 页面外壳与导航 (彻底保护美化中心不被冲刷) ============
   var dock = document.querySelector('.tab-bar');
   var dockEditBtn = document.querySelector('.tabbar-edit-btn');
 
@@ -368,7 +370,8 @@
     appPages.forEach(function(name) {
       var page = document.querySelector('[data-page="'+name+'"]');
       if (!page) return;
-      if (page.querySelector('.app-header') || (name === 'worldbook' && page.querySelector('#worldbookContent'))) return;
+      // 核心保护：如果该页面已经生成好外壳或内容，绝不再重复重写覆盖！
+      if (page.querySelector('.app-header') || page.querySelector('#' + name + 'Content')) return;
       
       var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗', worldbook: '世界书' }[name];
       
@@ -421,7 +424,7 @@
     window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: name } }));
   }
 
-  // ============ 桌面双屏左右平滑切换 (修复触控判定) ============
+  // ============ 桌面双屏滑动交互 (原汁原味流畅版本) ============
   function setupDesktopSlider() {
     var slider = document.getElementById('desktopSlider');
     var dots = document.querySelectorAll('.desktop-dot');
@@ -456,14 +459,16 @@
 
       slider.addEventListener('touchmove', function(e) {
         if (!isDragging) return;
-        distX = e.touches[0].clientX - startX;
-        distY = e.touches[0].clientY - startY;
+        var curX = e.touches[0].clientX;
+        var curY = e.touches[0].clientY;
+        distX = curX - startX;
+        distY = curY - startY;
       }, { passive: true });
 
       slider.addEventListener('touchend', function() {
         if (!isDragging) return;
         isDragging = false;
-        if (Math.abs(distX) > Math.abs(distY) && Math.abs(distX) > 25) {
+        if (Math.abs(distX) > Math.abs(distY) && Math.abs(distX) > 35) {
           if (distX < 0 && currentScreen === 0) {
             goToScreen(1);
           } else if (distX > 0 && currentScreen === 1) {
@@ -474,7 +479,7 @@
     }
   }
 
-  // ============ 全局统一导航与多级滑动统管 (完整修复所有图标点击) ============
+  // ============ 全局统一导航与多级滑动统管 ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -511,7 +516,6 @@
       });
     });
 
-    // 桌面所有应用与页面点击总路由
     document.addEventListener('click', function(e) { 
       var b = e.target.closest('[data-back]'); 
       if (b) {
@@ -521,38 +525,32 @@
         } else {
           showPage(backTarget);
         }
-        return;
       }
+    });
 
+    document.addEventListener('click', function(e) { 
       var g = e.target.closest('[data-goto]'); 
-      if (g && g.dataset.goto) {
-        showPage(g.dataset.goto);
-        return;
-      }
-
-      var coupleItem = e.target.closest('.couple-icon-item');
-      if (coupleItem) {
-        var openTarget = coupleItem.dataset.openApp || coupleItem.dataset.goto || coupleItem.dataset.action;
-        if (openTarget === 'worldbook') {
-          showPage('worldbook');
-        } else if (openTarget === 'beautify') {
-          showPage('beautify');
-        } else if (openTarget === 'archive') {
-          showPage('archive');
-        } else if (openTarget === 'imgbed') {
-          showPage('imgbed');
-        } else if (openTarget === 'forum') {
-          showToast('✦ 论坛社区即将开放 ✦');
-        } else if (openTarget) {
-          showPage(openTarget);
-        }
-        return;
-      }
-
+      if (g) showPage(g.dataset.goto); 
+    });
+    
+    document.addEventListener('click', function(e) {
       var appItem = e.target.closest('[data-open-app]');
       if (appItem && appItem.dataset.openApp) {
         showPage(appItem.dataset.openApp);
-        return;
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      var coupleItem = e.target.closest('.couple-icon-item');
+      if (coupleItem && !coupleItem.dataset.openApp && !coupleItem.dataset.goto) {
+        var action = coupleItem.dataset.action;
+        if (action === 'worldbook') {
+          showPage('worldbook');
+        } else if (action === 'forum') {
+          showToast('✦ 论坛社区即将开放 ✦');
+        } else {
+          showToast('✦ 该功能正在精心研发中 ✦');
+        }
       }
     });
 
@@ -762,7 +760,7 @@
     var c = cropBox, H = CROP_HANDLE;
     if (px>=c.x-H&&px<=c.x+H&&py>=c.y-H&&py<=c.y+H) return 'tl';
     if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'tr';
-    if (px>=c.x-H&&px<=c.x+H&&py>=c.y+c.h-H&&py<=c.y+c.h+H) return 'bl';
+    if (px>=c.x-H&&px<=c.x+H&&py>=c.y-H&&py<=c.y+H) return 'bl';
     if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'br';
     if (py>=c.y-H&&py<=c.y+H&&px>c.x+H&&px<c.x+c.w-H) return 't';
     if (py>=c.y+c.h-H&&py<=c.y+c.h+H&&px>c.x+H&&px<c.x+c.w-H) return 'b';
@@ -948,7 +946,7 @@
 
   window.AppNav = { showPage: showPage, showToast: showToast };
 
-  // ============ 初始化 ============
+  // ============ 初始化启动 ============
   openDB(function() {
     setupPhotoAction();
     setupAppDialog();
