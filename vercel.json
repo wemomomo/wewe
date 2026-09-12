@@ -1,0 +1,36 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.niveousmoon.top"
+        }
+      ],
+      "destination": "https://niveousmoon.top/:path*",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/images/:path*",
+      "destination": "https://yqhxhirsartowbhkhsfs.supabase.co/storage/v1/object/public/images/:path*"
+    }
+  ]
+}
