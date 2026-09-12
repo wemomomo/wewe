@@ -2,15 +2,6 @@
 (function(){
   'use strict';
 
-  // 修复 iOS Safari 点击不冒泡 Bug，确保苹果手机上所有 div 上的点击都能顺畅触发
-  if (document.body) {
-    document.body.style.cursor = 'pointer';
-  } else {
-    document.addEventListener('DOMContentLoaded', function() {
-      if (document.body) document.body.style.cursor = 'pointer';
-    });
-  }
-
   // ============ IndexedDB ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
@@ -48,12 +39,12 @@
     } catch(e) { if (cb) cb(); }
   }
   function dbGet(key, cb) {
-    if (!db) { cb(null); return; }
+    if (!db) { if (cb) cb(null); return; }
     try {
       var r = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(key);
-      r.onsuccess = function() { cb(r.result !== undefined ? r.result : null); };
-      r.onerror = function() { cb(null); };
-    } catch(e) { cb(null); }
+      r.onsuccess = function() { if (cb) cb(r.result !== undefined ? r.result : null); };
+      r.onerror = function() { if (cb) cb(null); };
+    } catch(e) { if (cb) cb(null); }
   }
   function dbDelete(key, cb) {
     if (!db) { if (cb) cb(); return; }
@@ -217,7 +208,6 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          // 仅在明确收到封禁指令时才退出，绝不因部署冷启动误清空凭证
           if (data && data.kickOut === true) {
             kickOut(data.message || '账号已失效');
           }
@@ -494,7 +484,7 @@
     }
   }
 
-  // ============ 全局统一导航与多级滑动统管 (完整保留世界书+美化多级返回) ============
+  // ============ 全局统一导航与多级滑动统管 ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -540,22 +530,21 @@
         } else {
           showPage(backTarget);
         }
+        return;
       }
-    });
 
-    document.addEventListener('click', function(e) { 
       var g = e.target.closest('[data-goto]'); 
-      if (g) showPage(g.dataset.goto); 
-    });
-    
-    document.addEventListener('click', function(e) {
+      if (g) {
+        showPage(g.dataset.goto);
+        return;
+      }
+      
       var appItem = e.target.closest('[data-open-app]');
       if (appItem && appItem.dataset.openApp) {
         showPage(appItem.dataset.openApp);
+        return;
       }
-    });
 
-    document.addEventListener('click', function(e) {
       var coupleItem = e.target.closest('.couple-icon-item');
       if (coupleItem && !coupleItem.dataset.openApp && !coupleItem.dataset.goto) {
         var action = coupleItem.dataset.action;
@@ -563,6 +552,10 @@
           showPage('worldbook');
         } else if (action === 'forum') {
           showToast('✦ 论坛社区即将开放 ✦');
+        } else if (action === 'beautify') {
+          showPage('beautify');
+        } else if (action === 'archive') {
+          showPage('archive');
         } else {
           showToast('✦ 该功能正在精心研发中 ✦');
         }
@@ -665,7 +658,6 @@
             setTimeout(function() {
               activeSubView.style.transform = '';
               if (isWorldbook) {
-                // 通知世界书按层级后退一步
                 window.dispatchEvent(new CustomEvent('wbStepBack'));
               } else {
                 window.dispatchEvent(new Event('closeBeautifySub'));
