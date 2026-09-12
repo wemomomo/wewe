@@ -1,0 +1,834 @@
+
+/* ======================================================== */
+/* 世界书体系 (WorldBook Studio) - 高定纯白浅灰极简风        */
+/* ======================================================== */
+
+:root {
+  --wb-cur-theme: #88abda;
+  --wb-cur-theme-bg: rgba(136, 171, 218, 0.25);
+  --wb-border-line: #e5e5ea;
+}
+
+/* ========== 主容器与视口 ========== */
+.wb-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 10px 12px 10px;
+}
+
+.wb-viewport-box {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 1px;
+}
+.wb-viewport-box::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.wb-view-hidden {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ========== 1. 顶栏：左大标题 + 右侧微缩上移双圆圈 ========== */
+.wb-top-header-row {
+  display: flex;
+  align-items: flex-start; /* 顶部对齐以配合上移 */
+  justify-content: space-between;
+  height: 60px;
+  flex-shrink: 0;
+  width: 100%;
+  padding: 2px 4px 0;
+  position: relative;
+}
+
+.wb-header-left-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+}
+
+.wb-title-main {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1c1c1e;
+  letter-spacing: 0.8px;
+  line-height: 1.05;
+}
+
+.wb-title-sub-en {
+  font-size: 14px;
+  font-weight: 700;
+  color: #8e8e93;
+  letter-spacing: 2px;
+  line-height: 1;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+}
+
+/* 右侧双圆圈：微缩至 38px，位置整体向上提 */
+.wb-header-right-circles-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.wb-header-circle-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  outline: none;
+}
+.wb-header-circle-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.2px dashed var(--wb-cur-theme);
+  opacity: 0.6;
+}
+
+.wb-circle-core {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--wb-cur-theme);
+  border: 1.5px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 0 0 3px var(--wb-cur-theme-bg);
+  transition: all 0.25s ease;
+  user-select: none;
+}
+.wb-header-circle-btn:active .wb-circle-core {
+  transform: scale(0.92);
+}
+
+/* 浮层 */
+.wb-left-switch-popover {
+  position: absolute;
+  right: 48px;
+  top: 38px;
+  background: #ffffff;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 12px;
+  padding: 5px;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 120;
+  min-width: 110px;
+}
+.wb-left-switch-popover.show { display: flex; animation: wbPopIn 0.15s ease; }
+@keyframes wbPopIn { from { opacity:0; transform: scale(0.92); } to { opacity:1; transform: scale(1); } }
+
+.wb-pop-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1c1e;
+  cursor: pointer;
+}
+.wb-pop-item:active { background: #f0f0f4; }
+.wb-pop-item.active {
+  background: #f0f0f4;
+  color: #1c1c1e;
+  font-weight: 800;
+}
+
+.wb-right-menu-popover {
+  position: absolute;
+  right: 4px;
+  top: 38px;
+  background: #ffffff;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 14px;
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 120;
+  min-width: 160px;
+}
+.wb-right-menu-popover.show { display: flex; animation: wbPopIn 0.15s ease; }
+
+.wb-action-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c1c1e;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.wb-action-card-btn:active { background: #f0f0f4; }
+.wb-action-card-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  flex-shrink: 0;
+}
+
+.wb-menu-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 4px 2px;
+  border-top: 1px dashed var(--wb-border-line);
+  margin-top: 4px;
+}
+.wb-swatch-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  transition: transform 0.15s ease;
+}
+.wb-swatch-dot:active { transform: scale(0.9); }
+
+.wb-custom-color-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red);
+  cursor: pointer;
+}
+.wb-custom-color-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ========== 2. 新建世界书名称页面 ========== */
+.wb-meta-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+
+.wb-meta-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: #1c1c1e;
+  cursor: pointer;
+  padding: 0;
+}
+.wb-meta-back-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+}
+
+.wb-meta-confirm-btn {
+  height: 28px;
+  padding: 0 14px;
+  background: #1c1c1e;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wb-meta-confirm-btn:active { opacity: 0.8; }
+
+.wb-meta-body-wrap {
+  display: flex;
+  flex-direction: column;
+  padding: 30px 10px 10px;
+  gap: 12px;
+}
+
+.wb-meta-title-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c1c1e;
+}
+
+.wb-underline-input {
+  width: 100%;
+  height: 42px;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid #1c1c1e;
+  border-radius: 0;
+  padding: 4px 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1c1c1e;
+  outline: none;
+  font-family: inherit;
+}
+
+/* ========== 3. 首页世界书卡片列表 ========== */
+.wb-main-card {
+  background: #ffffff;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 12px;
+  padding: 10px 10px 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.15s ease;
+}
+.wb-main-card:active {
+  background: #f8f8fa;
+  transform: scale(0.99);
+}
+
+.wb-cover-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: #f0f2f5;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  cursor: pointer;
+  border: 1px solid var(--wb-border-line);
+}
+.wb-cover-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+.wb-cover-wrap.has-img img { display: block; }
+.wb-cover-wrap.has-img .wb-camera-icon { display: none; }
+
+.wb-camera-icon {
+  width: 24px;
+  height: 24px;
+  stroke: #8e8e93;
+  stroke-width: 1.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wb-row-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.wb-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.wb-row-title-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wb-row-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1c1c1e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wb-row-desc {
+  font-size: 11.5px;
+  color: #8e8e93;
+  display: flex;
+  gap: 6px;
+}
+.wb-row-desc span { color: #636366; font-weight: 500; }
+
+.wb-more-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8e8e93;
+  cursor: pointer;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.wb-more-btn:active { background: #e5e5ea; color: #1c1c1e; }
+.wb-more-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.wb-dropdown-menu {
+  position: absolute;
+  right: 10px;
+  top: 48px;
+  background: #ffffff;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 12px;
+  display: none;
+  flex-direction: column;
+  min-width: 90px;
+  z-index: 80;
+  padding: 4px;
+}
+.wb-dropdown-menu.show { display: flex; animation: wbPopIn 0.15s ease; }
+
+.wb-menu-item {
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c1c1e;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+}
+.wb-menu-item:active { background: #f0f0f4; }
+.wb-menu-item.del { color: #1c1c1e; }
+.wb-menu-item.del:active { background: #f0f0f4; }
+
+.wb-empty-tip {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8e8e93;
+  padding: 50px 0;
+  user-select: none;
+}
+
+/* ========== 4. 词条列表页 (卡片全面做大做舒适) ========== */
+.wb-sub-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+.wb-nav-book-title {
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #1c1c1e;
+}
+
+.wb-nav-btn-new {
+  height: 28px;
+  padding: 0 12px;
+  background: #1c1c1e;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wb-nav-btn-new:active { opacity: 0.8; }
+
+/* 词条卡片加高至 56px，内边距加大 */
+.wb-entry-item-card {
+  background: #ffffff;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 12px;
+  height: 56px;
+  padding: 0 12px 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.wb-entry-left-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.wb-entry-v-bar {
+  width: 4px;
+  height: 18px;
+  background: var(--wb-cur-theme);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.wb-entry-title-text {
+  font-size: 15px; /* 字体加大 */
+  font-weight: 600;
+  color: #1c1c1e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wb-entry-icons-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.wb-entry-icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8e8e93;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.wb-entry-icon-btn:active { background: #f0f0f4; color: #1c1c1e; }
+.wb-entry-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wb-entry-icon-btn.toggle.on {
+  color: var(--wb-cur-theme);
+}
+.wb-entry-icon-btn.toggle.off {
+  color: #c7c7cc;
+}
+.wb-entry-icon-btn.del:active {
+  background: #f0f0f4;
+  color: #1c1c1e;
+}
+
+/* ========== 5. 编辑页 (极简顶栏 + 无阴影卡片) ========== */
+.wb-edit-nav-bar {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+.wb-edit-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: #1c1c1e;
+  cursor: pointer;
+  padding: 0;
+}
+.wb-edit-back-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+}
+
+.wb-field-card {
+  background: #ffffff;
+  border: 1px solid var(--wb-cur-theme) !important;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+  box-shadow: none !important;
+}
+
+.wb-field-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wb-field-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1c1c1e;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.wb-field-label::before {
+  content: '';
+  width: 3px;
+  height: 11px;
+  background: var(--wb-cur-theme);
+  border-radius: 1.5px;
+}
+
+.wb-mode-switch-capsule {
+  display: flex;
+  background: #f4f4f6;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 3px;
+}
+.wb-mode-pill {
+  padding: 3px 9px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8e8e93;
+  cursor: pointer;
+}
+.wb-mode-pill.active {
+  background: #ffffff;
+  color: #1c1c1e;
+  font-weight: 700;
+}
+
+.wb-clean-input {
+  width: 100%;
+  height: 36px;
+  background: #fafafa;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #1c1c1e;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.wb-clean-input:focus { background: #ffffff; border-color: var(--wb-cur-theme); }
+
+.wb-tag-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 20px;
+}
+.wb-kw-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  background: var(--wb-cur-theme-bg);
+  color: var(--wb-cur-theme);
+  border: 0.5px solid var(--wb-cur-theme);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 600;
+}
+.wb-kw-tag-del { font-size: 11px; cursor: pointer; opacity: 0.6; }
+
+.wb-scan-depth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: 1px dashed var(--wb-border-line);
+  margin-top: 2px;
+}
+.wb-scan-desc { font-size: 11.5px; color: #8e8e93; }
+.wb-scan-input {
+  width: 52px;
+  height: 28px;
+  background: #ffffff;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1c1c1e;
+  outline: none;
+}
+
+.wb-depth-btn-group {
+  display: flex;
+  gap: 6px;
+}
+.wb-depth-pos-btn {
+  flex: 1;
+  height: 32px;
+  background: #fafafa;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #636366;
+  cursor: pointer;
+}
+.wb-depth-pos-btn.active {
+  background: var(--wb-cur-theme);
+  border-color: var(--wb-cur-theme);
+  color: #000;
+}
+
+.wb-depth-num-inline {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: #fafafa;
+  border: 1px dashed var(--wb-border-line);
+  border-radius: 7px;
+  margin-top: 2px;
+}
+.wb-depth-num-inline.show { display: flex; }
+
+.wb-btn-expand-icon {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #8e8e93;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.wb-btn-expand-icon:active { background: #f0f0f4; color: #1c1c1e; }
+.wb-btn-expand-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wb-textarea-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.wb-clean-textarea {
+  width: 100%;
+  height: 95px;
+  min-height: 95px;
+  background: #fafafa;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 8px;
+  padding: 8px 10px 22px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #1c1c1e;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.wb-clean-textarea:focus { background: #ffffff; border-color: var(--wb-cur-theme); }
+
+.wb-char-count {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8e8e93;
+  pointer-events: none;
+}
+
+.wb-expanded-modal {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+  padding: 10px 12px;
+  gap: 8px;
+}
+.wb-expanded-modal.show { display: flex; }
+.wb-expanded-textarea {
+  flex: 1;
+  width: 100%;
+  background: #fafafa;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #1c1c1e;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
