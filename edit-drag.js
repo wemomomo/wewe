@@ -1,7 +1,7 @@
 
 (function(){
   'use strict';
-
+ 
   var pageContainer = document.querySelector('.page-container');
   var appShell = document.querySelector('.app-shell');
   var resetLayoutBtn = document.getElementById('resetLayoutBtn');
