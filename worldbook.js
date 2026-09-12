@@ -29,7 +29,7 @@
 
   window.WorldbookState = state;
 
-  // ============ 数据持久化 ============
+  // ============ 数据持久化 (仅在进入模块时按需执行) ============
   function loadAllData(callback) {
     if (!window.AppDB) {
       state.worldbooks = [];
@@ -362,7 +362,6 @@
             + '  <button class="wb-more-btn" type="button" data-wb-more="' + wb.id + '">'
             + '    <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>'
             + '  </button>'
-            // 移除了“编辑”选项，只保留复制/导出/删除
             + '  <div class="wb-dropdown-menu" id="wbMenu_' + wb.id + '">'
             + '    <div class="wb-menu-item" data-menu-act="copy" data-id="' + wb.id + '">复制</div>'
             + '    <div class="wb-menu-item" data-menu-act="export" data-id="' + wb.id + '">导出</div>'
@@ -452,7 +451,6 @@
     entriesBox.style.display = 'flex';
     entriesBox.scrollTop = 0;
 
-    // 顶栏：加大的标题、加长的横线、纯黑色➕号新建按钮
     var html = ''
       + '<div class="wb-entries-nav-bar">'
       + '  <button class="wb-entries-back-btn" id="wbBtnEntriesBack" type="button">'
@@ -474,7 +472,6 @@
       wb.entries.forEach(function (entry) {
         var switchCls = entry.enabled !== false ? 'on' : '';
         
-        // 词条状态微缩标签 (常驻 / 关键词 / 深度X)
         var pillTagHtml = '';
         if (entry.mode === 'const') {
           pillTagHtml = '<span class="wb-entry-pill-tag active">常驻</span>';
@@ -503,7 +500,6 @@
     }
     html += '</div>';
 
-    // 底部缩短、调高的保存按钮
     html += ''
       + '<div class="wb-entries-bottom-save-bar">'
       + '  <button class="wb-entries-btn-save-center" id="wbBtnSaveEntriesConfirm" type="button">保存</button>'
@@ -572,7 +568,6 @@
       + '  </button>'
       + '</div>'
       + '<div class="wb-viewport-box">'
-      // 词条名称
       + '  <div class="wb-field-card">'
       + '    <div class="wb-field-head-row">'
       + '      <span class="wb-field-label">词条名称</span>'
@@ -584,7 +579,6 @@
       + '    <input class="wb-clean-input" type="text" id="wbIptName" value="' + (entry ? entry.name : '') + '" placeholder="如: 角色背景 / 特殊设定">'
       + '  </div>'
 
-      // 词条内容
       + '  <div class="wb-field-card">'
       + '    <div class="wb-field-head-row">'
       + '      <span class="wb-field-label">词条内容</span>'
@@ -596,7 +590,6 @@
       + '    </div>'
       + '  </div>'
 
-      // 触发关键词
       + '  <div class="wb-field-card" id="wbKeyWrap" ' + keyWrapOpacity + '>'
       + '    <div class="wb-field-head-row"><span class="wb-field-label">触发关键词</span></div>'
       + '    <div class="wb-tag-box" id="wbTagBox"></div>'
@@ -607,7 +600,6 @@
       + '    </div>'
       + '  </div>'
 
-      // 注入位置
       + '  <div class="wb-field-card">'
       + '    <span class="wb-field-label">注入位置</span>'
       + '    <div class="wb-depth-btn-group">'
@@ -685,7 +677,7 @@
     saveWorldbooksData();
   }
 
-  // ============ 1:1 指针锚点锁死拖拽引擎 (Anchor-Locked Reorder Engine) ============
+  // ============ 1:1 指针锚点锁死拖拽引擎 ============
   function setupAnchorLockedDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -694,14 +686,11 @@
       var isDragging = false;
       var dragTimer = null;
       var startTouchY = 0;
-      var anchorOffsetY = 0; // 手指按在卡片内部的固定垂直距离
 
       function onTouchStart(e) {
         if (e.target.closest('button') || e.target.closest('.wb-cover-wrap') || e.target.closest('.wb-dropdown-menu') || e.target.closest('.wb-entry-switch')) return;
         var touch = e.touches[0];
         startTouchY = touch.clientY;
-        var rect = el.getBoundingClientRect();
-        anchorOffsetY = touch.clientY - rect.top; // 锁定触碰锚点
 
         dragTimer = setTimeout(function () {
           isDragging = true;
@@ -719,17 +708,13 @@
         }
         e.preventDefault();
         var touch = e.touches[0];
-        
-        // 核心：直接把卡片位移与手指位移做绝对 1:1 锚定绑定
         var deltaY = touch.clientY - startTouchY;
         el.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
 
-        // 碰撞判断
         var allCards = Array.from(container.querySelectorAll(itemSelector));
         var targetCard = allCards.find(function (card) {
           if (card === el) return false;
           var r = card.getBoundingClientRect();
-          // 手指指针精确穿透判断
           return touch.clientY >= r.top && touch.clientY <= r.bottom;
         });
 
@@ -803,7 +788,7 @@
       var wbContainer = document.getElementById('wbMainContainer');
       if (!wbContainer || !wbContainer.contains(e.target)) return;
 
-      // 1. 中间圆圈 ⇅ 切换浮层
+      // 1. 中间圆圈 ⇅
       if (e.target.closest('#wbBtnLeftSwitch')) {
         e.stopPropagation();
         var pLeft = document.getElementById('wbLeftSwitchPopover');
@@ -900,7 +885,7 @@
         return;
       }
 
-      // 内部词条页：点击居中带下划线标题进行重命名
+      // 内部词条页：点击居中带下划线标题重命名
       if (e.target.closest('#wbBtnEditBookTitle')) {
         renderBookMetaView(state.currentWbId);
         return;
@@ -1001,7 +986,7 @@
         return;
       }
 
-      // 新建词条 (纯➕号点击)
+      // 新建词条
       if (e.target.closest('#wbNavBtnNewEntry')) {
         renderEditView(null);
         return;
@@ -1157,7 +1142,13 @@
     return [(num >> 16) & 255, (num >> 8) & 255, num & 255].join(',');
   }
 
+  // ============ 按需冷启动核心 (开机0消耗) ============
+  var isEngineStarted = false;
+
   function startWorldbookEngine() {
+    if (isEngineStarted) return;
+    isEngineStarted = true;
+
     var container = ensureWorldbookDOM();
     if (!container) return;
     bindGlobalEvents();
@@ -1167,15 +1158,11 @@
     });
   }
 
+  // 严格按需唤醒：开机不执行任何操作，只有墨墨点进“世界书”页面才秒级加载！
   window.addEventListener('pageChange', function (e) {
     if (e.detail && e.detail.page === 'worldbook') {
       startWorldbookEngine();
     }
   });
 
-  window.addEventListener('dbReady', startWorldbookEngine);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startWorldbookEngine);
-  else startWorldbookEngine();
-
 })();
-
