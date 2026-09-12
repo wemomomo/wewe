@@ -1,3 +1,7 @@
+/* 彻底锁死任何浏览器的边缘滑动切页与退出手势 */
+html, body, .app-shell, .page, .wb-container {
+  overscroll-behavior-x: none !important;
+}
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
