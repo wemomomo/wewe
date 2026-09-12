@@ -2,7 +2,7 @@
 (function() {
   'use strict';
   
-  // ============ IndexedDB ============
+  // ============ IndexedDB 存储引擎 ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
   var STORE_NAME = 'appData';
@@ -367,7 +367,7 @@
     }
   }
 
-  // ============ 页面外壳与导航 (纯粹单页 JS 渲染模式) ============
+  // ============ 页面外壳与导航 ============
   var dock = document.querySelector('.tab-bar');
   var dockEditBtn = document.querySelector('.tabbar-edit-btn');
 
@@ -483,8 +483,16 @@
     }
   }
 
-  // ============ 统一点击导航绑定 (完全走 JS 内部路由，安全稳定) ============
+  // ============ 统一点击导航绑定 (含手势返回与防退拦截) ============
   function bindNavigation() {
+    // 深度拦截系统退出：无论怎么滑，绝不让浏览器关闭网页！
+    try {
+      history.pushState({ page: 'app_lock' }, '', '');
+      window.addEventListener('popstate', function() {
+        history.pushState({ page: 'app_lock' }, '', '');
+      });
+    } catch(e) {}
+
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
         var targetTab = this.dataset.tab;
@@ -520,7 +528,7 @@
       });
     });
 
-    // 点击返回直接走 showPage 切换，100% 独立，不破坏浏览器历史记录！
+    // 点击返回直接走内部安全路由
     document.addEventListener('click', function(e) { 
       var b = e.target.closest('[data-back]'); 
       if (b) {
@@ -559,7 +567,7 @@
       }
     });
 
-    // ============ 全局多级跟手滑动 (闭环手势，完美阻断浏览器后退) ============
+    // ============ 全局应用右滑退回桌面 (原生平滑手势) ============
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
@@ -624,7 +632,6 @@
         if (!isHoriz) return;
 
         if (diffX > 0) {
-          // 彻底取消事件传播，不让浏览器原生后退接管！
           if (e.cancelable) e.preventDefault();
           currentX = diffX;
           if (activeSubView) {
@@ -647,6 +654,7 @@
         }
         isDragging = false;
 
+        // 内部子层级滑动回退 (编辑 -> 列表 -> 首页)
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.22) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -668,13 +676,15 @@
               mainView.style.opacity = '0.4';
             }
           }
-        } else {
-          page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        } 
+        // 应用主页面右滑退回到我们的桌面 (Home)
+        else {
+          page.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
-          if (currentX > window.innerWidth * 0.28) { 
+          if (currentX > window.innerWidth * 0.25) { 
             var targetBack = backBtn ? backBtn.dataset.back : 'home';
             showPage(targetBack); 
-            setTimeout(function() { page.style.transform = ''; }, 280); 
+            setTimeout(function() { page.style.transform = ''; }, 250); 
           } else { 
             page.style.transform = 'translateX(0)'; 
           }
