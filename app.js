@@ -155,7 +155,7 @@
     return '/api/' + action;
   }
 
-  // ============ 登录门禁逻辑 (彻底打通生命周期) ============
+  // ============ 登录门禁逻辑 ============
   function checkActivation() {
     var mask = document.getElementById('authGateMask');
     var usernameInput = document.getElementById('authUsernameInput');
@@ -163,23 +163,14 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
-    function activateAppUI() {
-      mask.classList.remove('show');
-      mask.style.display = 'none';
-      mask.style.pointerEvents = 'none';
-      // 核心：唤醒所有依赖登录事件的组件（日期、头像、微信）
-      window.dispatchEvent(new CustomEvent('loginSuccess'));
-    }
-
     function onLoginVerified(token, userInfo) {
-      try {
-        localStorage.setItem('app_auth_token', token);
-        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-      } catch(e) {}
-
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          activateAppUI();
+          try {
+            localStorage.setItem('app_auth_token', token);
+            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+          } catch(e) {}
+          mask.classList.remove('show');
         });
       });
     }
@@ -188,8 +179,6 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
-          mask.style.display = 'flex';
-          mask.style.pointerEvents = 'auto';
           mask.classList.add('show');
           if (message) showToast(message);
         });
@@ -210,6 +199,7 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
+          // 仅在明确收到管理员停用账号的封禁指令时才退出，绝不因部署或重新连接而清除墨墨的登录凭证！
           if (data && data.kickOut === true) {
             kickOut(data.message || '账号已失效');
           }
@@ -218,34 +208,28 @@
       });
     }
 
-    // 优先读取本地持久凭据
-    var session = getGlobalSession();
-    if (session && session.userInfo && session.userInfo.username) {
-      activateAppUI();
-      onLoginVerified(session.token || 'valid_token', session.userInfo);
-      realTimeVerify(session.userInfo);
-    } else {
-      dbGet('app_user_info', function(userInfo) {
-        dbGet('app_auth_token', function(token) {
-          if (userInfo && userInfo.username) {
-            activateAppUI();
-            onLoginVerified(token || 'valid_token', userInfo);
-            realTimeVerify(userInfo);
+    dbGet('app_user_info', function(userInfo) {
+      dbGet('app_auth_token', function(token) {
+        if (token && userInfo && userInfo.username) {
+          mask.classList.remove('show');
+          realTimeVerify(userInfo);
+        } else {
+          var session = getGlobalSession();
+          if (session && session.token && session.userInfo && session.userInfo.username) {
+            onLoginVerified(session.token, session.userInfo);
+            realTimeVerify(session.userInfo);
           } else {
-            mask.style.display = 'flex';
-            mask.style.pointerEvents = 'auto';
             mask.classList.add('show');
           }
-        });
+        }
       });
-    }
+    });
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
-        var currentSession = getGlobalSession();
-        if (currentSession && currentSession.userInfo && currentSession.userInfo.username) {
-          realTimeVerify(currentSession.userInfo);
-        }
+        dbGet('app_user_info', function(userInfo) {
+          if (userInfo && userInfo.username) realTimeVerify(userInfo);
+        });
       }
     });
 
@@ -276,6 +260,7 @@
             var info = { username: data.username, password: password };
             onLoginVerified(data.token, info);
             showToast('欢迎回来');
+            window.dispatchEvent(new CustomEvent('loginSuccess'));
           } else if (data.canReset) {
             if (window.AppDialog) {
               window.AppDialog.confirm({
@@ -361,6 +346,7 @@
               var info = { username: data.username, password: regPass };
               onLoginVerified(data.token, info);
               showToast('注册成功，欢迎进入');
+              window.dispatchEvent(new CustomEvent('loginSuccess'));
             } else {
               showToast(data.message || '注册失败');
             }
@@ -582,11 +568,14 @@
         isLocked = false;
         isHoriz = false;
 
+        // 1. 美化中心多级视图检测
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
           isWorldbook = false;
-        } else if (page.dataset.page === 'worldbook') {
+        } 
+        // 2. 世界书多级视图检测 (编辑页 / 词条列表 / 首页)
+        else if (page.dataset.page === 'worldbook') {
           isWorldbook = true;
           activeSubView = null;
           mainView = null;
@@ -956,7 +945,7 @@
 
   window.AppNav = { showPage: showPage, showToast: showToast };
 
-  // ============ 初始化 (确保生命周期完全唤醒) ============
+  // ============ 初始化 ============
   openDB(function() {
     setupPhotoAction();
     setupAppDialog();
