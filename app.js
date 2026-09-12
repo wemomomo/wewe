@@ -1,6 +1,7 @@
-(function(){
-  'use strict';
 
+(function() {
+  'use strict';
+  
   // ============ IndexedDB ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
@@ -90,7 +91,6 @@
         userInfo: { username: session.username }
       };
     }
-
     return null;
   }
 
@@ -108,7 +108,6 @@
       callback(cookieDev);
       return;
     }
-
     try {
       var localDev = localStorage.getItem('shared_device_id');
       if (localDev) {
@@ -123,7 +122,6 @@
         callback(savedId);
         return;
       }
-
       var w = Math.min(screen.width, screen.height);
       var h = Math.max(screen.width, screen.height);
       var cores = navigator.hardwareConcurrency || 4;
@@ -184,8 +182,7 @@
       });
     }
 
-        function realTimeVerify(userInfo) {
-      // 只要本地已登录，就永远信任，绝不因为后台验证失败而把墨墨踢出弹登录框！
+    function realTimeVerify(userInfo) {
       getStableDeviceId(function(deviceId) {
         fetch(getApiEndpoint('login') + '?_t=' + Date.now(), {
           method: 'POST',
@@ -199,7 +196,6 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          // 仅在后端数据库明确返回账号被彻底封禁 (isBanned === true) 时才踢出
           if (data && data.isBanned === true) {
             kickOut(data.message || '账号已被封禁');
           }
@@ -208,7 +204,6 @@
       });
     }
 
-        // 1. 优先极速读取 localStorage 永久凭证，只要登录过直接放行！
     var localToken = localStorage.getItem('app_auth_token');
     var localInfoStr = localStorage.getItem('app_user_info');
     var localInfo = null;
@@ -218,7 +213,6 @@
       mask.classList.remove('show');
       realTimeVerify(localInfo);
     } else {
-      // 2. 兜底读取 IndexedDB
       dbGet('app_user_info', function(userInfo) {
         dbGet('app_auth_token', function(token) {
           if (token && userInfo && userInfo.username) {
@@ -385,7 +379,6 @@
       var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗', worldbook: '世界书' }[name];
       
       if (name === 'worldbook') {
-        // 世界书专属：纯净无默认顶栏，由 worldbook.js 全权绘制高定星宿链
         page.innerHTML = '<div class="app-content" id="worldbookContent"></div>';
       } else if (name === 'beautify') {
         page.innerHTML = '<div class="app-header">'
@@ -414,7 +407,13 @@
     });
   }
 
-  function showPage(name) {
+  // ============ 统一路由与历史栈沙盒 (核心：完美拦截系统后退) ============
+  var isInternalPop = false;
+
+  // 初始化基础栈
+  history.replaceState({ page: 'home', isSub: false }, "");
+
+  function showPage(name, skipPushHistory) {
     var allPages = document.querySelectorAll('.page');
     allPages.forEach(function(p) {
       if (p.dataset.page === name) { p.classList.add('active'); p.style.transform = ''; }
@@ -431,8 +430,59 @@
       if (dockEditBtn) dockEditBtn.style.display = 'none'; 
       if (desktopPagination) desktopPagination.style.display = 'none';
     }
+
+    if (!skipPushHistory && name !== 'home') {
+      history.pushState({ page: name, isSub: false }, "");
+    }
+
     window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: name } }));
   }
+
+  // 全局历史栈变化监测 (无论是物理返回、系统右滑，还是 JS pop 触发)
+  window.addEventListener('popstate', function(event) {
+    var activePage = document.querySelector('.page.active');
+    if (!activePage) return;
+
+    var pageName = activePage.dataset.page;
+
+    // 1. 美化中心子视图返回
+    if (pageName === 'beautify') {
+      var activeSub = activePage.querySelector('.beautify-sub-view.active');
+      if (activeSub) {
+        activeSub.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        activeSub.style.transform = 'translateX(100%)';
+        setTimeout(function() {
+          activeSub.classList.remove('active');
+          activeSub.style.transform = '';
+        }, 220);
+        
+        var mainView = activePage.querySelector('.beautify-main-view');
+        if (mainView) {
+          mainView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease';
+          mainView.style.transform = 'translateX(0)';
+          mainView.style.opacity = '1';
+          setTimeout(function() {
+            mainView.classList.remove('slide-left');
+            mainView.style.transform = '';
+            mainView.style.opacity = '';
+          }, 220);
+        }
+        activePage.classList.remove('in-sub-page');
+        return;
+      }
+    }
+
+    // 2. 世界书多级子页面返回
+    if (pageName === 'worldbook') {
+      window.dispatchEvent(new CustomEvent('wbStepBack'));
+      return;
+    }
+
+    // 3. 一级页面直接回退到 home 桌面
+    if (pageName !== 'home') {
+      showPage('home', true);
+    }
+  });
 
   // ============ 桌面双屏滑动交互 ============
   function setupDesktopSlider() {
@@ -489,7 +539,7 @@
     }
   }
 
-  // ============ 全局统一导航与滑动统管 ============
+  // ============ 统一事件拦截与导航绑定 ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -526,15 +576,20 @@
       });
     });
 
+    // 拦截任何形式的点击返回（全部转换为 history.back，保持历史沙盒一致性）
     document.addEventListener('click', function(e) { 
       var b = e.target.closest('[data-back]'); 
       if (b) {
-        var backTarget = b.dataset.back;
-        if (backTarget === 'beautify-main') {
-          window.dispatchEvent(new Event('closeBeautifySub'));
-        } else {
-          showPage(backTarget);
-        }
+        e.preventDefault();
+        history.back();
+      }
+    });
+
+    // 点击二级页面的专用微型返回按钮
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.beautify-sub-back') || e.target.closest('#wbBtnEditBack') || e.target.closest('#wbBtnMetaBack') || e.target.closest('.wb-nav-back-btn') || e.target.closest('.icon-back-btn') || e.target.closest('.wb-edit-back-btn') || e.target.closest('.wb-meta-back-btn')) {
+        e.preventDefault();
+        history.back();
       }
     });
 
@@ -564,15 +619,26 @@
       }
     });
 
-    
+    // 拦截进入任何二级子页面的操作，并自动推入一个“历史沙盒栈”
+    document.addEventListener('click', function(e) {
+      var isEnteringSub = e.target.closest('.beautify-menu-item') || 
+                          e.target.closest('[data-enter-wb]') || 
+                          e.target.closest('.wb-main-card') || 
+                          e.target.closest('#wbNavBtnNewEntry') || 
+                          e.target.closest('[data-open-entry]') || 
+                          e.target.closest('[data-entry-act="edit"]');
+      if (isEnteringSub) {
+        history.pushState({ isSub: true }, "");
+      }
+    }, true);
+
+    // ============ iOS & Android 手势跟手滑动拖拽回退管辖 ============
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
       var mainView = null;
-      var isWorldbook = false;
 
       page.addEventListener('touchstart', function(e) { 
-        // 荣耀/安卓防误触与热区优化：放宽至 60px
         if (e.touches[0].clientX > 60) return; 
         if (page.dataset.page === 'archive') return;
         
@@ -583,15 +649,10 @@
         isLocked = false;
         isHoriz = false;
 
-        // 1. 美化中心多级视图检测
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
-          isWorldbook = false;
-        } 
-        // 2. 世界书多级视图检测
-        else if (page.dataset.page === 'worldbook') {
-          isWorldbook = true;
+        } else if (page.dataset.page === 'worldbook') {
           activeSubView = null;
           mainView = null;
           var editView = page.querySelector('#wbEditView');
@@ -608,7 +669,6 @@
         } else {
           activeSubView = null;
           mainView = null;
-          isWorldbook = false;
         }
 
         if (activeSubView) {
@@ -619,7 +679,6 @@
         }
       }, { passive: true });
 
-      // 注意：这里 passive 设为 false，才能用 preventDefault 阻止安卓浏览器退出网页！
       page.addEventListener('touchmove', function(e) { 
         if (!isDragging) return; 
         var diffX = e.touches[0].clientX - startX;
@@ -632,7 +691,7 @@
 
         if (!isHoriz) return;
 
-        // 核心：判定为向右滑动的瞬间，强行阻止安卓浏览器自带的“切页/退出”
+        // 如果向右滑，强行吞掉安卓浏览器的原生切页，让我们手势跟手
         if (diffX > 0) {
           if (e.cancelable) e.preventDefault();
           currentX = diffX;
@@ -656,18 +715,10 @@
         }
         isDragging = false;
 
+        // 手势拖拽达到判定距离，直接触发统一的 history.back()
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.22) {
-            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
-            activeSubView.style.transform = 'translateX(100%)';
-            setTimeout(function() {
-              activeSubView.style.transform = '';
-              if (isWorldbook) {
-                window.dispatchEvent(new CustomEvent('wbStepBack'));
-              } else {
-                window.dispatchEvent(new Event('closeBeautifySub'));
-              }
-            }, 220);
+            history.back();
           } else {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
             activeSubView.style.transform = 'translateX(0)';
@@ -678,13 +729,10 @@
             }
           }
         } else {
-          page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          var backBtn = page.querySelector('[data-back]');
-          if (currentX > window.innerWidth * 0.25) { 
-            var targetBack = backBtn ? backBtn.dataset.back : 'home';
-            showPage(targetBack); 
-            setTimeout(function() { page.style.transform = ''; }, 280); 
-          } else { 
+          if (currentX > window.innerWidth * 0.25) {
+            history.back();
+          } else {
+            page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
             page.style.transform = 'translateX(0)'; 
           }
         }
