@@ -568,7 +568,7 @@
       }
     });
 
-    // ============ 全系统【阶梯式逐级返回死锁引擎】 ============
+    // ============ 全局【15 ➜ 13 ➜ 10 严格物理层级滑动死锁引擎】 ============
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
 
@@ -608,56 +608,70 @@
         }
         isDragging = false;
 
-        // 只有滑动超过阈值才触发后退
+        // 滑动有效阈值判定
         if (currentX < 40) return;
 
         var pageName = page.dataset.page;
 
-        // 1. 【世界书 Worldbook】阶梯判定
+        // ==========================================
+        // 1. 【世界书体系】15 ➜ 13 ➜ 10 严格层级处理
+        // ==========================================
         if (pageName === 'worldbook') {
-          if (window.WorldbookState && window.WorldbookState.currentLevel !== 'home') {
-            // 在子页面，退回上一级
+          var edit15 = page.querySelector('#wbEditView');
+          var entries13 = page.querySelector('#wbEntriesView');
+          var meta13 = page.querySelector('#wbBookMetaView');
+
+          // 【15 级】：当前处于词条编辑页 ➜ 只能退回 13 级（词条列表）！
+          if (edit15 && !edit15.classList.contains('wb-view-hidden') && edit15.style.display !== 'none') {
             window.dispatchEvent(new CustomEvent('wbStepBack'));
             return;
           }
-          var wbHome = page.querySelector('#wbHomeView');
-          if (wbHome && (wbHome.classList.contains('wb-view-hidden') || wbHome.style.display === 'none')) {
+
+          // 【13 级】：当前处于词条列表或新建书名 ➜ 只能退回 10 级（世界书首页）！
+          if ((entries13 && !entries13.classList.contains('wb-view-hidden') && entries13.style.display !== 'none') ||
+              (meta13 && !meta13.classList.contains('wb-view-hidden') && meta13.style.display !== 'none')) {
             window.dispatchEvent(new CustomEvent('wbStepBack'));
             return;
           }
-          // 只有真正处于世界书大首页才退回桌面
+
+          // 【10 级】：纯正的世界书首页 ➜ 才能退回手机桌面！
           showPage('home');
           return;
         }
 
-        // 2. 【档案 Archive】阶梯判定
+        // ==========================================
+        // 2. 【档案体系】15 ➜ 13 ➜ 10 严格层级处理
+        // ==========================================
         if (pageName === 'archive') {
-          // 检查是否有处于打开状态的编辑卡片、详情页或子弹层
-          var archiveSubBack = page.querySelector('.archive-sub-view.active [data-back], .char-edit-view.active, .archive-drawer.open, .archive-modal.show, #charEditBackBtn, .archive-sub-back');
-          if (archiveSubBack) {
-            var directBtn = archiveSubBack.querySelector('[data-back], .icon-back-btn, #charEditBackBtn') || archiveSubBack;
-            if (typeof directBtn.click === 'function') {
-              directBtn.click();
-              return;
-            }
+          // 【15 级 / 13 级】：检查是否有打开的编辑卡片、详情页或子弹层
+          var archiveSub13 = page.querySelector('.archive-sub-view.active, .char-edit-view.active, .archive-drawer.open, .archive-modal.show');
+          var archiveSubBackBtn = page.querySelector('.archive-sub-view.active [data-back], .char-edit-view.active #charEditBackBtn, .archive-sub-back');
+
+          if (archiveSubBackBtn) {
+            archiveSubBackBtn.click();
+            return;
           }
-          if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
-            if (typeof window.ArchiveState.stepBack === 'function') {
-              window.ArchiveState.stepBack();
-              return;
-            }
+          if (archiveSub13) {
             window.dispatchEvent(new CustomEvent('archiveStepBack'));
             return;
           }
-          // 只有处于档案主首页才退回桌面
+          if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
+            if (typeof window.ArchiveState.stepBack === 'function') window.ArchiveState.stepBack();
+            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
+            return;
+          }
+
+          // 【10 级】：纯正的档案首页 ➜ 才能退回手机桌面！
           showPage('home');
           return;
         }
 
-        // 3. 【美化中心 Beautify】阶梯判定
+        // ==========================================
+        // 3. 【美化中心】13 ➜ 10 严格层级处理
+        // ==========================================
         if (pageName === 'beautify' || pageName === 'beautiful') {
-          var bSubActive = page.querySelector('.beautify-sub-view.active');
-          if (bSubActive) {
+          var bSub13 = page.querySelector('.beautify-sub-view.active');
+          if (bSub13) {
             window.dispatchEvent(new Event('closeBeautifySub'));
             return;
           }
@@ -665,14 +679,16 @@
           return;
         }
 
-        // 4. 【系统其他带二级页面的 App】
-        var genericBack = page.querySelector('.sub-page.active [data-back], [data-is-sub="true"] [data-back]');
-        if (genericBack) {
-          genericBack.click();
+        // ==========================================
+        // 4. 【其他带二级页的应用（如设置）】
+        // ==========================================
+        var genericSub = page.querySelector('.sub-page.active [data-back], [data-is-sub="true"] [data-back]');
+        if (genericSub) {
+          genericSub.click();
           return;
         }
 
-        // 默认第一层：退回桌面
+        // 【10 级默认】：退回桌面
         var backBtn = page.querySelector('[data-back]');
         var targetBack = backBtn ? backBtn.dataset.back : 'home';
         showPage(targetBack);
@@ -968,3 +984,4 @@
   });
 
 })();
+
