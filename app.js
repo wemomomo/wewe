@@ -565,14 +565,15 @@
     });
 
     
-document.querySelectorAll('.app-page').forEach(function(page) {
+    document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
       var mainView = null;
       var isWorldbook = false;
 
       page.addEventListener('touchstart', function(e) { 
-        if (e.touches[0].clientX > 45) return; 
+        // 荣耀/安卓防误触与热区优化：放宽至 60px
+        if (e.touches[0].clientX > 60) return; 
         if (page.dataset.page === 'archive') return;
         
         startX = e.touches[0].clientX; 
@@ -588,22 +589,21 @@ document.querySelectorAll('.app-page').forEach(function(page) {
           mainView = page.querySelector('.beautify-main-view');
           isWorldbook = false;
         } 
-        // 2. 世界书多级视图检测 (编辑页 / 词条列表 / 首页)
+        // 2. 世界书多级视图检测
         else if (page.dataset.page === 'worldbook') {
           isWorldbook = true;
           activeSubView = null;
           mainView = null;
-          // 检测是否处于编辑页
           var editView = page.querySelector('#wbEditView');
           var entriesView = page.querySelector('#wbEntriesView');
           var metaView = page.querySelector('#wbBookMetaView');
           
           if (editView && !editView.classList.contains('wb-view-hidden') && editView.style.display !== 'none') {
-            activeSubView = editView; // 当前在编辑页，滑动退回列表
+            activeSubView = editView;
           } else if (metaView && !metaView.classList.contains('wb-view-hidden') && metaView.style.display !== 'none') {
-            activeSubView = metaView; // 当前在名称设定页，滑动退回首页
+            activeSubView = metaView;
           } else if (entriesView && !entriesView.classList.contains('wb-view-hidden') && entriesView.style.display !== 'none') {
-            activeSubView = entriesView; // 当前在词条列表，滑动退回首页
+            activeSubView = entriesView;
           }
         } else {
           activeSubView = null;
@@ -619,6 +619,7 @@ document.querySelectorAll('.app-page').forEach(function(page) {
         }
       }, { passive: true });
 
+      // 注意：这里 passive 设为 false，才能用 preventDefault 阻止安卓浏览器退出网页！
       page.addEventListener('touchmove', function(e) { 
         if (!isDragging) return; 
         var diffX = e.touches[0].clientX - startX;
@@ -631,7 +632,9 @@ document.querySelectorAll('.app-page').forEach(function(page) {
 
         if (!isHoriz) return;
 
+        // 核心：判定为向右滑动的瞬间，强行阻止安卓浏览器自带的“切页/退出”
         if (diffX > 0) {
+          if (e.cancelable) e.preventDefault();
           currentX = diffX;
           if (activeSubView) {
             activeSubView.style.transform = 'translateX(' + currentX + 'px)';
@@ -644,7 +647,7 @@ document.querySelectorAll('.app-page').forEach(function(page) {
             page.style.transform = 'translateX(' + currentX + 'px)'; 
           }
         }
-      }, { passive: true });
+      }, { passive: false });
 
       page.addEventListener('touchend', function() {
         if (!isDragging || !isHoriz) {
@@ -653,15 +656,13 @@ document.querySelectorAll('.app-page').forEach(function(page) {
         }
         isDragging = false;
 
-        // 子层级回退处理 (带 iOS 原生跟手回弹与退出)
         if (activeSubView) {
-          if (currentX > window.innerWidth * 0.25) {
+          if (currentX > window.innerWidth * 0.22) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
             activeSubView.style.transform = 'translateX(100%)';
             setTimeout(function() {
               activeSubView.style.transform = '';
               if (isWorldbook) {
-                // 通知世界书按层级后退一步
                 window.dispatchEvent(new CustomEvent('wbStepBack'));
               } else {
                 window.dispatchEvent(new Event('closeBeautifySub'));
@@ -676,13 +677,10 @@ document.querySelectorAll('.app-page').forEach(function(page) {
               mainView.style.opacity = '0.4';
             }
           }
-        } 
-        // 最外层 App 回退处理 (退回桌面)
-        else {
+        } else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
-          // 世界书首页虽然没有默认 backBtn，但属于最外层，直接允许退回 home
-          if (currentX > window.innerWidth * 0.28) { 
+          if (currentX > window.innerWidth * 0.25) { 
             var targetBack = backBtn ? backBtn.dataset.back : 'home';
             showPage(targetBack); 
             setTimeout(function() { page.style.transform = ''; }, 280); 
