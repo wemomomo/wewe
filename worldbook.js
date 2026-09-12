@@ -16,7 +16,7 @@
 
   var state = {
     currentSection: 'wb',
-    currentLevel: 'home', // 'home' | 'entries' | 'edit' | 'book_meta'
+    currentLevel: 'home',
     worldbooks: [],
     presets: [],
     regexes: [],
@@ -29,7 +29,6 @@
 
   window.WorldbookState = state;
 
-  // ============ 数据持久化 (仅在进入模块时按需执行) ============
   function loadAllData(callback) {
     if (!window.AppDB) {
       state.worldbooks = [];
@@ -64,7 +63,6 @@
     document.documentElement.style.setProperty('--wb-cur-theme-bg', theme.bg);
   }
 
-  // ============ 裁剪封面 ============
   function handleCoverClick(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
     if (!wb) return;
@@ -105,7 +103,6 @@
     }
   }
 
-  // ============ 导入 .docx ============
   function importWorldbookDocx() {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -187,7 +184,6 @@
     }
   }
 
-  // ============ 导出 JSON ============
   function exportWorldbookJSON(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
     if (!wb) return;
@@ -221,7 +217,6 @@
     if (window.AppNav) window.AppNav.showToast('✦ 世界书已成功导出 ✦');
   }
 
-  // ============ 单例 DOM 构建 ============
   function ensureWorldbookDOM() {
     var page = document.querySelector('[data-page="worldbook"]');
     if (!page) return null;
@@ -237,7 +232,6 @@
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
-        // 1. 顶栏：贯穿虚线星轨 + 标题 + 对齐中文字的按钮
         + '  <div class="wb-top-header-row" id="wbTopHeaderRow">'
         + '    <div class="wb-header-left-col">'
         + '      <span class="wb-title-main" id="wbHeaderMainTitle">世界书</span>'
@@ -253,13 +247,11 @@
         + '        <div class="wb-circle-core plus-icon">+</div>'
         + '      </button>'
         + '    </div>'
-        // 切换板块浮层
         + '    <div class="wb-left-switch-popover" id="wbLeftSwitchPopover">'
         + '      <div class="wb-pop-item active" data-switch-to="wb">世界书</div>'
         + '      <div class="wb-pop-item" data-switch-to="preset">预设</div>'
         + '      <div class="wb-pop-item" data-switch-to="regex">正则</div>'
         + '    </div>'
-        // 新建与改色浮层
         + '    <div class="wb-right-menu-popover" id="wbRightMenuPopover">'
         + '      <button class="wb-action-card-btn" id="wbPopBtnNew" type="button">'
         + '        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'
@@ -278,23 +270,13 @@
         + '      </div>'
         + '    </div>'
         + '  </div>'
-
-        // 2. 主视口画卷（首页列表）
         + '  <div class="wb-viewport-box" id="wbHomeView"></div>'
-
-        // 3. 新建世界书名称页面
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbBookMetaView"></div>'
-
-        // 4. 词条列表视口
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEntriesView"></div>'
-
-        // 5. 词条编辑视口
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEditView"></div>'
-
-        // 6. 全屏沉浸式编辑弹层
         + '  <div class="wb-expanded-modal" id="wbExpandedModal">'
-        + '    <div class="wb-edit-nav-bar" style="justify-content:space-between;">'
-        + '      <span style="font-size:15px; font-weight:800; color:#1c1c1e;">沉浸编辑</span>'
+        + '    <div class="wb-edit-nav-bar">'
+        + '      <span>沉浸编辑</span>'
         + '      <button class="wb-btn-expand-icon" id="wbBtnCollapse" type="button">'
         + '        <svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>'
         + '      </button>'
@@ -307,7 +289,6 @@
     return container;
   }
 
-  // ============ 1. 渲染首页 ============
   function renderHomeView() {
     state.currentLevel = 'home';
     state.isCreatingNewWb = false;
@@ -383,7 +364,6 @@
     });
   }
 
-  // ============ 2. 渲染新建世界书名称页面 ============
   function renderBookMetaView(wbId) {
     state.currentLevel = 'book_meta';
     state.currentWbId = wbId;
@@ -425,7 +405,6 @@
     metaBox.innerHTML = html;
   }
 
-  // ============ 3. 渲染词条列表页 ============
   function renderEntriesView(wbId) {
     state.currentLevel = 'entries';
     state.currentWbId = wbId;
@@ -518,7 +497,6 @@
     }
   }
 
-  // ============ 4. 渲染词条编辑页 ============
   function renderEditView(entryId) {
     state.currentLevel = 'edit';
     state.currentEntryId = entryId;
@@ -677,7 +655,6 @@
     saveWorldbooksData();
   }
 
-  // ============ 1:1 指针锚点锁死拖拽引擎 ============
   function setupAnchorLockedDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -749,7 +726,6 @@
     });
   }
 
-  // ============ 响应 app.js 多级滑返 ============
   window.addEventListener('wbStepBack', function () {
     if (state.currentLevel === 'edit') {
       saveCurrentEditEntry();
@@ -772,23 +748,39 @@
     }
   });
 
-  // ============ 全局事件委托 ============
-  function bindGlobalEvents() {
+  function bindInternalEvents(container) {
     if (state.initialized) return;
     state.initialized = true;
 
-    document.addEventListener('input', function (e) {
+    container.addEventListener('input', function (e) {
       if (e.target && e.target.id === 'wbIptContent') {
         var countEl = document.getElementById('wbCharCount');
         if (countEl) countEl.innerText = e.target.value.length + ' 字';
       }
+      if (e.target && e.target.id === 'wbCustomColorInput') {
+        var chosenColor = e.target.value;
+        var customBg = 'rgba(' + hexToRgb(chosenColor) + ', 0.25)';
+        sectionThemes[state.currentSection] = { color: chosenColor, bg: customBg };
+        updateThemeVariables(sectionThemes[state.currentSection]);
+        saveThemesData();
+      }
     });
 
-    document.addEventListener('click', function (e) {
-      var wbContainer = document.getElementById('wbMainContainer');
-      if (!wbContainer || !wbContainer.contains(e.target)) return;
+    container.addEventListener('keydown', function (e) {
+      if (e.target && e.target.id === 'wbIptKeyInput') {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          var val = (e.target.value || '').trim().replace(',', '');
+          if (val && state.editTempTags.indexOf(val) === -1) {
+            state.editTempTags.push(val);
+            renderTags();
+          }
+          e.target.value = '';
+        }
+      }
+    });
 
-      // 1. 中间圆圈 ⇅
+    container.addEventListener('click', function (e) {
       if (e.target.closest('#wbBtnLeftSwitch')) {
         e.stopPropagation();
         var pLeft = document.getElementById('wbLeftSwitchPopover');
@@ -803,7 +795,7 @@
         e.stopPropagation();
         var targetSec = switchItem.dataset.switchTo;
         state.currentSection = targetSec;
-        document.querySelectorAll('.wb-pop-item').forEach(function (it) { it.classList.remove('active'); });
+        container.querySelectorAll('.wb-pop-item').forEach(function (it) { it.classList.remove('active'); });
         switchItem.classList.add('active');
         var popLeft = document.getElementById('wbLeftSwitchPopover');
         if (popLeft) popLeft.classList.remove('show');
@@ -812,7 +804,6 @@
         return;
       }
 
-      // 2. 右侧圆圈 +
       if (e.target.closest('#wbBtnRightAction')) {
         e.stopPropagation();
         var popRight = document.getElementById('wbRightMenuPopover');
@@ -822,7 +813,6 @@
         return;
       }
 
-      // 新建世界书
       if (e.target.closest('#wbPopBtnNew')) {
         e.stopPropagation();
         var popR = document.getElementById('wbRightMenuPopover');
@@ -840,7 +830,6 @@
         return;
       }
 
-      // 导入 .docx
       if (e.target.closest('#wbPopBtnImport')) {
         e.stopPropagation();
         var popR2 = document.getElementById('wbRightMenuPopover');
@@ -849,7 +838,6 @@
         return;
       }
 
-      // 色块点击
       var swatch = e.target.closest('.wb-swatch-dot');
       if (swatch) {
         e.stopPropagation();
@@ -863,7 +851,6 @@
         return;
       }
 
-      // 新建名称页返回
       if (e.target.closest('#wbBtnMetaBack')) {
         if (state.isCreatingNewWb) {
           state.worldbooks = state.worldbooks.filter(function (w) { return w.id !== state.currentWbId; });
@@ -873,7 +860,6 @@
         return;
       }
 
-      // 新建名称页确定
       if (e.target.closest('#wbBtnSaveBookMeta')) {
         var bookTitleIpt = document.getElementById('wbIptBookTitle');
         var currentBook = state.worldbooks.find(function (w) { return w.id === state.currentWbId; });
@@ -885,19 +871,16 @@
         return;
       }
 
-      // 内部词条页：点击居中带下划线标题重命名
       if (e.target.closest('#wbBtnEditBookTitle')) {
         renderBookMetaView(state.currentWbId);
         return;
       }
 
-      // 内部词条页：左上角返回
       if (e.target.closest('#wbBtnEntriesBack')) {
         renderHomeView();
         return;
       }
 
-      // 内部词条页：底部保存按钮
       if (e.target.closest('#wbBtnSaveEntriesConfirm')) {
         saveWorldbooksData();
         if (window.AppNav) window.AppNav.showToast('✦ 世界书已保存 ✦');
@@ -905,14 +888,12 @@
         return;
       }
 
-      // 编辑词条页：左上角返回
       if (e.target.closest('#wbBtnEditBack')) {
         saveCurrentEditEntry();
         renderEntriesView(state.currentWbId);
         return;
       }
 
-      // 点击空白处关闭浮层
       if (!e.target.closest('.wb-left-switch-popover') && !e.target.closest('#wbBtnLeftSwitch')) {
         var popLft = document.getElementById('wbLeftSwitchPopover');
         if (popLft) popLft.classList.remove('show');
@@ -922,13 +903,12 @@
         if (popRgt) popRgt.classList.remove('show');
       }
 
-      // 竖三点菜单
       var moreBtn = e.target.closest('[data-wb-more]');
       if (moreBtn) {
         e.stopPropagation();
         var wbId = moreBtn.dataset.wbMore;
         var menu = document.getElementById('wbMenu_' + wbId);
-        document.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { if (m !== menu) m.classList.remove('show'); });
+        container.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { if (m !== menu) m.classList.remove('show'); });
         if (menu) menu.classList.toggle('show');
         return;
       }
@@ -938,7 +918,7 @@
         e.stopPropagation();
         var act = menuItem.dataset.menuAct;
         var mId = menuItem.dataset.id;
-        document.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
+        container.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
 
         if (act === 'copy') {
           var targetWb = state.worldbooks.find(function (w) { return w.id === mId; });
@@ -969,9 +949,8 @@
         }
         return;
       }
-      document.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
+      container.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
 
-      // 封面点击
       var coverWrap = e.target.closest('[data-cover-wb]');
       if (coverWrap) {
         e.stopPropagation();
@@ -979,27 +958,23 @@
         return;
       }
 
-      // 进入词条列表
       var enterWbBtn = e.target.closest('[data-enter-wb]');
       if (enterWbBtn) {
         renderEntriesView(enterWbBtn.dataset.enterWb);
         return;
       }
 
-      // 新建词条
       if (e.target.closest('#wbNavBtnNewEntry')) {
         renderEditView(null);
         return;
       }
 
-      // 打开词条编辑
       var openEntryItem = e.target.closest('[data-open-entry]');
       if (openEntryItem) {
         renderEditView(openEntryItem.dataset.openEntry);
         return;
       }
 
-      // 词条操作 (编辑 / 复制 / 删除 / 开关)
       var actBtn = e.target.closest('[data-entry-act]');
       if (actBtn) {
         e.stopPropagation();
@@ -1046,10 +1021,9 @@
         return;
       }
 
-      // 模式切换
       var modePill = e.target.closest('.wb-mode-pill');
       if (modePill) {
-        document.querySelectorAll('.wb-mode-pill').forEach(function (p) { p.classList.remove('active'); });
+        container.querySelectorAll('.wb-mode-pill').forEach(function (p) { p.classList.remove('active'); });
         modePill.classList.add('active');
         var keyWrap = document.getElementById('wbKeyWrap');
         if (keyWrap) {
@@ -1064,10 +1038,9 @@
         return;
       }
 
-      // 注入位置切换
       var depthBtn = e.target.closest('.wb-depth-pos-btn');
       if (depthBtn) {
-        document.querySelectorAll('.wb-depth-pos-btn').forEach(function (b) { b.classList.remove('active'); });
+        container.querySelectorAll('.wb-depth-pos-btn').forEach(function (b) { b.classList.remove('active'); });
         depthBtn.classList.add('active');
         var inlineWrap = document.getElementById('wbDepthInline');
         if (inlineWrap) {
@@ -1077,7 +1050,6 @@
         return;
       }
 
-      // 删除标签
       var delTagBtn = e.target.closest('[data-del-tag]');
       if (delTagBtn) {
         state.editTempTags.splice(parseInt(delTagBtn.dataset.delTag, 10), 1);
@@ -1085,7 +1057,6 @@
         return;
       }
 
-      // 扩大与收起
       if (e.target.closest('#wbBtnExpand')) {
         var normalIpt = document.getElementById('wbIptContent');
         var expModal = document.getElementById('wbExpandedModal');
@@ -1109,30 +1080,6 @@
         return;
       }
     });
-
-    document.addEventListener('input', function (e) {
-      if (e.target && e.target.id === 'wbCustomColorInput') {
-        var chosenColor = e.target.value;
-        var customBg = 'rgba(' + hexToRgb(chosenColor) + ', 0.25)';
-        sectionThemes[state.currentSection] = { color: chosenColor, bg: customBg };
-        updateThemeVariables(sectionThemes[state.currentSection]);
-        saveThemesData();
-      }
-    });
-
-    document.addEventListener('keydown', function (e) {
-      if (e.target && e.target.id === 'wbIptKeyInput') {
-        if (e.key === 'Enter' || e.key === ',') {
-          e.preventDefault();
-          var val = (e.target.value || '').trim().replace(',', '');
-          if (val && state.editTempTags.indexOf(val) === -1) {
-            state.editTempTags.push(val);
-            renderTags();
-          }
-          e.target.value = '';
-        }
-      }
-    });
   }
 
   function hexToRgb(hex) {
@@ -1142,7 +1089,6 @@
     return [(num >> 16) & 255, (num >> 8) & 255, num & 255].join(',');
   }
 
-  // ============ 按需冷启动核心 (开机0消耗) ============
   var isEngineStarted = false;
 
   function startWorldbookEngine() {
@@ -1151,14 +1097,13 @@
 
     var container = ensureWorldbookDOM();
     if (!container) return;
-    bindGlobalEvents();
+    bindInternalEvents(container);
     loadAllData(function () {
       renderHomeView();
       updateThemeVariables(sectionThemes[state.currentSection]);
     });
   }
 
-  // 严格按需唤醒：开机不执行任何操作，只有墨墨点进“世界书”页面才秒级加载！
   window.addEventListener('pageChange', function (e) {
     if (e.detail && e.detail.page === 'worldbook') {
       startWorldbookEngine();
