@@ -29,38 +29,6 @@
     icon2: ''
   };
 
-  // 0毫秒极速同步恢复背景
-  function instantRestoreBackground() {
-    try {
-      var cachedStr = localStorage.getItem('app_beautify_cache');
-      if (cachedStr) {
-        var cached = JSON.parse(cachedStr);
-        if (cached) {
-          for (var k in cached) {
-            if (cached.hasOwnProperty(k)) beautifyData[k] = cached[k];
-          }
-        }
-      }
-    } catch(e) {}
-
-    var bgLayer = document.getElementById('homeBgLayer');
-    if (!bgLayer) return;
-
-    if (beautifyData.bgType === 'color') {
-      applyColorBackground();
-    } else {
-      try {
-        var localImg = localStorage.getItem('home_bg_img_cache');
-        if (localImg) {
-          bgLayer.style.backgroundColor = 'transparent';
-          bgLayer.style.backgroundImage = 'url("' + localImg + '")';
-        }
-      } catch(e) {}
-    }
-  }
-
-  instantRestoreBackground();
-
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
     if (!contentEl) return;
@@ -375,7 +343,6 @@
     container.innerHTML = html;
   }
 
-  // 将图片实时转为标准 PNG Base64
   function convertImgToPngBase64(url, callback) {
     var img = new Image();
     img.crossOrigin = 'anonymous';
@@ -656,7 +623,7 @@
         if (window.AppDB) {
           window.AppDB.delete('home_bg_img');
         }
-        try { localStorage.removeItem('home_bg_img_cache'); } catch(e){}
+        try { localStorage.getItem('home_bg_img_cache'); } catch(e){}
         saveBeautifyData();
         updateLivePreviewAndHistory();
         syncColorControlsUI();
@@ -1095,22 +1062,11 @@
     updateLivePreviewAndHistory();
   }
 
+  // 严格只在点击进入美化中心时按需初始化，开机0毫秒延迟！
   window.addEventListener('pageChange', function(e) {
     if (e.detail && e.detail.page === 'beautify') {
       initBeautifyApp();
     }
   });
-
-  if (window._dbReady) {
-    initBeautifyApp();
-  } else {
-    window.addEventListener('dbReady', initBeautifyApp, { once: true });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initBeautifyApp);
-  } else {
-    setTimeout(initBeautifyApp, 50);
-  }
 
 })();
