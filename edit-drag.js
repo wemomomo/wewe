@@ -1,3 +1,4 @@
+
 (function(){
   'use strict';
 
@@ -25,20 +26,25 @@
     setupHomeBgActions();
   });
 
-  // ============ 长按空白处进入/退出编辑模式 ============
+  // ============ 长按空白处进入/退出编辑模式（仅限第 1 屏生效） ============
   if (pageContainer) {
     pageContainer.addEventListener('touchstart', function(e) {
       var homePage = document.querySelector('.page[data-page="home"]');
       if (!homePage || !homePage.classList.contains('active')) return;
 
       var target = e.target;
+
+      // 必须在第 1 屏内长按，第 2 屏及其它页面不触发
+      var screen0 = target.closest('.desktop-screen[data-screen-idx="0"]');
+      if (!screen0) return;
+
+      // 判断是否点击在空白区域，而不是组件内部可交互内容上
       var isBlank = (
-        target === pageContainer || 
-        target.classList.contains('page') ||
+        target === screen0 ||
+        target.classList.contains('desktop-screen') ||
         target.classList.contains('desktop-slider-wrapper') ||
         target.classList.contains('desktop-slider') ||
-        target.classList.contains('desktop-screen') ||
-        target.classList.contains('desktop-apps-container')
+        target === pageContainer
       );
 
       if (isBlank) {
@@ -48,7 +54,7 @@
         longPressTimer = setTimeout(function() {
           if (!isEditMode) enterEditMode();
           else exitEditMode();
-        }, 170);
+        }, 220);
       }
     }, { passive: true });
 
