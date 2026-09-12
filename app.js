@@ -185,6 +185,7 @@
     }
 
         function realTimeVerify(userInfo) {
+      // 只要本地已登录，就永远信任，绝不因为后台验证失败而把墨墨踢出弹登录框！
       getStableDeviceId(function(deviceId) {
         fetch(getApiEndpoint('login') + '?_t=' + Date.now(), {
           method: 'POST',
@@ -198,9 +199,9 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          // 彻底锁定：只有明确收到封号 kickOut 时才退出，重新部署冷启动绝不踢出墨墨！
-          if (data && data.kickOut === true) {
-            kickOut(data.message || '账号已失效');
+          // 仅在后端数据库明确返回账号被彻底封禁 (isBanned === true) 时才踢出
+          if (data && data.isBanned === true) {
+            kickOut(data.message || '账号已被封禁');
           }
         })
         .catch(function() {});
