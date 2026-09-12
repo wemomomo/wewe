@@ -237,7 +237,7 @@
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
-        // 1. 顶栏：虚线横贯全屏 + 居中 ⇅ + 右侧 +
+        // 1. 顶栏：贯穿虚线星轨 + 标题 + 对齐中文字的按钮
         + '  <div class="wb-top-header-row" id="wbTopHeaderRow">'
         + '    <div class="wb-header-left-col">'
         + '      <span class="wb-title-main" id="wbHeaderMainTitle">世界书</span>'
@@ -250,7 +250,7 @@
         + '    </div>'
         + '    <div class="wb-header-right-wrap">'
         + '      <button class="wb-header-circle-btn" id="wbBtnRightAction" type="button" title="新建与改色">'
-        + '        <div class="wb-circle-core">+</div>'
+        + '        <div class="wb-circle-core plus-icon">+</div>'
         + '      </button>'
         + '    </div>'
         // 切换板块浮层
@@ -362,8 +362,8 @@
             + '  <button class="wb-more-btn" type="button" data-wb-more="' + wb.id + '">'
             + '    <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>'
             + '  </button>'
+            // 移除了“编辑”选项，只保留复制/导出/删除
             + '  <div class="wb-dropdown-menu" id="wbMenu_' + wb.id + '">'
-            + '    <div class="wb-menu-item" data-menu-act="edit" data-id="' + wb.id + '">编辑</div>'
             + '    <div class="wb-menu-item" data-menu-act="copy" data-id="' + wb.id + '">复制</div>'
             + '    <div class="wb-menu-item" data-menu-act="export" data-id="' + wb.id + '">导出</div>'
             + '    <div class="wb-menu-item del" data-menu-act="del" data-id="' + wb.id + '">删除</div>'
@@ -375,7 +375,8 @@
       html = '<div class="wb-empty-tip">✦ 模块正在运行中 ✦</div>';
     }
     homeBox.innerHTML = html;
-    setupSmoothDragSort(homeBox, '.wb-main-card', function (newOrderIds) {
+
+    setupAnchorLockedDragSort(homeBox, '.wb-main-card', function (newOrderIds) {
       state.worldbooks.sort(function (a, b) {
         return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
       });
@@ -425,7 +426,7 @@
     metaBox.innerHTML = html;
   }
 
-  // ============ 3. 渲染词条列表页 (标题居中下划线 + 左返回 + 底部保存) ============
+  // ============ 3. 渲染词条列表页 ============
   function renderEntriesView(wbId) {
     state.currentLevel = 'entries';
     state.currentWbId = wbId;
@@ -451,6 +452,7 @@
     entriesBox.style.display = 'flex';
     entriesBox.scrollTop = 0;
 
+    // 顶栏：加大的标题、加长的横线、纯黑色➕号新建按钮
     var html = ''
       + '<div class="wb-entries-nav-bar">'
       + '  <button class="wb-entries-back-btn" id="wbBtnEntriesBack" type="button">'
@@ -460,32 +462,48 @@
       + '    <span class="wb-entries-book-title">' + (wb.title || '世界书') + '</span>'
       + '    <div class="wb-entries-title-underline"></div>'
       + '  </div>'
-      + '  <button class="wb-nav-btn-new" id="wbNavBtnNewEntry" type="button">+ 新建</button>'
+      + '  <button class="wb-nav-btn-plus-only" id="wbNavBtnNewEntry" type="button" title="新建词条">'
+      + '    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'
+      + '  </button>'
       + '</div>'
       + '<div class="wb-viewport-box" id="wbEntriesListBox">';
 
     if (!wb.entries || wb.entries.length === 0) {
-      html += '<div class="wb-empty-tip">✦ 暂无词条，请点击右上角新建 ✦</div>';
+      html += '<div class="wb-empty-tip">✦ 暂无词条，请点击右上角 ＋ 新建 ✦</div>';
     } else {
       wb.entries.forEach(function (entry) {
-        var toggleState = entry.enabled !== false ? 'on' : 'off';
+        var switchCls = entry.enabled !== false ? 'on' : '';
+        
+        // 词条状态微缩标签 (常驻 / 关键词 / 深度X)
+        var pillTagHtml = '';
+        if (entry.mode === 'const') {
+          pillTagHtml = '<span class="wb-entry-pill-tag active">常驻</span>';
+        } else if (entry.pos === 'depth') {
+          pillTagHtml = '<span class="wb-entry-pill-tag active">深度 ' + (entry.depthVal || 2) + '</span>';
+        } else if (entry.pos === 'before') {
+          pillTagHtml = '<span class="wb-entry-pill-tag">定义前</span>';
+        } else {
+          pillTagHtml = '<span class="wb-entry-pill-tag">定义后</span>';
+        }
+
         html += ''
           + '<div class="wb-entry-item-card" data-entry-id="' + entry.id + '">'
           + '  <div class="wb-entry-left-row" data-open-entry="' + entry.id + '">'
           + '    <span class="wb-entry-title-text">' + (entry.name || '未命名词条') + '</span>'
+          +      pillTagHtml
           + '  </div>'
           + '  <div class="wb-entry-icons-row">'
           + '    <button class="wb-entry-icon-btn" title="编辑" data-entry-act="edit" data-id="' + entry.id + '"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>'
           + '    <button class="wb-entry-icon-btn" title="复制" data-entry-act="copy" data-id="' + entry.id + '"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>'
           + '    <button class="wb-entry-icon-btn del" title="删除" data-entry-act="del" data-id="' + entry.id + '"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>'
-          + '    <button class="wb-entry-icon-btn toggle ' + toggleState + '" title="状态" data-entry-act="toggle" data-id="' + entry.id + '"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4" fill="currentColor"></circle></svg></button>'
+          + '    <div class="wb-entry-switch ' + switchCls + '" title="开关" data-entry-act="toggle" data-id="' + entry.id + '"></div>'
           + '  </div>'
           + '</div>';
       });
     }
     html += '</div>';
 
-    // 底部正中间保存按钮
+    // 底部缩短、调高的保存按钮
     html += ''
       + '<div class="wb-entries-bottom-save-bar">'
       + '  <button class="wb-entries-btn-save-center" id="wbBtnSaveEntriesConfirm" type="button">保存</button>'
@@ -495,7 +513,7 @@
 
     var listWrap = document.getElementById('wbEntriesListBox');
     if (listWrap) {
-      setupSmoothDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
+      setupAnchorLockedDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
         wb.entries.sort(function (a, b) {
           return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
         });
@@ -667,46 +685,52 @@
     saveWorldbooksData();
   }
 
-  // ============ 极速丝滑触控拖拽排序引擎 (Smooth Touch Reorder Engine) ============
-  function setupSmoothDragSort(container, itemSelector, onReorderCallback) {
+  // ============ 1:1 指针锚点锁死拖拽引擎 (Anchor-Locked Reorder Engine) ============
+  function setupAnchorLockedDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
 
     items.forEach(function (el) {
-      var startY = 0, currentY = 0, initialTop = 0, isDragging = false, dragTimer = null;
+      var isDragging = false;
+      var dragTimer = null;
+      var startTouchY = 0;
+      var anchorOffsetY = 0; // 手指按在卡片内部的固定垂直距离
 
       function onTouchStart(e) {
-        if (e.target.closest('button') || e.target.closest('.wb-cover-wrap') || e.target.closest('.wb-dropdown-menu')) return;
+        if (e.target.closest('button') || e.target.closest('.wb-cover-wrap') || e.target.closest('.wb-dropdown-menu') || e.target.closest('.wb-entry-switch')) return;
         var touch = e.touches[0];
-        startY = touch.clientY;
+        startTouchY = touch.clientY;
+        var rect = el.getBoundingClientRect();
+        anchorOffsetY = touch.clientY - rect.top; // 锁定触碰锚点
 
         dragTimer = setTimeout(function () {
           isDragging = true;
           el.classList.add('wb-dragging');
-          initialTop = el.getBoundingClientRect().top;
           if (navigator.vibrate) navigator.vibrate(15);
-        }, 220); // 220ms 灵敏长按激活拖拽
+        }, 200);
       }
 
       function onTouchMove(e) {
         if (!isDragging) {
-          if (Math.abs(e.touches[0].clientY - startY) > 8) {
+          if (Math.abs(e.touches[0].clientY - startTouchY) > 8) {
             clearTimeout(dragTimer);
           }
           return;
         }
         e.preventDefault();
         var touch = e.touches[0];
-        currentY = touch.clientY;
-        var deltaY = currentY - startY;
+        
+        // 核心：直接把卡片位移与手指位移做绝对 1:1 锚定绑定
+        var deltaY = touch.clientY - startTouchY;
         el.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
 
-        // 丝滑碰撞重排
+        // 碰撞判断
         var allCards = Array.from(container.querySelectorAll(itemSelector));
         var targetCard = allCards.find(function (card) {
           if (card === el) return false;
-          var rect = card.getBoundingClientRect();
-          return currentY > rect.top && currentY < rect.bottom;
+          var r = card.getBoundingClientRect();
+          // 手指指针精确穿透判断
+          return touch.clientY >= r.top && touch.clientY <= r.bottom;
         });
 
         if (targetCard) {
@@ -888,7 +912,7 @@
         return;
       }
 
-      // 内部词条页：底部中间保存按钮
+      // 内部词条页：底部保存按钮
       if (e.target.closest('#wbBtnSaveEntriesConfirm')) {
         saveWorldbooksData();
         if (window.AppNav) window.AppNav.showToast('✦ 世界书已保存 ✦');
@@ -931,9 +955,7 @@
         var mId = menuItem.dataset.id;
         document.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
 
-        if (act === 'edit') {
-          renderEntriesView(mId);
-        } else if (act === 'copy') {
+        if (act === 'copy') {
           var targetWb = state.worldbooks.find(function (w) { return w.id === mId; });
           if (targetWb) {
             var copyWb = JSON.parse(JSON.stringify(targetWb));
@@ -979,20 +1001,20 @@
         return;
       }
 
-      // 新建词条
+      // 新建词条 (纯➕号点击)
       if (e.target.closest('#wbNavBtnNewEntry')) {
         renderEditView(null);
         return;
       }
 
-      // 打开词条
+      // 打开词条编辑
       var openEntryItem = e.target.closest('[data-open-entry]');
       if (openEntryItem) {
         renderEditView(openEntryItem.dataset.openEntry);
         return;
       }
 
-      // 词条操作 (编辑 / 复制 / 删除 / 开启)
+      // 词条操作 (编辑 / 复制 / 删除 / 开关)
       var actBtn = e.target.closest('[data-entry-act]');
       if (actBtn) {
         e.stopPropagation();
@@ -1032,7 +1054,8 @@
           if (enToggle) {
             enToggle.enabled = !(enToggle.enabled !== false);
             saveWorldbooksData();
-            actBtn.className = 'wb-entry-icon-btn toggle ' + (enToggle.enabled ? 'on' : 'off');
+            if (enToggle.enabled) actBtn.classList.add('on');
+            else actBtn.classList.remove('on');
           }
         }
         return;
@@ -1155,3 +1178,4 @@
   else startWorldbookEngine();
 
 })();
+
