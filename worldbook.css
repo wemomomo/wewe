@@ -1,4 +1,23 @@
+墨墨，哥哥把你的8处要求全部细致梳理好了！
+按照咱们的铁律，这次改动涉及两个文件，哥哥**绝对只发一个完整文件**，先发 `worldbook.css`，墨墨复制好后回复哥哥一声，哥哥马上发下一个！
 
+---
+
+### 本次在 `worldbook.css` 里的细节雕琢：
+1. **星轨虚线加粗**：改为 1.8px 粗细，贯穿屏幕两端；
+2. **居中对齐中文字**：顶栏按中文字高精确居中，按钮与中文标题精准共轴；
+3. **按钮虚线改实线**：双圆圈外环改为干净利落的 1.2px 实线；
+4. **内部条目页标题**：居中字号加大至 18px，底部横线下划线延长；
+5. **右侧新建**：移除黑底胶囊，改为纯粹的无边框高定黑色“➕”号；
+6. **开关按钮（Switch）**：右侧启用/停用换成了带圆点的迷你滑动开关；
+7. **条目卡片居中微标签**：为词条补充了“常驻 / 关键词 / 深度X”等精致标签；
+8. **底部保存按钮**：宽度缩窄（60%）、高度增高（40px），按压质感更饱满！
+
+---
+
+### 先发第 1 个：`worldbook.css`（完整文件）
+
+```css
 /* ======================================================== */
 /* 世界书体系 (WorldBook Studio) - 高定纯白浅灰极简风        */
 /* ======================================================== */
@@ -49,27 +68,27 @@
   padding: 0 !important;
 }
 
-/* ========== 1. 顶栏：贯穿虚线星轨 + 标题 + 中间切换 + 右侧选项 ========== */
+/* ========== 1. 顶栏：加粗星轨虚线 + 标题 + 对齐中文字的按钮 ========== */
 .wb-top-header-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  height: 60px;
+  height: 52px;
   flex-shrink: 0;
   width: 100%;
   padding: 0 4px;
   position: relative;
 }
 
-/* 贯穿全屏左右的星轨虚线 */
+/* 贯穿全屏左右的加粗星轨虚线 (精确对准中文标题中线 14px) */
 .wb-top-header-row::before {
   content: '';
   position: absolute;
   left: -12px;
   right: -12px;
-  top: 50%;
-  height: 1px;
-  background: repeating-linear-gradient(to right, #d1d1d6, #d1d1d6 4px, transparent 4px, transparent 8px);
+  top: 14px;
+  height: 1.8px;
+  background: repeating-linear-gradient(to right, #c7c7cc, #c7c7cc 5px, transparent 5px, transparent 10px);
   z-index: 0;
   pointer-events: none;
 }
@@ -78,7 +97,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 2px;
   background: #ffffff;
   padding-right: 8px;
@@ -91,7 +110,10 @@
   font-weight: 800;
   color: #1c1c1e;
   letter-spacing: 0.8px;
-  line-height: 1.05;
+  line-height: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
 }
 
 .wb-title-sub-en {
@@ -101,27 +123,32 @@
   letter-spacing: 2px;
   line-height: 1;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  margin-top: 1px;
 }
 
-/* 中间切换按钮容器 */
+/* 中间切换按钮容器 (中心绝对对准 top:14px 的中文行) */
 .wb-header-center-wrap {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 14px;
   transform: translate(-50%, -50%);
   z-index: 1;
   background: #ffffff;
   padding: 0 6px;
 }
 
-/* 右侧菜单按钮容器 */
+/* 右侧菜单按钮容器 (中心绝对对准 top:14px 的中文行) */
 .wb-header-right-wrap {
-  position: relative;
+  position: absolute;
+  right: 4px;
+  top: 14px;
+  transform: translateY(-50%);
   z-index: 1;
   background: #ffffff;
   padding-left: 6px;
 }
 
+/* 按钮外圈改为纯净实线 */
 .wb-header-circle-btn {
   position: relative;
   width: 38px;
@@ -141,8 +168,8 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1.2px dashed var(--wb-cur-theme);
-  opacity: 0.6;
+  border: 1.2px solid var(--wb-cur-theme); /* 虚线改实线 */
+  opacity: 0.7;
 }
 
 .wb-circle-core {
@@ -161,6 +188,15 @@
   transition: all 0.25s ease;
   user-select: none;
 }
+
+/* 右侧按钮内的大加号 */
+.wb-circle-core.plus-icon {
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1;
+  padding-bottom: 2px;
+}
+
 .wb-header-circle-btn:active .wb-circle-core {
   transform: scale(0.92);
 }
@@ -169,7 +205,7 @@
 .wb-left-switch-popover {
   position: absolute;
   left: 50%;
-  top: 50px;
+  top: 36px;
   transform: translateX(-50%);
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
@@ -206,7 +242,7 @@
 .wb-right-menu-popover {
   position: absolute;
   right: 4px;
-  top: 50px;
+  top: 36px;
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 14px;
@@ -353,7 +389,7 @@
   font-family: inherit;
 }
 
-/* ========== 3. 首页世界书卡片列表 (支持丝滑拖拽) ========== */
+/* ========== 3. 首页世界书卡片列表 ========== */
 .wb-main-card {
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
@@ -373,7 +409,6 @@
   background: #f8f8fa;
 }
 
-/* 拖拽中悬浮高光 */
 .wb-main-card.wb-dragging {
   opacity: 0.92;
   transform: scale(1.02);
@@ -512,12 +547,12 @@
   user-select: none;
 }
 
-/* ========== 4. 内部词条列表页 (标题居中下划线 + 左返回 + 底部中间保存) ========== */
+/* ========== 4. 内部词条列表页 (加大标题 + 加长横线 + 纯+号新建) ========== */
 .wb-entries-nav-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 40px;
+  height: 42px;
   flex-shrink: 0;
   padding: 0 2px;
   position: relative;
@@ -536,24 +571,24 @@
   padding: 0;
 }
 .wb-entries-back-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   stroke: currentColor;
   stroke-width: 2.2;
   fill: none;
 }
 
-/* 居中标题 + 下划线可编辑指示 */
+/* 居中加大标题 + 延长的下划线 */
 .wb-entries-title-center-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  max-width: 60%;
+  max-width: 65%;
   cursor: pointer;
 }
 .wb-entries-book-title {
-  font-size: 16px;
+  font-size: 18px; /* 字号加大 */
   font-weight: 800;
   color: #1c1c1e;
   white-space: nowrap;
@@ -563,33 +598,43 @@
   line-height: 1.2;
 }
 .wb-entries-title-underline {
-  width: 80%;
+  width: 100%; /* 下划线充分延长 */
+  min-width: 90px;
   height: 1.5px;
   background: #1c1c1e;
   border-radius: 1px;
-  margin-top: 2px;
-  opacity: 0.8;
+  margin-top: 3px;
+  opacity: 0.85;
 }
 
-.wb-nav-btn-new {
-  height: 28px;
-  padding: 0 12px;
-  background: #1c1c1e;
-  color: #ffffff;
+/* 纯黑色➕号新建按钮 (去掉黑底框) */
+.wb-nav-btn-plus-only {
+  width: 32px;
+  height: 32px;
+  background: none;
   border: none;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  padding: 0;
+  color: #1c1c1e;
 }
-.wb-nav-btn-new:active { opacity: 0.8; }
+.wb-nav-btn-plus-only:active { opacity: 0.6; }
+.wb-nav-btn-plus-only svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  fill: none;
+}
 
-/* 词条卡片加高至 64px，支持拖拽重排 */
+/* 词条卡片加高至 64px */
 .wb-entry-item-card {
   background: #f8f8fa;
   border-radius: 12px;
   height: 64px;
-  padding: 0 12px 0 14px;
+  padding: 0 10px 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -610,14 +655,14 @@
 .wb-entry-left-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   min-width: 0;
   cursor: pointer;
 }
 
 .wb-entry-title-text {
-  font-size: 15.5px;
+  font-size: 14.5px;
   font-weight: 600;
   color: #1c1c1e;
   white-space: nowrap;
@@ -625,11 +670,28 @@
   text-overflow: ellipsis;
 }
 
+/* 中间标签微缩徽标 (常驻 / 关键词 / 深度) */
+.wb-entry-pill-tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #eef0f3;
+  color: #636366;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.wb-entry-pill-tag.active {
+  background: var(--wb-cur-theme-bg);
+  color: var(--wb-cur-theme);
+}
+
 .wb-entry-icons-row {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   flex-shrink: 0;
+  margin-left: 6px;
 }
 
 .wb-entry-icon-btn {
@@ -656,46 +718,71 @@
   stroke-linejoin: round;
 }
 
-.wb-entry-icon-btn.toggle.on {
-  color: var(--wb-cur-theme);
-}
-.wb-entry-icon-btn.toggle.off {
-  color: #c7c7cc;
-}
 .wb-entry-icon-btn.del:active {
   background: #f0f0f4;
   color: #1c1c1e;
 }
 
-/* 词条页底部中间高定保存按钮 */
+/* 优雅的迷你双态开关按钮 (Switch) */
+.wb-entry-switch {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: #e5e5ea;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+.wb-entry-switch::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.wb-entry-switch.on {
+  background: var(--wb-cur-theme);
+}
+.wb-entry-switch.on::after {
+  transform: translateX(14px);
+}
+
+/* 词条页底部保存按钮 (缩短至 60%、增高至 40px) */
 .wb-entries-bottom-save-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 38px;
+  height: 46px;
   flex-shrink: 0;
   padding-top: 2px;
 }
 .wb-entries-btn-save-center {
-  width: 75%;
-  height: 34px;
+  width: 60%; /* 缩短宽度 */
+  height: 40px; /* 调高高度 */
   background: #1c1c1e;
   color: #ffffff;
   border: none;
-  border-radius: 9px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 13.5px;
   font-weight: 600;
   letter-spacing: 0.5px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.14);
   transition: opacity 0.15s, transform 0.1s;
 }
 .wb-entries-btn-save-center:active {
   opacity: 0.85;
-  transform: scale(0.985);
+  transform: scale(0.98);
 }
 
-/* ========== 5. 编辑页 (极简顶栏 + 无阴影卡片) ========== */
+/* ========== 5. 编辑页 ========== */
 .wb-edit-nav-bar {
   display: flex;
   align-items: center;
