@@ -924,60 +924,53 @@
       targetUrl = customUrl || beautifyData.customPwaIconUrl || DEFAULT_HEART_URL;
     }
 
+    // 1. 苹果 iOS 专用通道
     var appleIcon = document.getElementById('appleTouchIcon');
     var appleIconPre = document.getElementById('appleTouchIconPre');
     var favIconPng = document.getElementById('favIconPng');
-    var appManifest = document.getElementById('appManifest');
 
     if (appleIcon) appleIcon.href = targetUrl;
     if (appleIconPre) appleIconPre.href = targetUrl;
     if (favIconPng) favIconPng.href = targetUrl;
-    if (appManifest) {
-      if (type === 'custom') {
-        appManifest.href = '/api/manifest?icon=custom&_t=' + Date.now();
-      } else {
-        appManifest.href = '/api/manifest?icon=' + type + '&_t=' + Date.now();
-      }
-    }
-  }
 
-  function applyCornerStyle(style) {
-    document.body.classList.remove('corner-sharp', 'corner-soft');
-    if (style === 'sharp') document.body.classList.add('corner-sharp');
-    else if (style === 'soft') document.body.classList.add('corner-soft');
-  }
-
-  function applyIconStyle(style) {
-    document.body.classList.remove('icon-glow', 'icon-emboss');
-    if (style === 'glow') document.body.classList.add('icon-glow');
-    else if (style === 'emboss') document.body.classList.add('icon-emboss');
-  }
-
-  function applyThemeMode(mode) {
-    if (mode === 'dark') {
-      document.body.classList.add('theme-dark');
-    } else {
-      document.body.classList.remove('theme-dark');
-    }
-  }
-
-  function applyBrightness(val) {
-    var tintLayer = document.getElementById('globalTintLayer');
-    if (!tintLayer) return;
-    if (val >= 100) {
-      tintLayer.style.backgroundColor = 'transparent';
-    } else {
-      var darkAlpha = (100 - val) / 100 * 0.75;
-      tintLayer.style.backgroundColor = 'rgba(0, 0, 0, ' + darkAlpha + ')';
-    }
-  }
-
-  function saveBeautifyData() {
-    if (window.AppDB) {
-      window.AppDB.save('beautify_settings', beautifyData);
-    }
+    // 2. 安卓 Android 专用动态清单注入 (确保 sizes 和 maskable 完整)
     try {
-      localStorage.setItem('app_beautify_cache', JSON.stringify(beautifyData));
+      var dynamicManifest = {
+        name: "Niveous",
+        short_name: "Niveous",
+        start_url: "/",
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#ffffff",
+        icons: [
+          {
+            src: targetUrl,
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: targetUrl,
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable"
+          }
+        ]
+      };
+
+      var manifestBlob = new Blob([JSON.stringify(dynamicManifest)], { type: 'application/manifest+json' });
+      var manifestBlobUrl = URL.createObjectURL(manifestBlob);
+
+      var appManifest = document.getElementById('appManifest');
+      if (appManifest) {
+        appManifest.href = manifestBlobUrl;
+      } else {
+        var newMan = document.createElement('link');
+        newMan.id = 'appManifest';
+        newMan.rel = 'manifest';
+        newMan.href = manifestBlobUrl;
+        document.head.appendChild(newMan);
+      }
     } catch(e) {}
   }
 
