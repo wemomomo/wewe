@@ -49,7 +49,7 @@
   padding: 0 !important;
 }
 
-/* ========== 1. 顶栏：加粗星轨虚线 + 标题 + 对齐中文字的按钮 ========== */
+/* ========== 1. 顶栏：无缝贯穿虚线 + 标题 + 对齐中文字的按钮 ========== */
 .wb-top-header-row {
   display: flex;
   align-items: flex-start;
@@ -61,12 +61,12 @@
   position: relative;
 }
 
-/* 贯穿全屏左右的加粗星轨虚线 (精确对准中文标题中线 14px) */
+/* 贯穿全屏左右的加粗虚线 (无空隙贯通) */
 .wb-top-header-row::before {
   content: '';
   position: absolute;
-  left: -12px;
-  right: -12px;
+  left: -20px;
+  right: -20px;
   top: 14px;
   height: 1.8px;
   background: repeating-linear-gradient(to right, #c7c7cc, #c7c7cc 5px, transparent 5px, transparent 10px);
@@ -107,7 +107,7 @@
   margin-top: 1px;
 }
 
-/* 中间切换按钮容器 (中心绝对对准 top:14px 的中文行) */
+/* 中间切换按钮容器 */
 .wb-header-center-wrap {
   position: absolute;
   left: 50%;
@@ -118,10 +118,10 @@
   padding: 0 6px;
 }
 
-/* 右侧菜单按钮容器 (中心绝对对准 top:14px 的中文行) */
+/* 右侧菜单按钮容器 */
 .wb-header-right-wrap {
   position: absolute;
-  right: 4px;
+  right: 0;
   top: 14px;
   transform: translateY(-50%);
   z-index: 1;
@@ -129,7 +129,7 @@
   padding-left: 6px;
 }
 
-/* 按钮外圈改为纯净实线 */
+/* 按钮外圈改回虚线 */
 .wb-header-circle-btn {
   position: relative;
   width: 38px;
@@ -149,8 +149,8 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1.2px solid var(--wb-cur-theme); /* 虚线改实线 */
-  opacity: 0.7;
+  border: 1.2px dashed var(--wb-cur-theme); /* 虚线 */
+  opacity: 0.8;
 }
 
 .wb-circle-core {
@@ -170,7 +170,6 @@
   user-select: none;
 }
 
-/* 右侧按钮内的大加号 */
 .wb-circle-core.plus-icon {
   font-size: 19px;
   font-weight: 400;
@@ -382,21 +381,24 @@
   cursor: pointer;
   flex-shrink: 0;
   position: relative;
-  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: pan-y;
 }
 .wb-main-card:active {
   background: #f8f8fa;
 }
 
+/* 物理级厚重抓取反馈 */
 .wb-main-card.wb-dragging {
-  opacity: 0.92;
+  opacity: 0.96;
   transform: scale(1.02);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
   z-index: 100;
   background: #ffffff;
   border-color: var(--wb-cur-theme);
+  transition: none !important; /* 拖动中取消过渡，实现绝对1:1跟手 */
 }
 
 .wb-cover-wrap {
@@ -528,7 +530,7 @@
   user-select: none;
 }
 
-/* ========== 4. 内部词条列表页 (加大标题 + 加长横线 + 纯+号新建) ========== */
+/* ========== 4. 内部词条列表页 ========== */
 .wb-entries-nav-bar {
   display: flex;
   align-items: center;
@@ -559,7 +561,7 @@
   fill: none;
 }
 
-/* 居中加大标题 + 延长的下划线 */
+/* 居中标题与横线 */
 .wb-entries-title-center-wrap {
   display: flex;
   flex-direction: column;
@@ -569,7 +571,7 @@
   cursor: pointer;
 }
 .wb-entries-book-title {
-  font-size: 18px; /* 字号加大 */
+  font-size: 18px;
   font-weight: 800;
   color: #1c1c1e;
   white-space: nowrap;
@@ -579,7 +581,7 @@
   line-height: 1.2;
 }
 .wb-entries-title-underline {
-  width: 100%; /* 下划线充分延长 */
+  width: 100%;
   min-width: 90px;
   height: 1.5px;
   background: #1c1c1e;
@@ -588,7 +590,7 @@
   opacity: 0.85;
 }
 
-/* 纯黑色➕号新建按钮 (去掉黑底框) */
+/* 纯黑色➕号新建按钮 */
 .wb-nav-btn-plus-only {
   width: 32px;
   height: 32px;
@@ -620,17 +622,19 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: pan-y;
 }
 
 .wb-entry-item-card.wb-dragging {
-  opacity: 0.92;
+  opacity: 0.96;
   transform: scale(1.02);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
   z-index: 100;
   background: #ffffff;
+  transition: none !important;
 }
 
 .wb-entry-left-row {
@@ -651,7 +655,7 @@
   text-overflow: ellipsis;
 }
 
-/* 中间标签微缩徽标 (常驻 / 关键词 / 深度) */
+/* 左侧微型标签 (常驻 / 关键词 / 深度) */
 .wb-entry-pill-tag {
   font-size: 9.5px;
   font-weight: 600;
@@ -704,7 +708,7 @@
   color: #1c1c1e;
 }
 
-/* 优雅的迷你双态开关按钮 (Switch) */
+/* 迷你滑动开关 */
 .wb-entry-switch {
   width: 32px;
   height: 18px;
@@ -735,7 +739,7 @@
   transform: translateX(14px);
 }
 
-/* 词条页底部保存按钮 (缩短至 60%、增高至 40px) */
+/* 词条页底部保存按钮 */
 .wb-entries-bottom-save-bar {
   display: flex;
   align-items: center;
@@ -745,8 +749,8 @@
   padding-top: 2px;
 }
 .wb-entries-btn-save-center {
-  width: 60%; /* 缩短宽度 */
-  height: 40px; /* 调高高度 */
+  width: 60%;
+  height: 40px;
   background: #1c1c1e;
   color: #ffffff;
   border: none;
@@ -793,7 +797,7 @@
 
 .wb-field-card {
   background: #ffffff;
-  border: 0.8px solid var(--wb-cur-theme) !important;
+  border: 0.5px solid var(--wb-cur-theme) !important;
   border-radius: 12px;
   padding: 10px 12px;
   display: flex;
