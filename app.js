@@ -414,7 +414,6 @@
       else { p.classList.remove('active'); p.style.transform = ''; }
     });
     
-    // 确保桌面永远在最底层固定位置，绝不受任何transform位移影响
     var homePage = document.querySelector('[data-page="home"]');
     if (homePage) homePage.style.transform = '';
 
@@ -487,7 +486,7 @@
     }
   }
 
-  // ============ 统一点击导航绑定 (含纯净手势返回，0白边漏底) ============
+  // ============ 统一点击导航绑定 (含纯净手势返回) ============
   function bindNavigation() {
     try {
       history.pushState({ page: 'app_lock' }, '', '');
@@ -569,7 +568,7 @@
       }
     });
 
-    // ============ 全局应用右滑退回桌面 (底层固定，绝不位移出白边) ============
+    // ============ 全局多级右滑返回手势 (彻底修复匹配Bug) ============
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
@@ -586,7 +585,8 @@
         isLocked = false;
         isHoriz = false;
 
-        if (page.dataset.page === 'beautify') {
+        // 👈 核心修复：同时对齐 'beautiful' 与 'beautify' 拼写，保证美化中心二级页面手势重归系统统管
+        if (page.dataset.page === 'beautify' || page.dataset.page === 'beautiful') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           isWorldbook = false;
         } 
@@ -631,7 +631,6 @@
         if (diffX > 0) {
           if (e.cancelable) e.preventDefault();
           currentX = diffX;
-          // 仅移动当前活动层，底层桌面保持绝对静止，绝不漏出白底！
           if (activeSubView) {
             activeSubView.style.transform = 'translateX(' + currentX + 'px)';
           } else {
