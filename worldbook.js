@@ -459,7 +459,6 @@
         html += ''
           + '<div class="wb-entry-item-card">'
           + '  <div class="wb-entry-left-row" data-open-entry="' + entry.id + '">'
-          + '    <div class="wb-entry-v-bar"></div>'
           + '    <span class="wb-entry-title-text">' + (entry.name || '未命名词条') + '</span>'
           + '  </div>'
           + '  <div class="wb-entry-icons-row">'
