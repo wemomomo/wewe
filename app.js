@@ -411,9 +411,13 @@
     var allPages = document.querySelectorAll('.page');
     allPages.forEach(function(p) {
       if (p.dataset.page === name) { p.classList.add('active'); p.style.transform = ''; }
-      else { p.classList.remove('active'); }
+      else { p.classList.remove('active'); p.style.transform = ''; }
     });
     
+    // 确保桌面永远在最底层固定位置，绝不受任何transform位移影响
+    var homePage = document.querySelector('[data-page="home"]');
+    if (homePage) homePage.style.transform = '';
+
     var desktopPagination = document.getElementById('desktopPagination');
     if (name === 'home') { 
       if (dock) dock.style.display = 'flex'; 
@@ -483,9 +487,8 @@
     }
   }
 
-  // ============ 统一点击导航绑定 (含手势返回与防退拦截) ============
+  // ============ 统一点击导航绑定 (含纯净手势返回，0白边漏底) ============
   function bindNavigation() {
-    // 深度拦截系统退出：无论怎么滑，绝不让浏览器关闭网页！
     try {
       history.pushState({ page: 'app_lock' }, '', '');
       window.addEventListener('popstate', function() {
@@ -528,7 +531,6 @@
       });
     });
 
-    // 点击返回直接走内部安全路由
     document.addEventListener('click', function(e) { 
       var b = e.target.closest('[data-back]'); 
       if (b) {
@@ -567,11 +569,10 @@
       }
     });
 
-    // ============ 全局应用右滑退回桌面 (原生平滑手势) ============
+    // ============ 全局应用右滑退回桌面 (底层固定，绝不位移出白边) ============
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
-      var mainView = null;
       var isWorldbook = false;
 
       page.addEventListener('touchstart', function(e) { 
@@ -587,13 +588,11 @@
 
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
-          mainView = page.querySelector('.beautify-main-view');
           isWorldbook = false;
         } 
         else if (page.dataset.page === 'worldbook') {
           isWorldbook = true;
           activeSubView = null;
-          mainView = null;
           var editView = page.querySelector('#wbEditView');
           var entriesView = page.querySelector('#wbEntriesView');
           var metaView = page.querySelector('#wbBookMetaView');
@@ -607,13 +606,11 @@
           }
         } else {
           activeSubView = null;
-          mainView = null;
           isWorldbook = false;
         }
 
         if (activeSubView) {
           activeSubView.style.transition = 'none';
-          if (mainView) mainView.style.transition = 'none';
         } else {
           page.style.transition = 'none'; 
         }
@@ -634,13 +631,9 @@
         if (diffX > 0) {
           if (e.cancelable) e.preventDefault();
           currentX = diffX;
+          // 仅移动当前活动层，底层桌面保持绝对静止，绝不漏出白底！
           if (activeSubView) {
             activeSubView.style.transform = 'translateX(' + currentX + 'px)';
-            if (mainView) {
-              var mainOffset = -30 + (currentX / window.innerWidth) * 30;
-              mainView.style.transform = 'translateX(' + mainOffset + '%)';
-              mainView.style.opacity = Math.min(1, 0.4 + (currentX / window.innerWidth) * 0.6);
-            }
           } else {
             page.style.transform = 'translateX(' + currentX + 'px)'; 
           }
@@ -654,7 +647,7 @@
         }
         isDragging = false;
 
-        // 内部子层级滑动回退 (编辑 -> 列表 -> 首页)
+        // 1. 内部子层级滑动回退 (编辑 -> 列表 -> 首页)
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.22) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -670,14 +663,9 @@
           } else {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
             activeSubView.style.transform = 'translateX(0)';
-            if (mainView) {
-              mainView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease';
-              mainView.style.transform = 'translateX(-30%)';
-              mainView.style.opacity = '0.4';
-            }
           }
         } 
-        // 应用主页面右滑退回到我们的桌面 (Home)
+        // 2. 应用主页面右滑退回到我们的桌面 (Home)
         else {
           page.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
