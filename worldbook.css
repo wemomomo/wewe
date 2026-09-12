@@ -498,8 +498,7 @@
 
 /* 词条卡片加高至 56px，内边距加大 */
 .wb-entry-item-card {
-  background: #e5e5ea;
-  border: 1px solid var(--wb-border-line);
+  background: #f8f8fa;
   border-radius: 12px;
   height: 64px;
   padding: 0 12px 0 14px;
