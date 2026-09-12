@@ -1,7 +1,7 @@
 
 (function(){
   'use strict';
-
+  
   // 数据库存储键名
   var ARCHIVES_LIST_KEY = 'user_archives_list_v3';
   var ACTIVE_USER_ID_KEY = 'user_archive_active_id_v3';
