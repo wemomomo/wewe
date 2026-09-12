@@ -20,7 +20,7 @@
   overflow: hidden;
   gap: 10px;
   box-sizing: border-box;
-  padding: 10px 12px 10px;
+  padding: 10px 12px 12px;
 }
 
 .wb-viewport-box {
@@ -49,16 +49,29 @@
   padding: 0 !important;
 }
 
-/* ========== 1. 顶栏：左大标题 + 右侧微缩上移双圆圈 ========== */
+/* ========== 1. 顶栏：贯穿虚线星轨 + 标题 + 中间切换 + 右侧选项 ========== */
 .wb-top-header-row {
   display: flex;
-  align-items: flex-start; /* 顶部对齐以配合上移 */
+  align-items: center;
   justify-content: space-between;
   height: 60px;
   flex-shrink: 0;
   width: 100%;
-  padding: 2px 4px 0;
+  padding: 0 4px;
   position: relative;
+}
+
+/* 贯穿全屏左右的星轨虚线 */
+.wb-top-header-row::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  top: 50%;
+  height: 1px;
+  background: repeating-linear-gradient(to right, #d1d1d6, #d1d1d6 4px, transparent 4px, transparent 8px);
+  z-index: 0;
+  pointer-events: none;
 }
 
 .wb-header-left-col {
@@ -67,10 +80,14 @@
   align-items: flex-start;
   justify-content: center;
   gap: 2px;
+  background: #ffffff;
+  padding-right: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .wb-title-main {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
   color: #1c1c1e;
   letter-spacing: 0.8px;
@@ -78,7 +95,7 @@
 }
 
 .wb-title-sub-en {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #8e8e93;
   letter-spacing: 2px;
@@ -86,12 +103,23 @@
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 }
 
-/* 右侧双圆圈：微缩至 38px，位置整体向上提 */
-.wb-header-right-circles-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 2px;
+/* 中间切换按钮容器 */
+.wb-header-center-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  background: #ffffff;
+  padding: 0 6px;
+}
+
+/* 右侧菜单按钮容器 */
+.wb-header-right-wrap {
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  padding-left: 6px;
 }
 
 .wb-header-circle-btn {
@@ -140,8 +168,9 @@
 /* 浮层 */
 .wb-left-switch-popover {
   position: absolute;
-  right: 48px;
-  top: 38px;
+  left: 50%;
+  top: 50px;
+  transform: translateX(-50%);
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 12px;
@@ -151,9 +180,10 @@
   gap: 3px;
   z-index: 120;
   min-width: 110px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
 }
 .wb-left-switch-popover.show { display: flex; animation: wbPopIn 0.15s ease; }
-@keyframes wbPopIn { from { opacity:0; transform: scale(0.92); } to { opacity:1; transform: scale(1); } }
+@keyframes wbPopIn { from { opacity:0; transform: translate(-50%, -6px) scale(0.95); } to { opacity:1; transform: translate(-50%, 0) scale(1); } }
 
 .wb-pop-item {
   display: flex;
@@ -176,7 +206,7 @@
 .wb-right-menu-popover {
   position: absolute;
   right: 4px;
-  top: 38px;
+  top: 50px;
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 14px;
@@ -186,8 +216,10 @@
   gap: 4px;
   z-index: 120;
   min-width: 160px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
 }
-.wb-right-menu-popover.show { display: flex; animation: wbPopIn 0.15s ease; }
+.wb-right-menu-popover.show { display: flex; animation: wbPopInRight 0.15s ease; }
+@keyframes wbPopInRight { from { opacity:0; transform: scale(0.92); } to { opacity:1; transform: scale(1); } }
 
 .wb-action-card-btn {
   display: flex;
@@ -321,7 +353,7 @@
   font-family: inherit;
 }
 
-/* ========== 3. 首页世界书卡片列表 ========== */
+/* ========== 3. 首页世界书卡片列表 (支持丝滑拖拽) ========== */
 .wb-main-card {
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
@@ -333,11 +365,22 @@
   cursor: pointer;
   flex-shrink: 0;
   position: relative;
-  transition: all 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .wb-main-card:active {
   background: #f8f8fa;
-  transform: scale(0.99);
+}
+
+/* 拖拽中悬浮高光 */
+.wb-main-card.wb-dragging {
+  opacity: 0.92;
+  transform: scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  background: #ffffff;
+  border-color: var(--wb-cur-theme);
 }
 
 .wb-cover-wrap {
@@ -443,8 +486,9 @@
   min-width: 90px;
   z-index: 80;
   padding: 4px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
-.wb-dropdown-menu.show { display: flex; animation: wbPopIn 0.15s ease; }
+.wb-dropdown-menu.show { display: flex; animation: wbPopInRight 0.15s ease; }
 
 .wb-menu-item {
   padding: 7px 10px;
@@ -468,19 +512,63 @@
   user-select: none;
 }
 
-/* ========== 4. 词条列表页 (卡片全面做大做舒适) ========== */
-.wb-sub-nav-bar {
+/* ========== 4. 内部词条列表页 (标题居中下划线 + 左返回 + 底部中间保存) ========== */
+.wb-entries-nav-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 38px;
+  height: 40px;
   flex-shrink: 0;
   padding: 0 2px;
+  position: relative;
 }
-.wb-nav-book-title {
-  font-size: 16.5px;
+
+.wb-entries-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  color: #1c1c1e;
+  cursor: pointer;
+  padding: 0;
+}
+.wb-entries-back-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+}
+
+/* 居中标题 + 下划线可编辑指示 */
+.wb-entries-title-center-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 60%;
+  cursor: pointer;
+}
+.wb-entries-book-title {
+  font-size: 16px;
   font-weight: 800;
   color: #1c1c1e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  line-height: 1.2;
+}
+.wb-entries-title-underline {
+  width: 80%;
+  height: 1.5px;
+  background: #1c1c1e;
+  border-radius: 1px;
+  margin-top: 2px;
+  opacity: 0.8;
 }
 
 .wb-nav-btn-new {
@@ -496,7 +584,7 @@
 }
 .wb-nav-btn-new:active { opacity: 0.8; }
 
-/* 词条卡片加高至 56px，内边距加大 */
+/* 词条卡片加高至 64px，支持拖拽重排 */
 .wb-entry-item-card {
   background: #f8f8fa;
   border-radius: 12px;
@@ -506,6 +594,17 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.wb-entry-item-card.wb-dragging {
+  opacity: 0.92;
+  transform: scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  background: #ffffff;
 }
 
 .wb-entry-left-row {
@@ -518,7 +617,7 @@
 }
 
 .wb-entry-title-text {
-  font-size: 16px; /* 字体加大 */
+  font-size: 15.5px;
   font-weight: 600;
   color: #1c1c1e;
   white-space: nowrap;
@@ -568,6 +667,34 @@
   color: #1c1c1e;
 }
 
+/* 词条页底部中间高定保存按钮 */
+.wb-entries-bottom-save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.wb-entries-btn-save-center {
+  width: 75%;
+  height: 34px;
+  background: #1c1c1e;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.wb-entries-btn-save-center:active {
+  opacity: 0.85;
+  transform: scale(0.985);
+}
+
 /* ========== 5. 编辑页 (极简顶栏 + 无阴影卡片) ========== */
 .wb-edit-nav-bar {
   display: flex;
@@ -598,7 +725,7 @@
 
 .wb-field-card {
   background: #ffffff;
-  border: 0.5px solid var(--wb-cur-theme) !important;
+  border: 0.8px solid var(--wb-cur-theme) !important;
   border-radius: 12px;
   padding: 10px 12px;
   display: flex;
@@ -728,7 +855,7 @@
 .wb-depth-pos-btn.active {
   background: var(--wb-cur-theme);
   border-color: var(--wb-cur-theme);
-  color: #000;
+  color: #000000;
 }
 
 .wb-depth-num-inline {
