@@ -2,6 +2,15 @@
 (function(){
   'use strict';
 
+  // 修复 iOS Safari 点击不冒泡 Bug，确保苹果手机上所有 div 上的点击都能顺畅触发
+  if (document.body) {
+    document.body.style.cursor = 'pointer';
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.body) document.body.style.cursor = 'pointer';
+    });
+  }
+
   // ============ IndexedDB ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
@@ -163,14 +172,23 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
+    function hideMask() {
+      mask.classList.remove('show');
+    }
+
+    function showMask() {
+      mask.classList.add('show');
+    }
+
     function onLoginVerified(token, userInfo) {
+      try {
+        localStorage.setItem('app_auth_token', token);
+        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+      } catch(e) {}
+
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          try {
-            localStorage.setItem('app_auth_token', token);
-            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-          } catch(e) {}
-          mask.classList.remove('show');
+          hideMask();
         });
       });
     }
@@ -179,7 +197,7 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
-          mask.classList.add('show');
+          showMask();
           if (message) showToast(message);
         });
       });
@@ -211,7 +229,7 @@
     dbGet('app_user_info', function(userInfo) {
       dbGet('app_auth_token', function(token) {
         if (token && userInfo && userInfo.username) {
-          mask.classList.remove('show');
+          hideMask();
           realTimeVerify(userInfo);
         } else {
           var session = getGlobalSession();
@@ -219,7 +237,7 @@
             onLoginVerified(session.token, session.userInfo);
             realTimeVerify(session.userInfo);
           } else {
-            mask.classList.add('show');
+            showMask();
           }
         }
       });
@@ -366,13 +384,15 @@
   var dockEditBtn = document.querySelector('.tabbar-edit-btn');
 
   function initAppShells() {
-    var appPages = ['beautify', 'archive', 'imgbed', 'wechat', 'offline', 'settings', 'check'];
+    var appPages = ['beautify', 'archive', 'imgbed', 'wechat', 'offline', 'settings', 'check', 'worldbook'];
     appPages.forEach(function(name) {
       var page = document.querySelector('[data-page="'+name+'"]');
-      if (!page || page.querySelector('.app-header')) return;
-      var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗' }[name];
+      if (!page || page.querySelector('.app-header') || (name === 'worldbook' && page.querySelector('#worldbookContent'))) return;
+      var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗', worldbook: '世界书' }[name];
       
-      if (name === 'beautify') {
+      if (name === 'worldbook') {
+        page.innerHTML = '<div class="app-content" id="worldbookContent"></div>';
+      } else if (name === 'beautify') {
         page.innerHTML = '<div class="app-header">'
           + '<button class="icon-back-btn" data-back="home"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
           + '<div class="app-title-group"><div class="app-title">'+titleText+'</div><div class="app-subtitle">DESIGN PROCESS</div></div>'
@@ -474,7 +494,7 @@
     }
   }
 
-  // ============ 全局统一导航与滑动统管 ============
+  // ============ 全局统一导航与多级滑动统管 (完整保留世界书+美化多级返回) ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -540,7 +560,7 @@
       if (coupleItem && !coupleItem.dataset.openApp && !coupleItem.dataset.goto) {
         var action = coupleItem.dataset.action;
         if (action === 'worldbook') {
-          showToast('✦ 世界书系统正在载入中 ✦');
+          showPage('worldbook');
         } else if (action === 'forum') {
           showToast('✦ 论坛社区即将开放 ✦');
         } else {
@@ -549,10 +569,12 @@
       }
     });
 
+    // 核心多级滑动返回引擎：美化中心、世界书三级、基础页面统管
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
       var mainView = null;
+      var isWorldbook = false;
 
       page.addEventListener('touchstart', function(e) { 
         if (e.touches[0].clientX > 45) return; 
@@ -565,12 +587,32 @@
         isLocked = false;
         isHoriz = false;
 
+        // 1. 美化中心多级视图检测
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
+          isWorldbook = false;
+        } 
+        // 2. 世界书专属三级视图检测 (词条编辑 / 词条列表 / 封面修改 / 首页)
+        else if (page.dataset.page === 'worldbook') {
+          isWorldbook = true;
+          activeSubView = null;
+          mainView = null;
+          var editView = page.querySelector('#wbEditView');
+          var entriesView = page.querySelector('#wbEntriesView');
+          var metaView = page.querySelector('#wbBookMetaView');
+          
+          if (editView && !editView.classList.contains('wb-view-hidden') && editView.style.display !== 'none') {
+            activeSubView = editView;
+          } else if (metaView && !metaView.classList.contains('wb-view-hidden') && metaView.style.display !== 'none') {
+            activeSubView = metaView;
+          } else if (entriesView && !entriesView.classList.contains('wb-view-hidden') && entriesView.style.display !== 'none') {
+            activeSubView = entriesView;
+          }
         } else {
           activeSubView = null;
           mainView = null;
+          isWorldbook = false;
         }
 
         if (activeSubView) {
@@ -615,23 +657,37 @@
         }
         isDragging = false;
 
+        // 子视图右滑返回上一级
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.25) {
-            window.dispatchEvent(new Event('closeBeautifySub'));
+            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            activeSubView.style.transform = 'translateX(100%)';
+            setTimeout(function() {
+              activeSubView.style.transform = '';
+              if (isWorldbook) {
+                // 通知世界书按层级后退一步
+                window.dispatchEvent(new CustomEvent('wbStepBack'));
+              } else {
+                window.dispatchEvent(new Event('closeBeautifySub'));
+              }
+            }, 220);
           } else {
-            activeSubView.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
             activeSubView.style.transform = 'translateX(0)';
             if (mainView) {
-              mainView.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease';
+              mainView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease';
               mainView.style.transform = 'translateX(-30%)';
               mainView.style.opacity = '0.4';
             }
           }
-        } else {
+        } 
+        // 顶层 App 页面右滑返回桌面 (Home)
+        else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
-          if (currentX > window.innerWidth * 0.28 && backBtn) { 
-            showPage(backBtn.dataset.back); 
+          if (currentX > window.innerWidth * 0.28) { 
+            var targetBack = backBtn ? backBtn.dataset.back : 'home';
+            showPage(targetBack); 
             setTimeout(function() { page.style.transform = ''; }, 280); 
           } else { 
             page.style.transform = 'translateX(0)'; 
