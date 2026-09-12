@@ -16,7 +16,7 @@
 
   var state = {
     currentSection: 'wb',
-    currentLevel: 'home',
+    currentLevel: 'home', // 'home' | 'entries' | 'edit' | 'book_meta'
     worldbooks: [],
     presets: [],
     regexes: [],
@@ -29,6 +29,7 @@
 
   window.WorldbookState = state;
 
+  // ============ 数据持久化 ============
   function loadAllData(callback) {
     if (!window.AppDB) {
       state.worldbooks = [];
@@ -63,6 +64,7 @@
     document.documentElement.style.setProperty('--wb-cur-theme-bg', theme.bg);
   }
 
+  // ============ 封面图片剪裁 ============
   function handleCoverClick(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
     if (!wb) return;
@@ -103,6 +105,7 @@
     }
   }
 
+  // ============ 导入 .docx ============
   function importWorldbookDocx() {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -184,6 +187,7 @@
     }
   }
 
+  // ============ 导出 JSON ============
   function exportWorldbookJSON(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
     if (!wb) return;
@@ -217,6 +221,7 @@
     if (window.AppNav) window.AppNav.showToast('✦ 世界书已成功导出 ✦');
   }
 
+  // ============ 单例 DOM 构建 ============
   function ensureWorldbookDOM() {
     var page = document.querySelector('[data-page="worldbook"]');
     if (!page) return null;
@@ -275,8 +280,8 @@
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEntriesView"></div>'
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEditView"></div>'
         + '  <div class="wb-expanded-modal" id="wbExpandedModal">'
-        + '    <div class="wb-edit-nav-bar">'
-        + '      <span>沉浸编辑</span>'
+        + '    <div class="wb-sub-nav-bar" style="justify-content:space-between;">'
+        + '      <span style="font-size:15px; font-weight:800; color:#1c1c1e;">沉浸编辑</span>'
         + '      <button class="wb-btn-expand-icon" id="wbBtnCollapse" type="button">'
         + '        <svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>'
         + '      </button>'
@@ -289,6 +294,7 @@
     return container;
   }
 
+  // ============ 1. 渲染首页 ============
   function renderHomeView() {
     state.currentLevel = 'home';
     state.isCreatingNewWb = false;
@@ -364,6 +370,7 @@
     });
   }
 
+  // ============ 2. 渲染新建世界书名称页面 ============
   function renderBookMetaView(wbId) {
     state.currentLevel = 'book_meta';
     state.currentWbId = wbId;
@@ -405,6 +412,7 @@
     metaBox.innerHTML = html;
   }
 
+  // ============ 3. 渲染词条列表页 (小标签位于标题左侧) ============
   function renderEntriesView(wbId) {
     state.currentLevel = 'entries';
     state.currentWbId = wbId;
@@ -465,8 +473,8 @@
         html += ''
           + '<div class="wb-entry-item-card" data-entry-id="' + entry.id + '">'
           + '  <div class="wb-entry-left-row" data-open-entry="' + entry.id + '">'
+          +      pillTagHtml // 👈 墨墨要求的左移：把小标签精确放在标题文字左边！
           + '    <span class="wb-entry-title-text">' + (entry.name || '未命名词条') + '</span>'
-          +      pillTagHtml
           + '  </div>'
           + '  <div class="wb-entry-icons-row">'
           + '    <button class="wb-entry-icon-btn" title="编辑" data-entry-act="edit" data-id="' + entry.id + '"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>'
@@ -497,6 +505,7 @@
     }
   }
 
+  // ============ 4. 渲染词条编辑页 ============
   function renderEditView(entryId) {
     state.currentLevel = 'edit';
     state.currentEntryId = entryId;
@@ -655,6 +664,7 @@
     saveWorldbooksData();
   }
 
+  // ============ 物理级阻尼防抖跟手拖拽引擎 (绝对1:1对齐手指，不虚浮) ============
   function setupAnchorLockedDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -663,30 +673,35 @@
       var isDragging = false;
       var dragTimer = null;
       var startTouchY = 0;
+      var initialOffsetTop = 0;
 
       function onTouchStart(e) {
-        if (e.target.closest('button') || e.target.closest('.wb-cover-wrap') || e.target.closest('.wb-dropdown-menu') || e.target.closest('.wb-entry-switch')) return;
+        if (e.target.closest('button') || e.target.closest('.wb-cover-wrap') || e.target.closest('.wb-dropdown-menu') || e.target.closest('.wb-entry-switch') || e.target.closest('.wb-entry-icons-row')) return;
+        
         var touch = e.touches[0];
         startTouchY = touch.clientY;
+        initialOffsetTop = el.getBoundingClientRect().top;
 
         dragTimer = setTimeout(function () {
           isDragging = true;
           el.classList.add('wb-dragging');
           if (navigator.vibrate) navigator.vibrate(15);
-        }, 200);
+        }, 180); // 略微缩短长按判定，抓取响应更灵敏
       }
 
       function onTouchMove(e) {
         if (!isDragging) {
-          if (Math.abs(e.touches[0].clientY - startTouchY) > 8) {
+          if (Math.abs(e.touches[0].clientY - startTouchY) > 6) {
             clearTimeout(dragTimer);
           }
           return;
         }
         e.preventDefault();
         var touch = e.touches[0];
+        
+        // 1:1绝对物理解析，实现卡片中线完美贴合手指，不漂浮
         var deltaY = touch.clientY - startTouchY;
-        el.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
+        el.style.transform = 'translateY(' + deltaY + 'px) scale(1.025)';
 
         var allCards = Array.from(container.querySelectorAll(itemSelector));
         var targetCard = allCards.find(function (card) {
@@ -698,11 +713,14 @@
         if (targetCard) {
           var draggingIndex = allCards.indexOf(el);
           var targetIndex = allCards.indexOf(targetCard);
+          
           if (draggingIndex < targetIndex) {
             container.insertBefore(el, targetCard.nextSibling);
           } else {
             container.insertBefore(el, targetCard);
           }
+          // 重置开始位置
+          startTouchY = touch.clientY - (el.getBoundingClientRect().top - container.getBoundingClientRect().top);
         }
       }
 
@@ -726,6 +744,7 @@
     });
   }
 
+  // ============ 响应 app.js 多级滑返 (带状态强校验，封死越级Bug) ============
   window.addEventListener('wbStepBack', function () {
     if (state.currentLevel === 'edit') {
       saveCurrentEditEntry();
@@ -748,6 +767,7 @@
     }
   });
 
+  // ============ 事件委托 ============
   function bindInternalEvents(container) {
     if (state.initialized) return;
     state.initialized = true;
