@@ -163,14 +163,27 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
+    function hideGate() {
+      mask.classList.remove('show');
+      mask.style.display = 'none';
+      mask.style.pointerEvents = 'none';
+    }
+
+    function showGate() {
+      mask.style.display = 'flex';
+      mask.style.pointerEvents = 'auto';
+      mask.classList.add('show');
+    }
+
     function onLoginVerified(token, userInfo) {
+      try {
+        localStorage.setItem('app_auth_token', token);
+        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+      } catch(e) {}
+
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          try {
-            localStorage.setItem('app_auth_token', token);
-            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-          } catch(e) {}
-          mask.classList.remove('show');
+          hideGate();
         });
       });
     }
@@ -179,7 +192,7 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
-          mask.classList.add('show');
+          showGate();
           if (message) showToast(message);
         });
       });
@@ -199,7 +212,8 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          if (!data.success) {
+          // 仅在明确收到管理员停用账号的封禁指令时才退出，绝不因部署或重新连接而误清除凭证
+          if (data && data.kickOut === true) {
             kickOut(data.message || '账号已失效');
           }
         })
@@ -207,28 +221,32 @@
       });
     }
 
-    dbGet('app_user_info', function(userInfo) {
-      dbGet('app_auth_token', function(token) {
-        if (token && userInfo && userInfo.username) {
-          mask.classList.remove('show');
-          realTimeVerify(userInfo);
-        } else {
-          var session = getGlobalSession();
-          if (session && session.token && session.userInfo && session.userInfo.username) {
-            onLoginVerified(session.token, session.userInfo);
-            realTimeVerify(session.userInfo);
+    // 优先读取本地持久凭证
+    var session = getGlobalSession();
+    if (session && session.userInfo && session.userInfo.username) {
+      hideGate();
+      onLoginVerified(session.token || 'valid_token', session.userInfo);
+      realTimeVerify(session.userInfo);
+    } else {
+      dbGet('app_user_info', function(userInfo) {
+        dbGet('app_auth_token', function(token) {
+          if (userInfo && userInfo.username) {
+            hideGate();
+            onLoginVerified(token || 'valid_token', userInfo);
+            realTimeVerify(userInfo);
           } else {
-            mask.classList.add('show');
+            showGate();
           }
-        }
+        });
       });
-    });
+    }
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
-        dbGet('app_user_info', function(userInfo) {
-          if (userInfo && userInfo.username) realTimeVerify(userInfo);
-        });
+        var currentSession = getGlobalSession();
+        if (currentSession && currentSession.userInfo && currentSession.userInfo.username) {
+          realTimeVerify(currentSession.userInfo);
+        }
       }
     });
 
@@ -372,7 +390,6 @@
       var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗', worldbook: '世界书' }[name];
       
       if (name === 'worldbook') {
-        // 世界书专属：纯净无默认顶栏，由 worldbook.js 全权绘制高定星宿链
         page.innerHTML = '<div class="app-content" id="worldbookContent"></div>';
       } else if (name === 'beautify') {
         page.innerHTML = '<div class="app-header">'
@@ -551,8 +568,7 @@
       }
     });
 
-    
-document.querySelectorAll('.app-page').forEach(function(page) {
+    document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
       var mainView = null;
@@ -569,28 +585,24 @@ document.querySelectorAll('.app-page').forEach(function(page) {
         isLocked = false;
         isHoriz = false;
 
-        // 1. 美化中心多级视图检测
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
           isWorldbook = false;
-        } 
-        // 2. 世界书多级视图检测 (编辑页 / 词条列表 / 首页)
-        else if (page.dataset.page === 'worldbook') {
+        } else if (page.dataset.page === 'worldbook') {
           isWorldbook = true;
           activeSubView = null;
           mainView = null;
-          // 检测是否处于编辑页
           var editView = page.querySelector('#wbEditView');
           var entriesView = page.querySelector('#wbEntriesView');
           var metaView = page.querySelector('#wbBookMetaView');
           
           if (editView && !editView.classList.contains('wb-view-hidden') && editView.style.display !== 'none') {
-            activeSubView = editView; // 当前在编辑页，滑动退回列表
+            activeSubView = editView;
           } else if (metaView && !metaView.classList.contains('wb-view-hidden') && metaView.style.display !== 'none') {
-            activeSubView = metaView; // 当前在名称设定页，滑动退回首页
+            activeSubView = metaView;
           } else if (entriesView && !entriesView.classList.contains('wb-view-hidden') && entriesView.style.display !== 'none') {
-            activeSubView = entriesView; // 当前在词条列表，滑动退回首页
+            activeSubView = entriesView;
           }
         } else {
           activeSubView = null;
@@ -640,7 +652,6 @@ document.querySelectorAll('.app-page').forEach(function(page) {
         }
         isDragging = false;
 
-        // 子层级回退处理 (带 iOS 原生跟手回弹与退出)
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.25) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -648,7 +659,6 @@ document.querySelectorAll('.app-page').forEach(function(page) {
             setTimeout(function() {
               activeSubView.style.transform = '';
               if (isWorldbook) {
-                // 通知世界书按层级后退一步
                 window.dispatchEvent(new CustomEvent('wbStepBack'));
               } else {
                 window.dispatchEvent(new Event('closeBeautifySub'));
@@ -663,12 +673,9 @@ document.querySelectorAll('.app-page').forEach(function(page) {
               mainView.style.opacity = '0.4';
             }
           }
-        } 
-        // 最外层 App 回退处理 (退回桌面)
-        else {
+        } else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
-          // 世界书首页虽然没有默认 backBtn，但属于最外层，直接允许退回 home
           if (currentX > window.innerWidth * 0.28) { 
             var targetBack = backBtn ? backBtn.dataset.back : 'home';
             showPage(targetBack); 
@@ -796,9 +803,9 @@ document.querySelectorAll('.app-page').forEach(function(page) {
     else if (cropDragMode==='l') { var ra=sc.x+sc.w; var nx=Math.max(0,Math.min(ra-CROP_MIN,sc.x+dx)); cropBox.x=nx; cropBox.w=ra-nx; }
     else if (cropDragMode==='b') { cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
     else if (cropDragMode==='t') { var ba=sc.y+sc.h; var ny=Math.max(0,Math.min(ba-CROP_MIN,sc.y+dy)); cropBox.y=ny; cropBox.h=ba-ny; }
-    else if (cropDragMode==='br') { cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
-    else if (cropDragMode==='bl') { var ra2=sc.x+sc.w; var nx2=Math.max(0,Math.min(ra2-CROP_MIN,sc.x+dx)); cropBox.x=nx2; cropBox.w=ra2-nx2; cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
-    else if (cropDragMode==='tr') { var ba2=sc.y+sc.h; var ny2=Math.max(0,Math.min(ba2-CROP_MIN,sc.y+dy)); cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.y=ny2; cropBox.h=ba2-ny2; }
+    else if (cropDragMode==='br') { cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.h=Math.max(CROP_MIN,cropDisplayH-sc.y,sc.h+dy)); }
+    else if (cropDragMode==='bl') { var ra2=sc.x+sc.w; var nx2=Math.max(0,Math.min(ra2-CROP_MIN,sc.x+dx)); cropBox.x=nx2; cropBox.w=ra2-nx2; cropBox.h=Math.max(CROP_MIN,cropDisplayH-sc.y,sc.h+dy)); }
+    else if (cropDragMode==='tr') { var ba2=sc.y+sc.h; var ny2=Math.max(0,Math.min(ba2-CROP_MIN,sc.y+dy)); cropBox.w=Math.max(CROP_MIN,cropDisplayW-sc.x,sc.w+dx)); cropBox.y=ny2; cropBox.h=ba2-ny2; }
     else if (cropDragMode==='tl') { var ra3=sc.x+sc.w; var ba3=sc.y+sc.h; var nx3=Math.max(0,Math.min(ra3-CROP_MIN,sc.x+dx)); var ny3=Math.max(0,Math.min(ba3-CROP_MIN,sc.y+dy)); cropBox.x=nx3; cropBox.w=ra3-nx3; cropBox.y=ny3; cropBox.h=ba3-ny3; }
     if (cropLockedRatio) {
       if (cropDragMode==='r'||cropDragMode==='l'||cropDragMode==='tr'||cropDragMode==='tl') cropBox.h=cropBox.w/cropLockedRatio;
@@ -842,17 +849,11 @@ document.querySelectorAll('.app-page').forEach(function(page) {
 
   if (cropCancelBtn) cropCancelBtn.addEventListener('click', function() { cropOverlay.classList.remove('show'); cropCallback=null; });
   if (cropConfirmBtn) cropConfirmBtn.addEventListener('click', function() {
-    var outW = Math.round(cropBox.w / cropScale);
-    var outH = Math.round(cropBox.h / cropScale);
-    var output = document.createElement('canvas');
-    output.width = outW;
-    output.height = outH;
-    var outCtx = output.getContext('2d');
-    outCtx.drawImage(cropImg, cropBox.x / cropScale, cropBox.y / cropScale, outW, outH, 0, 0, outW, outH);
-    var data = output.toDataURL('image/jpeg', 0.92);
-    cropOverlay.classList.remove('show');
-    if (cropCallback) cropCallback(data);
-    cropCallback = null;
+    var output=document.createElement('canvas'); var outW=Math.round(cropBox.w/cropScale),outH=Math.round(cropBox.h/cropScale);
+    output.width=outW; output.height=outH; var outCtx=output.getContext('2d');
+    outCtx.drawImage(cropImg,cropBox.x/cropScale,cropBox.y/cropScale,cropBox.w/cropScale,cropBox.h/cropScale,0,0,outW,outH);
+    var data=output.toDataURL('image/jpeg',0.92); cropOverlay.classList.remove('show');
+    if (cropCallback) cropCallback(data); cropCallback=null;
   });
 
   // ============ 照片操作卡片 ============
@@ -969,4 +970,3 @@ document.querySelectorAll('.app-page').forEach(function(page) {
   });
 
 })();
-
