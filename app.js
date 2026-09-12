@@ -207,22 +207,34 @@
       });
     }
 
-    dbGet('app_user_info', function(userInfo) {
-      dbGet('app_auth_token', function(token) {
-        if (token && userInfo && userInfo.username) {
-          mask.classList.remove('show');
-          realTimeVerify(userInfo);
-        } else {
-          var session = getGlobalSession();
-          if (session && session.token && session.userInfo && session.userInfo.username) {
-            onLoginVerified(session.token, session.userInfo);
-            realTimeVerify(session.userInfo);
+        // 1. 优先极速读取 localStorage 永久凭证，只要登录过直接放行！
+    var localToken = localStorage.getItem('app_auth_token');
+    var localInfoStr = localStorage.getItem('app_user_info');
+    var localInfo = null;
+    try { if (localInfoStr) localInfo = JSON.parse(localInfoStr); } catch(e) {}
+
+    if (localToken && localInfo && localInfo.username) {
+      mask.classList.remove('show');
+      realTimeVerify(localInfo);
+    } else {
+      // 2. 兜底读取 IndexedDB
+      dbGet('app_user_info', function(userInfo) {
+        dbGet('app_auth_token', function(token) {
+          if (token && userInfo && userInfo.username) {
+            mask.classList.remove('show');
+            realTimeVerify(userInfo);
           } else {
-            mask.classList.add('show');
+            var session = getGlobalSession();
+            if (session && session.token && session.userInfo && session.userInfo.username) {
+              onLoginVerified(session.token, session.userInfo);
+              realTimeVerify(session.userInfo);
+            } else {
+              mask.classList.add('show');
+            }
           }
-        }
+        });
       });
-    });
+    }
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
