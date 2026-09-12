@@ -155,7 +155,7 @@
     return '/api/' + action;
   }
 
-  // ============ 登录门禁逻辑 ============
+  // ============ 登录门禁逻辑 (彻底打通生命周期) ============
   function checkActivation() {
     var mask = document.getElementById('authGateMask');
     var usernameInput = document.getElementById('authUsernameInput');
@@ -163,14 +163,23 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
+    function activateAppUI() {
+      mask.classList.remove('show');
+      mask.style.display = 'none';
+      mask.style.pointerEvents = 'none';
+      // 核心：唤醒所有依赖登录事件的组件（日期、头像、微信）
+      window.dispatchEvent(new CustomEvent('loginSuccess'));
+    }
+
     function onLoginVerified(token, userInfo) {
+      try {
+        localStorage.setItem('app_auth_token', token);
+        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+      } catch(e) {}
+
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          try {
-            localStorage.setItem('app_auth_token', token);
-            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-          } catch(e) {}
-          mask.classList.remove('show');
+          activateAppUI();
         });
       });
     }
@@ -179,6 +188,8 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
+          mask.style.display = 'flex';
+          mask.style.pointerEvents = 'auto';
           mask.classList.add('show');
           if (message) showToast(message);
         });
@@ -199,7 +210,6 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          // 只有明确收到封禁指令才踢出，普通网络错误绝不踢人
           if (data && data.kickOut === true) {
             kickOut(data.message || '账号已失效');
           }
@@ -208,20 +218,22 @@
       });
     }
 
-    // 优先读取本地持久凭证
+    // 优先读取本地持久凭据
     var session = getGlobalSession();
     if (session && session.userInfo && session.userInfo.username) {
-      mask.classList.remove('show');
+      activateAppUI();
       onLoginVerified(session.token || 'valid_token', session.userInfo);
       realTimeVerify(session.userInfo);
     } else {
       dbGet('app_user_info', function(userInfo) {
         dbGet('app_auth_token', function(token) {
           if (userInfo && userInfo.username) {
-            mask.classList.remove('show');
+            activateAppUI();
             onLoginVerified(token || 'valid_token', userInfo);
             realTimeVerify(userInfo);
           } else {
+            mask.style.display = 'flex';
+            mask.style.pointerEvents = 'auto';
             mask.classList.add('show');
           }
         });
@@ -264,7 +276,6 @@
             var info = { username: data.username, password: password };
             onLoginVerified(data.token, info);
             showToast('欢迎回来');
-            window.dispatchEvent(new CustomEvent('loginSuccess'));
           } else if (data.canReset) {
             if (window.AppDialog) {
               window.AppDialog.confirm({
@@ -350,7 +361,6 @@
               var info = { username: data.username, password: regPass };
               onLoginVerified(data.token, info);
               showToast('注册成功，欢迎进入');
-              window.dispatchEvent(new CustomEvent('loginSuccess'));
             } else {
               showToast(data.message || '注册失败');
             }
@@ -761,7 +771,7 @@
     if (px>=c.x-H&&px<=c.x+H&&py>=c.y-H&&py<=c.y+H) return 'tl';
     if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'tr';
     if (px>=c.x-H&&px<=c.x+H&&py>=c.y+c.h-H&&py<=c.y+c.h+H) return 'bl';
-    if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y+c.h-H&&py<=c.y+c.h+H) return 'br';
+    if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'br';
     if (py>=c.y-H&&py<=c.y+H&&px>c.x+H&&px<c.x+c.w-H) return 't';
     if (py>=c.y+c.h-H&&py<=c.y+c.h+H&&px>c.x+H&&px<c.x+c.w-H) return 'b';
     if (px>=c.x-H&&px<=c.x+H&&py>c.y+H&&py<c.y+c.h-H) return 'l';
@@ -946,7 +956,7 @@
 
   window.AppNav = { showPage: showPage, showToast: showToast };
 
-  // ============ 初始化 ============
+  // ============ 初始化 (确保生命周期完全唤醒) ============
   openDB(function() {
     setupPhotoAction();
     setupAppDialog();
