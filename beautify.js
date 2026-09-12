@@ -85,7 +85,8 @@
     compressOne('icon1', RAW_ICON_PATH_1);
     compressOne('icon2', RAW_ICON_PATH_2);
   }
-  autoCompressPresetIcons();
+  
+// autoCompressPresetIcons();  👈 删掉或注释掉这一行！
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
