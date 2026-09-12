@@ -163,27 +163,14 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
-    function hideGate() {
-      mask.classList.remove('show');
-      mask.style.display = 'none';
-      mask.style.pointerEvents = 'none';
-    }
-
-    function showGate() {
-      mask.style.display = 'flex';
-      mask.style.pointerEvents = 'auto';
-      mask.classList.add('show');
-    }
-
     function onLoginVerified(token, userInfo) {
-      try {
-        localStorage.setItem('app_auth_token', token);
-        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-      } catch(e) {}
-
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          hideGate();
+          try {
+            localStorage.setItem('app_auth_token', token);
+            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+          } catch(e) {}
+          mask.classList.remove('show');
         });
       });
     }
@@ -192,7 +179,7 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
-          showGate();
+          mask.classList.add('show');
           if (message) showToast(message);
         });
       });
@@ -212,7 +199,7 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          // 仅在明确收到管理员停用账号的封禁指令时才退出，绝不因部署或重新连接而误清除凭证
+          // 仅在明确收到封禁指令时才退出，绝不因部署冷启动误清空凭证
           if (data && data.kickOut === true) {
             kickOut(data.message || '账号已失效');
           }
@@ -221,32 +208,28 @@
       });
     }
 
-    // 优先读取本地持久凭证
-    var session = getGlobalSession();
-    if (session && session.userInfo && session.userInfo.username) {
-      hideGate();
-      onLoginVerified(session.token || 'valid_token', session.userInfo);
-      realTimeVerify(session.userInfo);
-    } else {
-      dbGet('app_user_info', function(userInfo) {
-        dbGet('app_auth_token', function(token) {
-          if (userInfo && userInfo.username) {
-            hideGate();
-            onLoginVerified(token || 'valid_token', userInfo);
-            realTimeVerify(userInfo);
+    dbGet('app_user_info', function(userInfo) {
+      dbGet('app_auth_token', function(token) {
+        if (token && userInfo && userInfo.username) {
+          mask.classList.remove('show');
+          realTimeVerify(userInfo);
+        } else {
+          var session = getGlobalSession();
+          if (session && session.token && session.userInfo && session.userInfo.username) {
+            onLoginVerified(session.token, session.userInfo);
+            realTimeVerify(session.userInfo);
           } else {
-            showGate();
+            mask.classList.add('show');
           }
-        });
+        }
       });
-    }
+    });
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
-        var currentSession = getGlobalSession();
-        if (currentSession && currentSession.userInfo && currentSession.userInfo.username) {
-          realTimeVerify(currentSession.userInfo);
-        }
+        dbGet('app_user_info', function(userInfo) {
+          if (userInfo && userInfo.username) realTimeVerify(userInfo);
+        });
       }
     });
 
@@ -383,15 +366,13 @@
   var dockEditBtn = document.querySelector('.tabbar-edit-btn');
 
   function initAppShells() {
-    var appPages = ['beautify', 'archive', 'imgbed', 'wechat', 'offline', 'settings', 'check', 'worldbook'];
+    var appPages = ['beautify', 'archive', 'imgbed', 'wechat', 'offline', 'settings', 'check'];
     appPages.forEach(function(name) {
       var page = document.querySelector('[data-page="'+name+'"]');
-      if (!page || page.querySelector('.app-header') || page.querySelector('#worldbookContent')) return;
-      var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗', worldbook: '世界书' }[name];
+      if (!page || page.querySelector('.app-header')) return;
+      var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗' }[name];
       
-      if (name === 'worldbook') {
-        page.innerHTML = '<div class="app-content" id="worldbookContent"></div>';
-      } else if (name === 'beautify') {
+      if (name === 'beautify') {
         page.innerHTML = '<div class="app-header">'
           + '<button class="icon-back-btn" data-back="home"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
           + '<div class="app-title-group"><div class="app-title">'+titleText+'</div><div class="app-subtitle">DESIGN PROCESS</div></div>'
@@ -559,7 +540,7 @@
       if (coupleItem && !coupleItem.dataset.openApp && !coupleItem.dataset.goto) {
         var action = coupleItem.dataset.action;
         if (action === 'worldbook') {
-          showPage('worldbook');
+          showToast('✦ 世界书系统正在载入中 ✦');
         } else if (action === 'forum') {
           showToast('✦ 论坛社区即将开放 ✦');
         } else {
@@ -572,7 +553,6 @@
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
       var mainView = null;
-      var isWorldbook = false;
 
       page.addEventListener('touchstart', function(e) { 
         if (e.touches[0].clientX > 45) return; 
@@ -588,26 +568,9 @@
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
-          isWorldbook = false;
-        } else if (page.dataset.page === 'worldbook') {
-          isWorldbook = true;
-          activeSubView = null;
-          mainView = null;
-          var editView = page.querySelector('#wbEditView');
-          var entriesView = page.querySelector('#wbEntriesView');
-          var metaView = page.querySelector('#wbBookMetaView');
-          
-          if (editView && !editView.classList.contains('wb-view-hidden') && editView.style.display !== 'none') {
-            activeSubView = editView;
-          } else if (metaView && !metaView.classList.contains('wb-view-hidden') && metaView.style.display !== 'none') {
-            activeSubView = metaView;
-          } else if (entriesView && !entriesView.classList.contains('wb-view-hidden') && entriesView.style.display !== 'none') {
-            activeSubView = entriesView;
-          }
         } else {
           activeSubView = null;
           mainView = null;
-          isWorldbook = false;
         }
 
         if (activeSubView) {
@@ -654,21 +617,12 @@
 
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.25) {
-            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
-            activeSubView.style.transform = 'translateX(100%)';
-            setTimeout(function() {
-              activeSubView.style.transform = '';
-              if (isWorldbook) {
-                window.dispatchEvent(new CustomEvent('wbStepBack'));
-              } else {
-                window.dispatchEvent(new Event('closeBeautifySub'));
-              }
-            }, 220);
+            window.dispatchEvent(new Event('closeBeautifySub'));
           } else {
-            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            activeSubView.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
             activeSubView.style.transform = 'translateX(0)';
             if (mainView) {
-              mainView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease';
+              mainView.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease';
               mainView.style.transform = 'translateX(-30%)';
               mainView.style.opacity = '0.4';
             }
@@ -676,9 +630,8 @@
         } else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
-          if (currentX > window.innerWidth * 0.28) { 
-            var targetBack = backBtn ? backBtn.dataset.back : 'home';
-            showPage(targetBack); 
+          if (currentX > window.innerWidth * 0.28 && backBtn) { 
+            showPage(backBtn.dataset.back); 
             setTimeout(function() { page.style.transform = ''; }, 280); 
           } else { 
             page.style.transform = 'translateX(0)'; 
