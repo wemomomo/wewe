@@ -29,6 +29,14 @@
   overflow: hidden;
 }
 
+/* 彻底隐藏主列表与二级页面的滚动条 */
+.beautify-main-view::-webkit-scrollbar,
+.beautify-sub-view::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* ======================================================== */
 /* 1. 一级菜单列表 (纯净通透无框列表)                        */
 /* ======================================================== */
@@ -36,13 +44,15 @@
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  padding: 8px 16px 30px;
+  padding: 8px 16px calc(12px + var(--safe-bottom));
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
   gap: 7px;
   transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
   will-change: transform, opacity;
+  box-sizing: border-box;
 }
 
 .beautify-main-view.slide-left {
@@ -54,6 +64,7 @@
 .app-page[data-page="beautify"] .app-content {
   padding-left: 0 !important;
   padding-right: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 /* 纯净无外框列表行 */
@@ -124,7 +135,7 @@
 }
 
 /* ======================================================== */
-/* 2. 二级详情页面 (0 阴影，0 边框外溢)                      */
+/* 2. 二级详情页面 (0 滚动条，0 底部白色遮盖)                */
 /* ======================================================== */
 .beautify-sub-view {
   position: absolute;
@@ -135,7 +146,8 @@
   background: #ffffff;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: calc(8px + var(--safe-top)) 16px 30px;
+  scrollbar-width: none;
+  padding: calc(8px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -145,6 +157,7 @@
   z-index: 5;
   box-shadow: none !important;
   will-change: transform;
+  box-sizing: border-box;
 }
 .beautify-sub-view.active {
   visibility: visible;
@@ -154,7 +167,8 @@
 .beautify-sub-header {
   display: flex;
   align-items: center;
-  padding: 2px 0 8px;
+  padding: 2px 0 6px;
+  flex-shrink: 0;
 }
 
 .beautify-sub-back {
@@ -317,7 +331,7 @@
 }
 
 /* ======================================================== */
-/* 2. 左右等宽等高大卡片 (微缩主页组件 + 底部 Dock 栏全展示) */
+/* 2. 经典高定微缩背景框 (极细灰横条 + 上下横向柔雾挡板)     */
 /* ======================================================== */
 .bg-dual-row {
   display: flex;
@@ -330,7 +344,7 @@
 .bg-preview-card {
   flex: 1;
   min-width: 0;
-  height: 240px;
+  height: 290px;
   padding: 8px;
   display: flex;
   align-items: center;
@@ -341,17 +355,12 @@
 .bg-screen-preview {
   width: 100%;
   height: 100%;
-  border-radius: 12px;
-  border: 1.5px solid #d1d1d6;
+  border-radius: 13px;
+  border: 1.2px solid #d1d1d6;
   background: #ffffff;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 8px 6px 6px;
-  box-sizing: border-box;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 .bg-screen-img {
@@ -362,194 +371,169 @@
   background-repeat: no-repeat;
   z-index: 0;
   background-color: #f8f8fa;
+  transition: background 0.25s ease;
 }
 
-.bg-screen-body {
-  position: relative;
+.bg-preview-inner {
+  position: absolute;
+  inset: 0;
   z-index: 1;
+  padding: 16px 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  width: 100%;
-}
-
-/* 1. 微缩个人卡片 */
-.mini-profile-card {
-  width: 100%;
-  height: 38px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border-radius: 6px;
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 6px;
+  gap: 12px;
   box-sizing: border-box;
 }
-.mini-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #d1d1d6;
-  flex-shrink: 0;
-}
-.mini-lines {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2.5px;
-}
-.mini-line {
+
+/* 左上方极细冷灰长横条 */
+.bg-preview-top-bar {
+  width: 52%;
   height: 2.5px;
-  background: #a1a1a9;
-  border-radius: 1px;
-}
-.mini-line.w-80 { width: 80%; }
-.mini-line.w-60 { width: 60%; }
-.mini-line.w-40 { width: 40%; }
-
-/* 2. 微缩消息卡片 */
-.mini-message-card {
-  width: 100%;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border-radius: 6px;
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 5px;
-  box-sizing: border-box;
-}
-.mini-msg-avatar {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #c7c7cc;
-  flex-shrink: 0;
-}
-.mini-msg-text {
-  flex: 1;
-  height: 3px;
-  background: #c7c7cc;
   border-radius: 1.5px;
-}
-.mini-msg-badge {
-  width: 18px;
-  height: 7px;
-  border-radius: 3.5px;
-  background: #8e8e93;
+  background: rgba(142, 142, 147, 0.65);
 }
 
-/* 3. 微缩双列区域 */
-.mini-couple-section {
-  width: 100%;
-  display: flex;
-  gap: 4px;
-}
-.mini-icons-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3px;
-}
-.mini-app-icon {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-}
-.mini-couple-right {
-  flex: 1;
+/* 上下横向排列的一高一矮柔雾冷面挡板 */
+.bg-preview-panels {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-.mini-avatars-row {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-}
-.mini-cp-avatar {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: #d1d1d6;
-}
-.mini-date-card {
+  gap: 8px;
   width: 100%;
-  height: 24px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
-/* 4. 微缩底部 Dock 栏 */
-.mini-tab-bar {
-  position: relative;
-  z-index: 1;
-  width: 86%;
-  height: 14px;
-  margin: 0 auto;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 4px;
+.bg-preview-panel {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03), inset 0 0.5px 1px rgba(255, 255, 255, 0.9);
 }
-.mini-tab-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #8e8e93;
+
+/* 上方较高的横形挡板 */
+.bg-preview-panel.tall {
+  height: 48px;
+}
+
+/* 下方较矮的横形挡板 */
+.bg-preview-panel.short {
+  height: 28px;
 }
 
 /* 右侧独立控制卡片 */
 .bg-control-card {
   flex: 1;
   min-width: 0;
-  height: 240px;
+  height: 290px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 16px 14px;
+  padding: 14px 12px;
 }
 
 .bg-control-card .beautify-card-header {
-  gap: 8px;
+  gap: 4px;
 }
 
 .bg-control-card .beautify-card-desc {
   padding-left: 0;
-  font-size: 11.5px;
-  line-height: 1.55;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ======================================================== */
+/* 3. 背景色彩调色盘 (单色 / 双色渐变 / 三色渐变)           */
+/* ======================================================== */
+.bg-color-palette-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+
+.bg-color-mode-tabs {
+  display: flex;
+  background: #f2f2f7;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.bg-color-tab-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #8e8e93;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.bg-color-tab-btn.active {
+  background: #ffffff;
+  color: #1c1c1e;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.bg-color-inputs-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.bg-color-picker-box {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.bg-color-picker-box input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.color-dot-preview {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 0 1px #d1d1d6;
+  pointer-events: none;
+  transition: background-color 0.15s ease;
 }
 
 .bg-actions-col {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
   margin-top: auto;
 }
 
 .beautify-action-btn {
   width: 100%;
-  height: 38px;
+  height: 36px;
   border-radius: 10px;
   background: #2c2c2e;
   color: #ffffff;
   border: none;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -568,7 +552,7 @@
 }
 
 /* ======================================================== */
-/* 3. 历史背景相册网格流                                     */
+/* 4. 历史背景相册网格流                                     */
 /* ======================================================== */
 .bg-history-grid {
   display: grid;
@@ -606,7 +590,7 @@
 }
 
 /* ======================================================== */
-/* 4. 组件 UI 与 内部图标                                   */
+/* 5. 组件 UI 与 内部图标                                   */
 /* ======================================================== */
 .beautify-setting-row {
   display: flex;
@@ -702,7 +686,7 @@
   font-weight: 600;
 }
 
-/* 5. 显示与亮度 */
+/* 6. 显示与亮度 */
 .theme-switch-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -735,6 +719,58 @@
 .theme-box-card span {
   font-size: 12px;
   font-weight: 700;
+}
+
+/* ======================================================== */
+/* 7. 快捷操作说明 (高定手势与排版手册卡片)                  */
+/* ======================================================== */
+.guide-main-card {
+  gap: 16px;
+}
+
+.guide-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8f8fa;
+  border-radius: 12px;
+}
+
+.guide-item-num {
+  font-size: 14px;
+  font-weight: 800;
+  color: #8e8e93;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  letter-spacing: 0.5px;
+  padding-top: 1px;
+}
+
+.guide-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guide-item-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1c1c1e;
+  letter-spacing: 0.3px;
+}
+
+.guide-item-text {
+  font-size: 13px;
+  color: #636366;
+  line-height: 1.6;
+  letter-spacing: 0.2px;
 }
 
 /* ======================================================== */
@@ -774,6 +810,16 @@ body.theme-dark .beautify-pill-btn.active {
   background: #ffffff !important;
   color: #121316 !important;
 }
+body.theme-dark .bg-color-mode-tabs {
+  background: #24262c !important;
+}
+body.theme-dark .bg-color-tab-btn.active {
+  background: #34373f !important;
+  color: #ffffff !important;
+}
+body.theme-dark .color-dot-preview {
+  box-shadow: 0 0 0 1px #48484a !important;
+}
 body.theme-dark .pwa-tip-box {
   background: #24262c !important;
   color: #8e8e93 !important;
@@ -785,13 +831,24 @@ body.theme-dark .pwa-icon-item.active .pwa-icon-preview {
 body.theme-dark .bg-screen-preview {
   border-color: #48484a;
 }
-body.theme-dark .mini-profile-card,
-body.theme-dark .mini-message-card,
-body.theme-dark .mini-app-icon,
-body.theme-dark .mini-date-card,
-body.theme-dark .mini-tab-bar {
-  background: rgba(36, 38, 44, 0.88);
-  border-color: rgba(255, 255, 255, 0.08);
+body.theme-dark .bg-preview-top-bar {
+  background: rgba(174, 174, 178, 0.6);
+}
+body.theme-dark .bg-preview-panel {
+  background: rgba(28, 29, 34, 0.72);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), inset 0 0.5px 1px rgba(255, 255, 255, 0.1);
+}
+
+body.theme-dark .guide-item {
+  background: #24262c !important;
+  border-color: rgba(255, 255, 255, 0.04) !important;
+}
+body.theme-dark .guide-item-title {
+  color: #ffffff !important;
+}
+body.theme-dark .guide-item-text {
+  color: #8e8e93 !important;
 }
 
 body.corner-sharp .profile-card,
@@ -822,3 +879,39 @@ body.icon-emboss .couple-icon-circle {
   transition: background-color 0.2s ease;
 }
 
+/* 渐变角度旋转滑块横条 */
+.bg-angle-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 2px 4px;
+  box-sizing: border-box;
+}
+
+.bg-angle-slider-wrap input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 3.5px;
+  background: #d1d1d6;
+  border-radius: 2px;
+  outline: none;
+}
+
+.bg-angle-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #2c2c2e;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
+
+.bg-angle-val {
+  font-size: 10.5px;
+  color: #636366;
+  width: 28px;
+  text-align: right;
+  font-weight: 600;
+}
