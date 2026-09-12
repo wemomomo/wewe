@@ -1,8 +1,17 @@
 
-(function() {
+(function(){
   'use strict';
-  
-  // ============ IndexedDB 存储引擎 ============
+
+  // 修复 iOS Safari 点击不冒泡 Bug，确保苹果手机上所有 div 上的点击都能顺畅触发
+  if (document.body) {
+    document.body.style.cursor = 'pointer';
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.body) document.body.style.cursor = 'pointer';
+    });
+  }
+
+  // ============ IndexedDB ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
   var STORE_NAME = 'appData';
@@ -91,6 +100,7 @@
         userInfo: { username: session.username }
       };
     }
+
     return null;
   }
 
@@ -108,6 +118,7 @@
       callback(cookieDev);
       return;
     }
+
     try {
       var localDev = localStorage.getItem('shared_device_id');
       if (localDev) {
@@ -122,6 +133,7 @@
         callback(savedId);
         return;
       }
+
       var w = Math.min(screen.width, screen.height);
       var h = Math.max(screen.width, screen.height);
       var cores = navigator.hardwareConcurrency || 4;
@@ -160,14 +172,23 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
+    function hideMask() {
+      mask.classList.remove('show');
+    }
+
+    function showMask() {
+      mask.classList.add('show');
+    }
+
     function onLoginVerified(token, userInfo) {
+      try {
+        localStorage.setItem('app_auth_token', token);
+        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+      } catch(e) {}
+
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          try {
-            localStorage.setItem('app_auth_token', token);
-            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-          } catch(e) {}
-          mask.classList.remove('show');
+          hideMask();
         });
       });
     }
@@ -176,7 +197,7 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
-          mask.classList.add('show');
+          showMask();
           if (message) showToast(message);
         });
       });
@@ -196,40 +217,30 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          if (data && data.isBanned === true) {
-            kickOut(data.message || '账号已被封禁');
+          if (data && data.kickOut === true) {
+            kickOut(data.message || '账号已失效');
           }
         })
         .catch(function() {});
       });
     }
 
-    var localToken = localStorage.getItem('app_auth_token');
-    var localInfoStr = localStorage.getItem('app_user_info');
-    var localInfo = null;
-    try { if (localInfoStr) localInfo = JSON.parse(localInfoStr); } catch(e) {}
-
-    if (localToken && localInfo && localInfo.username) {
-      mask.classList.remove('show');
-      realTimeVerify(localInfo);
-    } else {
-      dbGet('app_user_info', function(userInfo) {
-        dbGet('app_auth_token', function(token) {
-          if (token && userInfo && userInfo.username) {
-            mask.classList.remove('show');
-            realTimeVerify(userInfo);
+    dbGet('app_user_info', function(userInfo) {
+      dbGet('app_auth_token', function(token) {
+        if (token && userInfo && userInfo.username) {
+          hideMask();
+          realTimeVerify(userInfo);
+        } else {
+          var session = getGlobalSession();
+          if (session && session.token && session.userInfo && session.userInfo.username) {
+            onLoginVerified(session.token, session.userInfo);
+            realTimeVerify(session.userInfo);
           } else {
-            var session = getGlobalSession();
-            if (session && session.token && session.userInfo && session.userInfo.username) {
-              onLoginVerified(session.token, session.userInfo);
-              realTimeVerify(session.userInfo);
-            } else {
-              mask.classList.add('show');
-            }
+            showMask();
           }
-        });
+        }
       });
-    }
+    });
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
@@ -375,7 +386,7 @@
     var appPages = ['beautify', 'archive', 'imgbed', 'wechat', 'offline', 'settings', 'check', 'worldbook'];
     appPages.forEach(function(name) {
       var page = document.querySelector('[data-page="'+name+'"]');
-      if (!page || page.querySelector('.app-header') || page.querySelector('#worldbookContent')) return;
+      if (!page || page.querySelector('.app-header') || (name === 'worldbook' && page.querySelector('#worldbookContent'))) return;
       var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗', worldbook: '世界书' }[name];
       
       if (name === 'worldbook') {
@@ -427,7 +438,6 @@
       if (dockEditBtn) dockEditBtn.style.display = 'none'; 
       if (desktopPagination) desktopPagination.style.display = 'none';
     }
-
     window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: name } }));
   }
 
@@ -486,92 +496,8 @@
     }
   }
 
-  // ============ 检查当前页面是否处在内部子视图 ============
-  function checkSubViewStatus(page) {
-    var pageName = page.dataset.page;
-
-    // 1. 档案
-    if (pageName === 'archive') {
-      var activeSub = page.querySelector('.archive-sub-view.active, .char-edit-view.active, .archive-drawer.open, .archive-modal.show');
-      if (activeSub) {
-        return {
-          isSub: true,
-          action: function() {
-            var backBtn = activeSub.querySelector('[data-back], .icon-back-btn, #charEditBackBtn');
-            if (backBtn) backBtn.click();
-            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
-          }
-        };
-      }
-      if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
-        return {
-          isSub: true,
-          action: function() {
-            if (window.ArchiveState.stepBack) window.ArchiveState.stepBack();
-            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
-          }
-        };
-      }
-    }
-
-    // 2. 世界书
-    if (pageName === 'worldbook') {
-      if (window.WorldbookState && window.WorldbookState.currentLevel && window.WorldbookState.currentLevel !== 'home') {
-        return {
-          isSub: true,
-          action: function() {
-            window.dispatchEvent(new CustomEvent('wbStepBack'));
-          }
-        };
-      }
-      var wbHome = page.querySelector('#wbHomeView');
-      if (wbHome && (wbHome.classList.contains('wb-view-hidden') || wbHome.style.display === 'none')) {
-        return {
-          isSub: true,
-          action: function() {
-            window.dispatchEvent(new CustomEvent('wbStepBack'));
-          }
-        };
-      }
-    }
-
-    // 3. 美化中心
-    if (pageName === 'beautify' || pageName === 'beautiful') {
-      var bSub = page.querySelector('.beautify-sub-view.active');
-      if (bSub) {
-        return {
-          isSub: true,
-          action: function() {
-            window.dispatchEvent(new Event('closeBeautifySub'));
-          }
-        };
-      }
-    }
-
-    // 4. 其他通用子页面 (如设置的二级页)
-    var genericSub = page.querySelector('.sub-page.active, [data-is-sub="true"]');
-    if (genericSub) {
-      return {
-        isSub: true,
-        action: function() {
-          var b = genericSub.querySelector('[data-back]');
-          if (b) b.click();
-        }
-      };
-    }
-
-    return { isSub: false, action: null };
-  }
-
-  // ============ 统一导航绑定 (真正物理级阻断越级回退) ============
+  // ============ 全局统一导航与多级滑动统管 ============
   function bindNavigation() {
-    try {
-      history.pushState({ page: 'app_lock' }, '', '');
-      window.addEventListener('popstate', function() {
-        history.pushState({ page: 'app_lock' }, '', '');
-      });
-    } catch(e) {}
-
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
         var targetTab = this.dataset.tab;
@@ -645,13 +571,18 @@
       }
     });
 
-    // ============ 全局边缘滑动引擎 (百分之百解决越级跳回桌面) ============
+    // 核心多级滑动返回引擎：美化中心、世界书三级、基础页面统管
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
-      var subStatus = { isSub: false, action: null };
+      var activeSubView = null;
+      var mainView = null;
+      var isWorldbook = false;
 
       page.addEventListener('touchstart', function(e) { 
         if (e.touches[0].clientX > 45) return; 
+        
+        // 1. 【档案】完全由 archive.js 自身手势独立接管，app.js 绝对不碰，彻底封死越级
+        if (page.dataset.page === 'archive') return;
         
         startX = e.touches[0].clientX; 
         startY = e.touches[0].clientY;
@@ -660,11 +591,50 @@
         isLocked = false;
         isHoriz = false;
 
-        // 触摸瞬间实时判定层级
-        subStatus = checkSubViewStatus(page);
+        // 2. 【美化中心】多级视图检测
+        if (page.dataset.page === 'beautify') {
+          activeSubView = page.querySelector('.beautify-sub-view.active');
+          mainView = page.querySelector('.beautify-main-view');
+          isWorldbook = false;
+        } 
+        // 3. 【世界书】专属三级视图检测 (词条编辑 / 词条列表 / 封面修改 / 首页)
+        else if (page.dataset.page === 'worldbook') {
+          isWorldbook = true;
+          activeSubView = null;
+          mainView = null;
+          
+          // 只要处于非 home 状态，严格捕获对应的活动子层
+          if (window.WorldbookState && window.WorldbookState.currentLevel && window.WorldbookState.currentLevel !== 'home') {
+            if (window.WorldbookState.currentLevel === 'edit') {
+              activeSubView = page.querySelector('#wbEditView');
+            } else if (window.WorldbookState.currentLevel === 'book_meta') {
+              activeSubView = page.querySelector('#wbBookMetaView');
+            } else if (window.WorldbookState.currentLevel === 'entries') {
+              activeSubView = page.querySelector('#wbEntriesView');
+            }
+          } else {
+            var editView = page.querySelector('#wbEditView');
+            var entriesView = page.querySelector('#wbEntriesView');
+            var metaView = page.querySelector('#wbBookMetaView');
+            
+            if (editView && !editView.classList.contains('wb-view-hidden') && editView.style.display !== 'none') {
+              activeSubView = editView;
+            } else if (metaView && !metaView.classList.contains('wb-view-hidden') && metaView.style.display !== 'none') {
+              activeSubView = metaView;
+            } else if (entriesView && !entriesView.classList.contains('wb-view-hidden') && entriesView.style.display !== 'none') {
+              activeSubView = entriesView;
+            }
+          }
+        } else {
+          activeSubView = null;
+          mainView = null;
+          isWorldbook = false;
+        }
 
-        // 如果在子层级，绝对禁止给外层 page 加任何 transition 或位移
-        if (!subStatus.isSub) {
+        if (activeSubView) {
+          activeSubView.style.transition = 'none';
+          if (mainView) mainView.style.transition = 'none';
+        } else {
           page.style.transition = 'none'; 
         }
       }, { passive: true });
@@ -682,15 +652,19 @@
         if (!isHoriz) return;
 
         if (diffX > 0) {
-          if (e.cancelable) e.preventDefault();
           currentX = diffX;
-
-          // 核心拦截：只要在二级或编辑页，外层容器绝对不移动！
-          if (!subStatus.isSub) {
+          if (activeSubView) {
+            activeSubView.style.transform = 'translateX(' + currentX + 'px)';
+            if (mainView) {
+              var mainOffset = -30 + (currentX / window.innerWidth) * 30;
+              mainView.style.transform = 'translateX(' + mainOffset + '%)';
+              mainView.style.opacity = Math.min(1, 0.4 + (currentX / window.innerWidth) * 0.6);
+            }
+          } else {
             page.style.transform = 'translateX(' + currentX + 'px)'; 
           }
         }
-      }, { passive: false });
+      }, { passive: true });
 
       page.addEventListener('touchend', function() {
         if (!isDragging || !isHoriz) {
@@ -699,22 +673,38 @@
         }
         isDragging = false;
 
-        // 判定 1: 如果是在子视图内部，且滑动超过阈值，执行子级退回函数！
-        if (subStatus.isSub && typeof subStatus.action === 'function') {
-          if (currentX > 35) {
-            subStatus.action();
+        // 子视图右滑返回上一级 (词条编辑 -> 列表 -> 首页)
+        if (activeSubView) {
+          if (currentX > window.innerWidth * 0.25) {
+            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            activeSubView.style.transform = 'translateX(100%)';
+            setTimeout(function() {
+              activeSubView.style.transform = '';
+              if (isWorldbook) {
+                // 通知世界书按层级后退一步
+                window.dispatchEvent(new CustomEvent('wbStepBack'));
+              } else {
+                window.dispatchEvent(new Event('closeBeautifySub'));
+              }
+            }, 220);
+          } else {
+            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            activeSubView.style.transform = 'translateX(0)';
+            if (mainView) {
+              mainView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease';
+              mainView.style.transform = 'translateX(-30%)';
+              mainView.style.opacity = '0.4';
+            }
           }
-          return;
-        }
-
-        // 判定 2: 只有处于纯正的应用第一层大首页，才允许退回桌面
-        if (!subStatus.isSub) {
-          page.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        } 
+        // 顶层 App 页面右滑返回桌面 (Home)
+        else {
+          page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
-          if (currentX > window.innerWidth * 0.25) { 
+          if (currentX > window.innerWidth * 0.28) { 
             var targetBack = backBtn ? backBtn.dataset.back : 'home';
             showPage(targetBack); 
-            setTimeout(function() { page.style.transform = ''; }, 250); 
+            setTimeout(function() { page.style.transform = ''; }, 280); 
           } else { 
             page.style.transform = 'translateX(0)'; 
           }
@@ -839,7 +829,7 @@
     else if (cropDragMode==='b') { cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
     else if (cropDragMode==='t') { var ba=sc.y+sc.h; var ny=Math.max(0,Math.min(ba-CROP_MIN,sc.y+dy)); cropBox.y=ny; cropBox.h=ba-ny; }
     else if (cropDragMode==='br') { cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
-    else if (cropDragMode==='bl') { var ra2=sc.x+sc.w; var nx2=Math.max(0,Math.min(ra2-CROP_MIN,sc.x+dx)); cropBox.x=nx2; cropBox.w=ra2-nx2; cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
+    else if (cropDragMode==='bl') { var ra2=sc.x+sc.w; var nx2=Math.max(0,Math.min(ra2-CROP_MIN,sc.x+dx)); cropBox.x=nx2; cropBox.w=ra2-nx2; cropBox.h=Math.max(CROP_MIN,cropDisplayH-sc.y,sc.h+dy)); }
     else if (cropDragMode==='tr') { var ba2=sc.y+sc.h; var ny2=Math.max(0,Math.min(ba2-CROP_MIN,sc.y+dy)); cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.y=ny2; cropBox.h=ba2-ny2; }
     else if (cropDragMode==='tl') { var ra3=sc.x+sc.w; var ba3=sc.y+sc.h; var nx3=Math.max(0,Math.min(ra3-CROP_MIN,sc.x+dx)); var ny3=Math.max(0,Math.min(ba3-CROP_MIN,sc.y+dy)); cropBox.x=nx3; cropBox.w=ra3-nx3; cropBox.y=ny3; cropBox.h=ba3-ny3; }
     if (cropLockedRatio) {
