@@ -17,26 +17,88 @@
 <link rel="manifest" id="appManifest" href="/api/manifest?icon=heart">
 <title>Niveous</title>
 
-<!-- 防缓存机制 -->
-<link rel="stylesheet" href="style.css?v=2.0.5">
-<link rel="stylesheet" href="components.css?v=2.0.5">
-<link rel="stylesheet" href="apps.css?v=2.0.5">
-<link rel="stylesheet" href="tabbar.css?v=2.0.5">
-<link rel="stylesheet" href="edit-drag.css?v=2.0.5">
-<link rel="stylesheet" href="settings.css?v=2.0.5">
-<link rel="stylesheet" href="wechat.css?v=2.0.5">
-<link rel="stylesheet" href="imgbed.css?v=2.0.5">
-<link rel="stylesheet" href="beautify.css?v=2.0.5">
-<link rel="stylesheet" href="worldbook.css?v=2.0.5">
-<link rel="stylesheet" href="forum.css?v=2.0.5">
-<link rel="stylesheet" href="archive.css?v=2.0.5">
-<link rel="stylesheet" href="character.css?v=2.0.5">
-<link rel="stylesheet" href="ai-image.css?v=2.0.5">
+<!-- 核心防缓存机制：确保苹果手机每次实时拉取最新样式 -->
+<link rel="stylesheet" href="style.css?v=2.0.2">
+<link rel="stylesheet" href="components.css?v=2.0.2">
+<link rel="stylesheet" href="apps.css?v=2.0.2">
+<link rel="stylesheet" href="tabbar.css?v=2.0.2">
+<link rel="stylesheet" href="edit-drag.css?v=2.0.2">
+<link rel="stylesheet" href="settings.css?v=2.0.2">
+<link rel="stylesheet" href="wechat.css?v=2.0.2">
+<link rel="stylesheet" href="imgbed.css?v=2.0.2">
+<link rel="stylesheet" href="beautify.css?v=2.0.2">
+<link rel="stylesheet" href="worldbook.css?v=2.0.2">
+<link rel="stylesheet" href="forum.css?v=2.0.2">
+<link rel="stylesheet" href="archive.css?v=2.0.2">
+<link rel="stylesheet" href="character.css?v=2.0.2">
 </head>
 <body>
 
+<!-- 全局登录/注册门禁层 -->
+<div class="auth-gate-mask" id="authGateMask">
+  <div class="auth-gate-card">
+    <div class="auth-glow-top"></div>
+    <div class="auth-glow-bottom"></div>
+
+    <!-- 1. 登录表单 -->
+    <div class="auth-content-box" id="authLoginBox">
+      <div class="auth-subtitle">WELCOME</div>
+      <div class="auth-title">账号登录</div>
+      <div class="auth-divider"></div>
+
+      <div class="auth-inputs-wrap">
+        <input type="text" id="authUsernameInput" placeholder="账号" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="password" id="authPasswordInput" placeholder="密码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+
+      <button class="auth-submit-btn" id="authSubmitBtn" type="button">进入</button>
+
+      <div class="auth-switch-text" id="authGoRegister">激活码点这里<span>点此注册</span></div>
+    </div>
+
+    <!-- 2. 注册表单 -->
+    <div class="auth-content-box auth-hidden" id="authRegisterBox">
+      <div class="auth-subtitle">REGISTER</div>
+      <div class="auth-title">新用户注册</div>
+      <div class="auth-divider"></div>
+
+      <div class="auth-inputs-wrap">
+        <input type="text" id="authInviteInput" placeholder="邀请码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="text" id="authRegUserInput" placeholder="设置账号" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="password" id="authRegPassInput" placeholder="设置密码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+
+      <button class="auth-submit-btn" id="authRegisterBtn" type="button">注册并登录</button>
+
+      <div class="auth-switch-text" id="authGoLogin">已有账号？<span>返回登录</span></div>
+    </div>
+  </div>
+</div>
+
 <!-- 全局全屏壁纸层 -->
 <div class="home-bg-layer" id="homeBgLayer"></div>
+<script>
+(function(){
+  try {
+    var c = JSON.parse(localStorage.getItem('app_beautify_cache') || '{}');
+    var el = document.getElementById('homeBgLayer');
+    if (!el) return;
+    if (c.bgType === 'color') {
+      var a = c.bgAngle || 135;
+      if (c.colorMode === 'single') {
+        el.style.backgroundColor = c.bgColor1 || '#ffffff';
+      } else if (c.colorMode === 'double') {
+        el.style.backgroundImage = 'linear-gradient(' + a + 'deg, ' + (c.bgColor1||'#fff') + ' 0%, ' + (c.bgColor2||'#eaf2f8') + ' 100%)';
+      } else if (c.colorMode === 'triple') {
+        el.style.backgroundImage = 'linear-gradient(' + a + 'deg, ' + (c.bgColor1||'#fff') + ' 0%, ' + (c.bgColor2||'#eaf2f8') + ' 50%, ' + (c.bgColor3||'#d5e5f5') + ' 100%)';
+      }
+    } else {
+      var img = localStorage.getItem('home_bg_img_cache');
+      if (img) el.style.backgroundImage = 'url("' + img + '")';
+    }
+  } catch(e){}
+})();
+</script>
 
 <div class="app-shell">
   <div class="page-container" id="pageContainer">
@@ -84,9 +146,9 @@
                   <svg class="avatar-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="9" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
                 </div>
                 <div class="info-area">
-                  <div class="info-text line-1" contenteditable="true" data-key="line1" data-placeholder="点击头像上方加载卡片背景"></div>
-                  <div class="info-text line-2" contenteditable="true" data-key="line2" data-placeholder="长按空白处进入美化编辑"></div>
-                  <div class="info-text line-3" contenteditable="true" data-key="line3" data-placeholder="组件可进行上下拖拽"></div>
+                  <div class="info-text line-1" contenteditable="true" data-key="line1" data-placeholder="名字"></div>
+                  <div class="info-text line-2" contenteditable="true" data-key="line2" data-placeholder="@昵称"></div>
+                  <div class="info-text line-3" contenteditable="true" data-key="line3" data-placeholder="签名"></div>
                   <div class="info-text line-4">
                     <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                     <span class="location-text" contenteditable="true"></span>
@@ -121,7 +183,7 @@
             <div class="couple-section draggable" id="coupleSection" data-component="couple">
               <div class="couple-left">
                 <div class="couple-icons">
-                  <!-- 1. 美化图标 -->
+                  <!-- 1. 美化图标（纯镂空气泡） -->
                   <div class="couple-icon-item" data-action="beautify" data-open-app="beautify">
                     <div class="couple-icon-circle">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -133,7 +195,7 @@
                     <span>美化</span>
                   </div>
 
-                  <!-- 2. 世界书图标 -->
+                  <!-- 2. 世界书图标（右侧书本向左优雅轻倚 \ ，纯净无星芒） -->
                   <div class="couple-icon-item" data-action="worldbook">
                     <div class="couple-icon-circle">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -151,7 +213,7 @@
                     <span>世界书</span>
                   </div>
 
-                  <!-- 3. 论坛图标 -->
+                                   <!-- 3. 论坛图标 -->
                   <div class="couple-icon-item" data-action="forum">
                     <div class="couple-icon-circle">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -169,8 +231,8 @@
                     </div>
                     <span>论坛</span>
                   </div>
-
-                  <!-- 4. 档案图标 -->
+                  
+                  <!-- 4. 档案图标（纯镂空） -->
                   <div class="couple-icon-item" data-action="archive" data-open-app="archive">
                     <div class="couple-icon-circle">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -222,11 +284,9 @@
             </div>
           </div>
 
-          <!-- 桌面第 2 屏 (图床、生图等应用专属屏幕) -->
+          <!-- 桌面第 2 屏 (图床等应用专属屏幕) -->
           <div class="desktop-screen" data-screen-idx="1">
             <div class="desktop-apps-container">
-              
-              <!-- 1. 图床图标 -->
               <div class="couple-icon-item" data-goto="imgbed" data-open-app="imgbed">
                 <div class="couple-icon-circle">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -237,19 +297,6 @@
                 </div>
                 <span>图床</span>
               </div>
-
-              <!-- 2. 生图图标 -->
-              <div class="couple-icon-item" data-goto="ai-image" data-open-app="ai-image" data-action="ai-image">
-                <div class="couple-icon-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"></path>
-                    <circle cx="19" cy="5" r="1.3" fill="currentColor"></circle>
-                    <circle cx="5" cy="19" r="1.3" fill="currentColor"></circle>
-                  </svg>
-                </div>
-                <span>生图</span>
-              </div>
-
             </div>
           </div>
 
@@ -261,8 +308,7 @@
     <!-- App 空壳页面挂载点 -->
     <div class="page app-page" data-page="beautify"></div>
     <div class="page app-page" data-page="archive"></div>
-    <div class="page app-page" data-page="character"></div>
-    <div class="page app-page" data-page="ai-image"></div>
+    <div class="page app-page" data-page="worldbook"></div>
     <div class="page app-page" data-page="imgbed"></div>
     <div class="page app-page" data-page="wechat"></div>
     <div class="page app-page" data-page="offline"></div>
@@ -343,20 +389,18 @@
   </div>
 </div>
 
-<!-- 核心脚本 -->
-<script src="app.js?v=2.0.5"></script>
-<script src="components.js?v=2.0.5"></script>
-<script src="edit-drag.js?v=2.0.5"></script>
-<script src="tabbar.js?v=2.0.5"></script>
-<script src="settings.js?v=2.0.5"></script>
-<script src="wechat.js?v=2.0.5"></script>
-<script src="imgbed.js?v=2.0.5"></script>
-<script src="beautify.js?v=2.0.5"></script>
-<script src="worldbook.js?v=2.0.5"></script>
-<script src="forum.js?v=2.0.5"></script>
-<script src="archive.js?v=2.0.5"></script>
-<script src="character.js?v=2.0.5"></script>
-<script src="ai-image.js?v=2.0.5"></script>
+<!-- 核心防缓存机制：确保苹果手机每次实时拉取最新脚本 -->
+<script src="app.js?v=2.0.2"></script>
+<script src="components.js?v=2.0.2"></script>
+<script src="edit-drag.js?v=2.0.2"></script>
+<script src="tabbar.js?v=2.0.2"></script>
+<script src="settings.js?v=2.0.2"></script>
+<script src="wechat.js?v=2.0.2"></script>
+<script src="imgbed.js?v=2.0.2"></script>
+<script src="beautify.js?v=2.0.2"></script>
+<script src="worldbook.js?v=2.0.2"></script>
+<script src="forum.js?v=2.0.2"></script>
+<script src="archive.js?v=2.0.2"></script>
 
 <!-- PWA 独立桌面环境底距自适应 -->
 <script>
