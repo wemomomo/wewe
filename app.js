@@ -486,84 +486,7 @@
     }
   }
 
-  // ============ 检查当前页面是否处在内部子视图 ============
-  function checkSubViewStatus(page) {
-    var pageName = page.dataset.page;
-
-    // 1. 档案
-    if (pageName === 'archive') {
-      var activeSub = page.querySelector('.archive-sub-view.active, .char-edit-view.active, .archive-drawer.open, .archive-modal.show');
-      if (activeSub) {
-        return {
-          isSub: true,
-          action: function() {
-            var backBtn = activeSub.querySelector('[data-back], .icon-back-btn, #charEditBackBtn');
-            if (backBtn) backBtn.click();
-            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
-          }
-        };
-      }
-      if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
-        return {
-          isSub: true,
-          action: function() {
-            if (window.ArchiveState.stepBack) window.ArchiveState.stepBack();
-            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
-          }
-        };
-      }
-    }
-
-    // 2. 世界书
-    if (pageName === 'worldbook') {
-      if (window.WorldbookState && window.WorldbookState.currentLevel && window.WorldbookState.currentLevel !== 'home') {
-        return {
-          isSub: true,
-          action: function() {
-            window.dispatchEvent(new CustomEvent('wbStepBack'));
-          }
-        };
-      }
-      var wbHome = page.querySelector('#wbHomeView');
-      if (wbHome && (wbHome.classList.contains('wb-view-hidden') || wbHome.style.display === 'none')) {
-        return {
-          isSub: true,
-          action: function() {
-            window.dispatchEvent(new CustomEvent('wbStepBack'));
-          }
-        };
-      }
-    }
-
-    // 3. 美化中心
-    if (pageName === 'beautify' || pageName === 'beautiful') {
-      var bSub = page.querySelector('.beautify-sub-view.active');
-      if (bSub) {
-        return {
-          isSub: true,
-          action: function() {
-            window.dispatchEvent(new Event('closeBeautifySub'));
-          }
-        };
-      }
-    }
-
-    // 4. 其他通用子页面 (如设置的二级页)
-    var genericSub = page.querySelector('.sub-page.active, [data-is-sub="true"]');
-    if (genericSub) {
-      return {
-        isSub: true,
-        action: function() {
-          var b = genericSub.querySelector('[data-back]');
-          if (b) b.click();
-        }
-      };
-    }
-
-    return { isSub: false, action: null };
-  }
-
-  // ============ 统一导航绑定 (真正物理级阻断越级回退) ============
+  // ============ 统一点击导航绑定 ============
   function bindNavigation() {
     try {
       history.pushState({ page: 'app_lock' }, '', '');
@@ -645,10 +568,9 @@
       }
     });
 
-    // ============ 全局边缘滑动引擎 (百分之百解决越级跳回桌面) ============
+    // ============ 全系统【阶梯式逐级返回死锁引擎】 ============
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
-      var subStatus = { isSub: false, action: null };
 
       page.addEventListener('touchstart', function(e) { 
         if (e.touches[0].clientX > 45) return; 
@@ -659,14 +581,6 @@
         isDragging = true; 
         isLocked = false;
         isHoriz = false;
-
-        // 触摸瞬间实时判定层级
-        subStatus = checkSubViewStatus(page);
-
-        // 如果在子层级，绝对禁止给外层 page 加任何 transition 或位移
-        if (!subStatus.isSub) {
-          page.style.transition = 'none'; 
-        }
       }, { passive: true });
 
       page.addEventListener('touchmove', function(e) { 
@@ -684,11 +598,6 @@
         if (diffX > 0) {
           if (e.cancelable) e.preventDefault();
           currentX = diffX;
-
-          // 核心拦截：只要在二级或编辑页，外层容器绝对不移动！
-          if (!subStatus.isSub) {
-            page.style.transform = 'translateX(' + currentX + 'px)'; 
-          }
         }
       }, { passive: false });
 
@@ -699,26 +608,74 @@
         }
         isDragging = false;
 
-        // 判定 1: 如果是在子视图内部，且滑动超过阈值，执行子级退回函数！
-        if (subStatus.isSub && typeof subStatus.action === 'function') {
-          if (currentX > 35) {
-            subStatus.action();
+        // 只有滑动超过阈值才触发后退
+        if (currentX < 40) return;
+
+        var pageName = page.dataset.page;
+
+        // 1. 【世界书 Worldbook】阶梯判定
+        if (pageName === 'worldbook') {
+          if (window.WorldbookState && window.WorldbookState.currentLevel !== 'home') {
+            // 在子页面，退回上一级
+            window.dispatchEvent(new CustomEvent('wbStepBack'));
+            return;
           }
+          var wbHome = page.querySelector('#wbHomeView');
+          if (wbHome && (wbHome.classList.contains('wb-view-hidden') || wbHome.style.display === 'none')) {
+            window.dispatchEvent(new CustomEvent('wbStepBack'));
+            return;
+          }
+          // 只有真正处于世界书大首页才退回桌面
+          showPage('home');
           return;
         }
 
-        // 判定 2: 只有处于纯正的应用第一层大首页，才允许退回桌面
-        if (!subStatus.isSub) {
-          page.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          var backBtn = page.querySelector('[data-back]');
-          if (currentX > window.innerWidth * 0.25) { 
-            var targetBack = backBtn ? backBtn.dataset.back : 'home';
-            showPage(targetBack); 
-            setTimeout(function() { page.style.transform = ''; }, 250); 
-          } else { 
-            page.style.transform = 'translateX(0)'; 
+        // 2. 【档案 Archive】阶梯判定
+        if (pageName === 'archive') {
+          // 检查是否有处于打开状态的编辑卡片、详情页或子弹层
+          var archiveSubBack = page.querySelector('.archive-sub-view.active [data-back], .char-edit-view.active, .archive-drawer.open, .archive-modal.show, #charEditBackBtn, .archive-sub-back');
+          if (archiveSubBack) {
+            var directBtn = archiveSubBack.querySelector('[data-back], .icon-back-btn, #charEditBackBtn') || archiveSubBack;
+            if (typeof directBtn.click === 'function') {
+              directBtn.click();
+              return;
+            }
           }
+          if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
+            if (typeof window.ArchiveState.stepBack === 'function') {
+              window.ArchiveState.stepBack();
+              return;
+            }
+            window.dispatchEvent(new CustomEvent('archiveStepBack'));
+            return;
+          }
+          // 只有处于档案主首页才退回桌面
+          showPage('home');
+          return;
         }
+
+        // 3. 【美化中心 Beautify】阶梯判定
+        if (pageName === 'beautify' || pageName === 'beautiful') {
+          var bSubActive = page.querySelector('.beautify-sub-view.active');
+          if (bSubActive) {
+            window.dispatchEvent(new Event('closeBeautifySub'));
+            return;
+          }
+          showPage('home');
+          return;
+        }
+
+        // 4. 【系统其他带二级页面的 App】
+        var genericBack = page.querySelector('.sub-page.active [data-back], [data-is-sub="true"] [data-back]');
+        if (genericBack) {
+          genericBack.click();
+          return;
+        }
+
+        // 默认第一层：退回桌面
+        var backBtn = page.querySelector('[data-back]');
+        var targetBack = backBtn ? backBtn.dataset.back : 'home';
+        showPage(targetBack);
       });
     });
   }
