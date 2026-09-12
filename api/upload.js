@@ -5,7 +5,7 @@ export const config = {
     }
   }
 };
- 
+    
 export default async function handler(req, res) {
   const origin = req.headers.origin || '*';
   res.setHeader('Access-Control-Allow-Origin', origin);
