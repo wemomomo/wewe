@@ -2,7 +2,7 @@
 (function(){
   'use strict';
 
-  // ============ IndexedDB 核心数据库 ============
+  // ============ IndexedDB ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
   var STORE_NAME = 'appData';
@@ -14,9 +14,7 @@
     var request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = function(e) {
       var database = e.target.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        database.createObjectStore(STORE_NAME);
-      }
+      if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
     };
     request.onsuccess = function(e) { 
       db = e.target.result; 
@@ -40,7 +38,6 @@
       tx.onerror = function() { if (cb) cb(); };
     } catch(e) { if (cb) cb(); }
   }
-
   function dbGet(key, cb) {
     if (!db) { if (cb) cb(null); return; }
     try {
@@ -49,7 +46,6 @@
       r.onerror = function() { if (cb) cb(null); };
     } catch(e) { if (cb) cb(null); }
   }
-
   function dbDelete(key, cb) {
     if (!db) { if (cb) cb(); return; }
     try {
@@ -166,8 +162,13 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
-    function hideMask() { mask.classList.remove('show'); }
-    function showMask() { mask.classList.add('show'); }
+    function hideMask() {
+      mask.classList.remove('show');
+    }
+
+    function showMask() {
+      mask.classList.add('show');
+    }
 
     function onLoginVerified(token, userInfo) {
       try {
@@ -519,7 +520,7 @@
       });
     });
 
-    // 全局通用导航事件委托（绝不阻断 components.js 等组件原生点击）
+    // 全局页面与应用跳转事件委托
     document.addEventListener('click', function(e) { 
       var b = e.target.closest('[data-back]'); 
       if (b) {
@@ -647,6 +648,7 @@
         }
         isDragging = false;
 
+        // 子视图右滑返回上一级
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.25) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -668,7 +670,9 @@
               mainView.style.opacity = '0.4';
             }
           }
-        } else {
+        } 
+        // 顶层 App 页面右滑返回桌面 (Home)
+        else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
           if (currentX > window.innerWidth * 0.28) { 
@@ -954,7 +958,7 @@
 
   window.AppNav = { showPage: showPage, showToast: showToast };
 
-  // ============ 初始化 ============
+  // ============ 初始化启动 ============
   openDB(function() {
     setupPhotoAction();
     setupAppDialog();
