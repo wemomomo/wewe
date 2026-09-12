@@ -329,7 +329,7 @@
 
     if (state.currentSection === 'wb') {
       if (!state.worldbooks || state.worldbooks.length === 0) {
-        html = '<div class="wb-empty-tip">✦ 暂无世界书，请点击右上角 + 新建 ✦</div>';
+        html = '<div class="wb-empty-tip">✦ 世界书还在修改中，再等等哦 ✦</div>';
       } else {
         state.worldbooks.forEach(function (wb) {
           var coverImgHtml = wb.cover ? '<img src="' + wb.cover + '" alt="封面">' : '<img src="" alt="封面">';
