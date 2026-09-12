@@ -482,7 +482,7 @@
     }
   }
 
-  // ============ 统一点击导航绑定 ============
+  // ============ 全局统一导航绑定 ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -567,7 +567,7 @@
       page.addEventListener('touchstart', function(e) { 
         if (e.touches[0].clientX > 45) return; 
         
-        // 档案自身全权管理内部手势
+        // 1. 档案内部手势完全由 archive.js 自身接管，app.js 绝不插手
         if (page.dataset.page === 'archive') return;
         
         startX = e.touches[0].clientX; 
@@ -577,11 +577,13 @@
         isLocked = false;
         isHoriz = false;
 
+        // 2. 美化中心二级视图检测
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
           isWorldbook = false;
         } 
+        // 3. 世界书多级视图检测
         else if (page.dataset.page === 'worldbook') {
           isWorldbook = true;
           activeSubView = null;
@@ -644,6 +646,7 @@
         }
         isDragging = false;
 
+        // 子视图右滑返回上一级 (词条编辑 -> 列表 -> 首页)
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.25) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -666,6 +669,7 @@
             }
           }
         } 
+        // 顶层 App 页面右滑返回桌面 (Home)
         else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
