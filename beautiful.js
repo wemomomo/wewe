@@ -11,12 +11,81 @@
     iconStyle: 'normal',
     themeMode: 'light',
     brightness: 100,
+    bgType: 'image',
+    colorMode: 'single',
+    bgColor1: '#ffffff',
+    bgColor2: '#eaf2f8',
+    bgColor3: '#d5e5f5',
+    bgAngle: 135,
     bgHistory: []
   };
 
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
-  var ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
-  var ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
+  var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
+  var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
+
+  var OPT_ICONS = {
+    icon1: RAW_ICON_PATH_1,
+    icon2: RAW_ICON_PATH_2
+  };
+
+  // 0毫秒极速同步恢复背景，杜绝刷新二次加载问题
+  function instantRestoreBackground() {
+    try {
+      var cachedStr = localStorage.getItem('app_beautify_cache');
+      if (cachedStr) {
+        var cached = JSON.parse(cachedStr);
+        if (cached) {
+          for (var k in cached) {
+            if (cached.hasOwnProperty(k)) beautifyData[k] = cached[k];
+          }
+        }
+      }
+    } catch(e) {}
+
+    var bgLayer = document.getElementById('homeBgLayer');
+    if (!bgLayer) return;
+
+    if (beautifyData.bgType === 'color') {
+      applyColorBackground();
+    } else {
+      try {
+        var localImg = localStorage.getItem('home_bg_img_cache');
+        if (localImg) {
+          bgLayer.style.backgroundColor = 'transparent';
+          bgLayer.style.backgroundImage = 'url("' + localImg + '")';
+        }
+      } catch(e) {}
+    }
+  }
+
+  // 页面刚解析立即执行极速恢复
+  instantRestoreBackground();
+
+  function autoCompressPresetIcons() {
+    function compressOne(key, path) {
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        try {
+          var canvas = document.createElement('canvas');
+          canvas.width = 180;
+          canvas.height = 180;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, 180, 180);
+          var tinyBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          OPT_ICONS[key] = tinyBase64;
+          if (beautifyData.activePwaIcon === key) {
+            applyPwaIcon(key);
+          }
+        } catch(e) {}
+      };
+      img.src = path;
+    }
+    compressOne('icon1', RAW_ICON_PATH_1);
+    compressOne('icon2', RAW_ICON_PATH_2);
+  }
+  autoCompressPresetIcons();
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
@@ -54,7 +123,7 @@
               '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/></svg>' +
             '</div>' +
             '<div class="beautify-menu-text">' +
-              '<div class="beautify-menu-title">组件UI</div>' +
+              '<div class="beautify-menu-title">组件UI（未完成）</div>' +
               '<div class="beautify-menu-desc">调整卡片圆角轮廓与质感</div>' +
             '</div>' +
             '<svg class="beautify-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>' +
@@ -65,7 +134,7 @@
               '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>' +
             '</div>' +
             '<div class="beautify-menu-text">' +
-              '<div class="beautify-menu-title">内部图标</div>' +
+              '<div class="beautify-menu-title">内部图标（未完成）</div>' +
               '<div class="beautify-menu-desc">选择桌面与底栏图标光效</div>' +
             '</div>' +
             '<svg class="beautify-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>' +
@@ -76,8 +145,19 @@
               '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>' +
             '</div>' +
             '<div class="beautify-menu-text">' +
-              '<div class="beautify-menu-title">显示与亮度</div>' +
+              '<div class="beautify-menu-title">显示与亮度（待完善）</div>' +
               '<div class="beautify-menu-desc">浅色/深色主题与屏幕滤镜</div>' +
+            '</div>' +
+            '<svg class="beautify-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>' +
+          '</div>' +
+
+          '<div class="beautify-menu-item" data-open-sub="guide">' +
+            '<div class="beautify-menu-icon">' +
+              '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+            '</div>' +
+            '<div class="beautify-menu-text">' +
+              '<div class="beautify-menu-title">快捷操作说明</div>' +
+              '<div class="beautify-menu-desc">查看桌面排版、移动与长按快捷功能</div>' +
             '</div>' +
             '<svg class="beautify-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>' +
           '</div>' +
@@ -100,85 +180,79 @@
                 '</div>' +
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
-              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="雪魄">' +
+              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="主图1">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + ICON_PATH_1 + '" alt="雪魄">' +
+                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图1" loading="eager">' +
                 '</div>' +
-                '<span class="pwa-icon-name">雪魄</span>' +
+                '<span class="pwa-icon-name">主图1</span>' +
               '</div>' +
-              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="雪宝">' +
+              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + ICON_PATH_2 + '" alt="雪宝">' +
+                  '<img src="' + RAW_ICON_PATH_2 + '" alt="主图2" loading="eager">' +
                 '</div>' +
-                '<span class="pwa-icon-name">雪宝</span>' +
+                '<span class="pwa-icon-name">主图2</span>' +
               '</div>' +
               '<div class="pwa-icon-item pwa-custom-item" id="pwaCustomItem" data-pwa-val="custom" data-pwa-name="自定义">' +
                 '<div class="pwa-icon-preview" id="pwaCustomPreview">' +
                   '<div class="pwa-custom-placeholder" id="pwaCustomPlaceholder">' +
                     '<svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
                   '</div>' +
-                  '<img id="pwaCustomImg" style="display:none;" alt="自定义">' +
+                  '<img id="pwaCustomImg" style="display:none;" alt="自定义" loading="eager">' +
                 '</div>' +
                 '<span class="pwa-icon-name" id="pwaCustomLabel">自定义</span>' +
               '</div>' +
             '</div>' +
             '<div class="pwa-tip-box">' +
-              '提示：若点击自定义已有图标，可更换或删除；苹果设备添加到主屏幕时，请等待2-4秒钟图标刷新方可。' +
+              '提示：若需更换或删除已有自定义图标，再次轻触即可呼出菜单；添加到主屏幕时请等待数秒图标刷新。' +
             '</div>' +
           '</div>' +
 
           '<div class="bg-dual-row">' +
-            // 左侧大预览卡片（完整手机屏幕微缩）
             '<div class="beautify-card bg-preview-card">' +
               '<div class="bg-screen-preview" id="bgLivePreviewScreen">' +
                 '<div class="bg-screen-img" id="bgLivePreviewImg"></div>' +
-                '<div class="bg-screen-body">' +
-                  // 1. 个人卡片微缩
-                  '<div class="mini-profile-card">' +
-                    '<div class="mini-avatar"></div>' +
-                    '<div class="mini-lines">' +
-                      '<span class="mini-line w-80"></span>' +
-                      '<span class="mini-line w-60"></span>' +
-                      '<span class="mini-line w-40"></span>' +
-                    '</div>' +
+                '<div class="bg-preview-inner">' +
+                  '<div class="bg-preview-top-bar"></div>' +
+                  '<div class="bg-preview-panels">' +
+                    '<div class="bg-preview-panel tall"></div>' +
+                    '<div class="bg-preview-panel short"></div>' +
                   '</div>' +
-                  // 2. 消息卡片微缩
-                  '<div class="mini-message-card">' +
-                    '<div class="mini-msg-avatar"></div>' +
-                    '<div class="mini-msg-text"></div>' +
-                    '<div class="mini-msg-badge"></div>' +
-                  '</div>' +
-                  // 3. 底部头像与应用微缩
-                  '<div class="mini-couple-section">' +
-                    '<div class="mini-icons-grid">' +
-                      '<span class="mini-app-icon"></span><span class="mini-app-icon"></span>' +
-                      '<span class="mini-app-icon"></span><span class="mini-app-icon"></span>' +
-                    '</div>' +
-                    '<div class="mini-couple-right">' +
-                      '<div class="mini-avatars-row">' +
-                        '<span class="mini-cp-avatar"></span>' +
-                        '<span class="mini-cp-avatar"></span>' +
-                      '</div>' +
-                      '<div class="mini-date-card"></div>' +
-                    '</div>' +
-                  '</div>' +
-                '</div>' +
-                // 4. 微缩底部 Dock 栏
-                '<div class="mini-tab-bar">' +
-                  '<span class="mini-tab-dot"></span>' +
-                  '<span class="mini-tab-dot"></span>' +
-                  '<span class="mini-tab-dot"></span>' +
-                  '<span class="mini-tab-dot"></span>' +
                 '</div>' +
               '</div>' +
             '</div>' +
 
-            // 右侧控制卡片
             '<div class="beautify-card bg-control-card">' +
               '<div class="beautify-card-header">' +
                 '<div class="beautify-card-title">全屏壁纸管理</div>' +
-                '<div class="beautify-card-desc">定制手机桌面的主视觉壁纸，支持相册挑选与自由裁剪。</div>' +
+                '<div class="beautify-card-desc">定制手机桌面的主视觉壁纸或色彩。</div>' +
               '</div>' +
+
+              '<div class="bg-color-palette-wrap">' +
+                '<div class="bg-color-mode-tabs" id="bgColorModeTabs">' +
+                  '<button class="bg-color-tab-btn active" data-cmode="single" type="button">单色</button>' +
+                  '<button class="bg-color-tab-btn" data-cmode="double" type="button">双色渐变</button>' +
+                  '<button class="bg-color-tab-btn" data-cmode="triple" type="button">三色渐变</button>' +
+                '</div>' +
+                '<div class="bg-color-inputs-row" id="bgColorInputsRow">' +
+                  '<div class="bg-color-picker-box">' +
+                    '<input type="color" id="bgColorInput1" value="#ffffff">' +
+                    '<span class="color-dot-preview" id="colorDot1"></span>' +
+                  '</div>' +
+                  '<div class="bg-color-picker-box" id="colorBox2" style="display:none;">' +
+                    '<input type="color" id="bgColorInput2" value="#eaf2f8">' +
+                    '<span class="color-dot-preview" id="colorDot2"></span>' +
+                  '</div>' +
+                  '<div class="bg-color-picker-box" id="colorBox3" style="display:none;">' +
+                    '<input type="color" id="bgColorInput3" value="#d5e5f5">' +
+                    '<span class="color-dot-preview" id="colorDot3"></span>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="bg-angle-slider-wrap" id="bgAngleWrap" style="display:none;">' +
+                  '<input type="range" id="bgAngleSlider" min="0" max="360" value="135">' +
+                  '<span class="bg-angle-val" id="bgAngleVal">135°</span>' +
+                '</div>' +
+              '</div>' +
+
               '<div class="bg-actions-col">' +
                 '<button class="beautify-action-btn" id="bUploadBgBtn" type="button">从相册上传背景</button>' +
                 '<button class="beautify-action-btn secondary" id="bClearBgBtn" type="button">恢复纯净背景</button>' +
@@ -273,6 +347,55 @@
           '</div>' +
         '</div>' +
 
+        '<div class="beautify-sub-view" id="bSub_guide">' +
+          '<div class="beautify-sub-header">' +
+            '<button class="beautify-sub-back" data-back="beautify-main" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>返回</button>' +
+          '</div>' +
+          '<div class="beautify-card guide-main-card">' +
+            '<div class="beautify-card-header">' +
+              '<div class="beautify-card-title">快捷手势与排版指南</div>' +
+              '<div class="beautify-card-desc">掌握以下手势与技巧，随心打造专属你的精致桌面。</div>' +
+            '</div>' +
+            '<div class="guide-items-list">' +
+              '<div class="guide-item">' +
+                '<div class="guide-item-num">01</div>' +
+                '<div class="guide-item-content">' +
+                  '<div class="guide-item-title">加载卡片背景</div>' +
+                  '<div class="guide-item-text">直接点击头像上方区域，即可挑选并裁切专属照片作为卡片上部背景。</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="guide-item">' +
+                '<div class="guide-item-num">02</div>' +
+                '<div class="guide-item-content">' +
+                  '<div class="guide-item-title">进入编辑模式</div>' +
+                  '<div class="guide-item-text">在首页空白处长按一至两秒直接进入编辑模式，点击弹出来的卡片即可进行样式调整。</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="guide-item">' +
+                '<div class="guide-item-num">03</div>' +
+                '<div class="guide-item-content">' +
+                  '<div class="guide-item-title">自由拖拽移动</div>' +
+                  '<div class="guide-item-text">在编辑状态下，各个大组件卡片均可按住进行上下拖拽与位置顺序重排。</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="guide-item">' +
+                '<div class="guide-item-num">04</div>' +
+                '<div class="guide-item-content">' +
+                  '<div class="guide-item-title">排版一键复位</div>' +
+                  '<div class="guide-item-text">进入编辑状态后，点击左上角的“恢复初始”按钮，即可快速将所有组件排版恢复默认。</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="guide-item">' +
+                '<div class="guide-item-num">05</div>' +
+                '<div class="guide-item-content">' +
+                  '<div class="guide-item-title">全局右滑返回</div>' +
+                  '<div class="guide-item-text">所有二级详情页与独立应用界面，均支持从屏幕左侧边缘向右轻滑流畅返回上一级。</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
       '</div>';
 
     container.innerHTML = html;
@@ -330,68 +453,78 @@
       });
     }
 
+    function triggerIconSwitch(val, name) {
+      function doApply() {
+        beautifyData.activePwaIcon = val;
+        applyPwaIcon(val);
+        syncBeautifyUI();
+        saveBeautifyData();
+        if (window.AppNav && window.AppNav.showToast) {
+          window.AppNav.showToast('图标已更换为「' + name + '」');
+        }
+      }
+
+      if (window.AppDialog) {
+        window.AppDialog.confirm({
+          title: '更换桌面图标',
+          desc: '是否将「' + name + '」设为桌面主屏幕图标？',
+          confirmText: '确认更换',
+          isDanger: false
+        }, doApply);
+      } else {
+        doApply();
+      }
+    }
+
     var pwaItems = document.querySelectorAll('.pwa-icon-item');
     for (var p = 0; p < pwaItems.length; p++) {
-      pwaItems[p].addEventListener('click', function(e) {
-        e.stopPropagation();
-        var val = this.getAttribute('data-pwa-val');
-        var name = this.getAttribute('data-pwa-name') || '该图标';
+      (function(item) {
+        item.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var val = item.getAttribute('data-pwa-val');
+          var name = item.getAttribute('data-pwa-name') || '该图标';
 
-        if (val === 'custom') {
-          if (beautifyData.customPwaIconUrl) {
-            if (window.PhotoAction) {
-              window.PhotoAction.show(function() {
-                if (customFileInput) customFileInput.click();
-              }, function() {
-                beautifyData.customPwaIconUrl = '';
-                beautifyData.activePwaIcon = 'heart';
-                applyPwaIcon('heart');
-                syncBeautifyUI();
-                saveBeautifyData();
-                if (window.AppNav && window.AppNav.showToast) {
-                  window.AppNav.showToast('已清除自定义图标，恢复默认');
-                }
-              });
-            } else {
+          if (val === 'custom') {
+            if (!beautifyData.customPwaIconUrl) {
               if (customFileInput) customFileInput.click();
+              return;
             }
-          } else {
-            if (customFileInput) customFileInput.click();
-          }
-          return;
-        }
 
-        if (beautifyData.activePwaIcon === val) {
-          if (window.AppNav && window.AppNav.showToast) {
-            window.AppNav.showToast('当前已处于「' + name + '」图标');
-          }
-          return;
-        }
+            if (beautifyData.activePwaIcon === 'custom') {
+              if (window.PhotoAction) {
+                window.PhotoAction.show(function() {
+                  if (customFileInput) customFileInput.click();
+                }, function() {
+                  beautifyData.customPwaIconUrl = '';
+                  beautifyData.activePwaIcon = 'heart';
+                  applyPwaIcon('heart');
+                  syncBeautifyUI();
+                  saveBeautifyData();
+                  if (window.AppNav && window.AppNav.showToast) {
+                    window.AppNav.showToast('已清除自定义图标，恢复默认');
+                  }
+                });
+              } else {
+                if (customFileInput) customFileInput.click();
+              }
+              return;
+            }
 
-        if (window.AppDialog) {
-          window.AppDialog.confirm({
-            title: '更换桌面图标',
-            desc: '是否将「' + name + '」设为桌面主屏幕图标？',
-            confirmText: '确认更换',
-            isDanger: false
-          }, function() {
-            for (var x = 0; x < pwaItems.length; x++) { pwaItems[x].classList.remove('active'); }
-            this.classList.add('active');
-            beautifyData.activePwaIcon = val;
-            applyPwaIcon(val);
-            saveBeautifyData();
+            triggerIconSwitch('custom', '自定义');
+            return;
+          }
+
+          if (beautifyData.activePwaIcon === val) {
             if (window.AppNav && window.AppNav.showToast) {
-              window.AppNav.showToast('图标已更换为「' + name + '」');
+              window.AppNav.showToast('当前已处于「' + name + '」图标');
             }
-          }.bind(this));
-        } else {
-          for (var y = 0; y < pwaItems.length; y++) { pwaItems[y].classList.remove('active'); }
-          this.classList.add('active');
-          beautifyData.activePwaIcon = val;
-          applyPwaIcon(val);
-          saveBeautifyData();
-        }
-      });
+            return;
+          }
+
+          triggerIconSwitch(val, name);
+        });
+      })(pwaItems[p]);
     }
 
     if (customFileInput) {
@@ -405,6 +538,8 @@
             window.AppCropper.open(base64Src, { aspectRatio: 1 }, function(croppedBase64) {
               uploadPwaIconToServer(croppedBase64);
             });
+          } else {
+            uploadPwaIconToServer(base64Src);
           }
         };
         reader.readAsDataURL(file);
@@ -446,13 +581,68 @@
     if (clearBgBtn) {
       clearBgBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var bgLayer = document.getElementById('homeBgLayer');
-        if (bgLayer) bgLayer.style.backgroundImage = '';
-        if (window.AppDB) window.AppDB.delete('home_bg_img');
+        beautifyData.bgType = 'color';
+        beautifyData.colorMode = 'single';
+        beautifyData.bgColor1 = '#ffffff';
+        applyColorBackground();
+        if (window.AppDB) {
+          window.AppDB.delete('home_bg_img');
+        }
+        try { localStorage.removeItem('home_bg_img_cache'); } catch(e){}
+        saveBeautifyData();
         updateLivePreviewAndHistory();
+        syncColorControlsUI();
         if (window.AppNav && window.AppNav.showToast) {
           window.AppNav.showToast('已恢复默认纯净背景');
         }
+      });
+    }
+
+    var colorTabBtns = document.querySelectorAll('#bgColorModeTabs .bg-color-tab-btn');
+    for (var ct = 0; ct < colorTabBtns.length; ct++) {
+      colorTabBtns[ct].addEventListener('click', function(e) {
+        e.stopPropagation();
+        for (var k = 0; k < colorTabBtns.length; k++) { colorTabBtns[k].classList.remove('active'); }
+        this.classList.add('active');
+        var mode = this.getAttribute('data-cmode');
+        beautifyData.bgType = 'color';
+        beautifyData.colorMode = mode;
+        applyColorBackground();
+        saveBeautifyData();
+        updateLivePreviewAndHistory();
+        syncColorControlsUI();
+      });
+    }
+
+    function bindColorInput(inputId, keyName) {
+      var input = document.getElementById(inputId);
+      if (!input) return;
+      input.addEventListener('input', function(e) {
+        e.stopPropagation();
+        beautifyData.bgType = 'color';
+        beautifyData[keyName] = this.value;
+        applyColorBackground();
+        saveBeautifyData();
+        updateLivePreviewAndHistory();
+        syncColorControlsUI();
+      });
+    }
+    bindColorInput('bgColorInput1', 'bgColor1');
+    bindColorInput('bgColorInput2', 'bgColor2');
+    bindColorInput('bgColorInput3', 'bgColor3');
+
+    var angleSlider = document.getElementById('bgAngleSlider');
+    var angleVal = document.getElementById('bgAngleVal');
+    if (angleSlider) {
+      angleSlider.addEventListener('input', function(e) {
+        e.stopPropagation();
+        var deg = parseInt(this.value, 10);
+        if (angleVal) angleVal.textContent = deg + '°';
+        beautifyData.bgType = 'color';
+        beautifyData.bgAngle = deg;
+        applyColorBackground();
+        saveBeautifyData();
+        updateLivePreviewAndHistory();
       });
     }
 
@@ -509,13 +699,89 @@
     }
   }
 
-  function applyAndSaveNewBackground(bgUrl) {
+  function applyColorBackground() {
     var bgLayer = document.getElementById('homeBgLayer');
-    if (bgLayer) bgLayer.style.backgroundImage = 'url("' + bgUrl + '")';
+    if (!bgLayer) return;
+
+    var angle = beautifyData.bgAngle || 135;
+    var styleStr = '';
+    if (beautifyData.colorMode === 'single') {
+      styleStr = beautifyData.bgColor1 || '#ffffff';
+    } else if (beautifyData.colorMode === 'double') {
+      styleStr = 'linear-gradient(' + angle + 'deg, ' + (beautifyData.bgColor1 || '#ffffff') + ' 0%, ' + (beautifyData.bgColor2 || '#eaf2f8') + ' 100%)';
+    } else if (beautifyData.colorMode === 'triple') {
+      styleStr = 'linear-gradient(' + angle + 'deg, ' + (beautifyData.bgColor1 || '#ffffff') + ' 0%, ' + (beautifyData.bgColor2 || '#eaf2f8') + ' 50%, ' + (beautifyData.bgColor3 || '#d5e5f5') + ' 100%)';
+    }
+
+    if (beautifyData.colorMode === 'single') {
+      bgLayer.style.backgroundImage = 'none';
+      bgLayer.style.backgroundColor = styleStr;
+    } else {
+      bgLayer.style.backgroundColor = 'transparent';
+      bgLayer.style.backgroundImage = styleStr;
+    }
+  }
+
+  function syncColorControlsUI() {
+    var colorTabBtns = document.querySelectorAll('#bgColorModeTabs .bg-color-tab-btn');
+    for (var k = 0; k < colorTabBtns.length; k++) {
+      if (colorTabBtns[k].getAttribute('data-cmode') === beautifyData.colorMode) {
+        colorTabBtns[k].classList.add('active');
+      } else {
+        colorTabBtns[k].classList.remove('active');
+      }
+    }
+
+    var box2 = document.getElementById('colorBox2');
+    var box3 = document.getElementById('colorBox3');
+    var dot1 = document.getElementById('colorDot1');
+    var dot2 = document.getElementById('colorDot2');
+    var dot3 = document.getElementById('colorDot3');
+    var input1 = document.getElementById('bgColorInput1');
+    var input2 = document.getElementById('bgColorInput2');
+    var input3 = document.getElementById('bgColorInput3');
+    var angleWrap = document.getElementById('bgAngleWrap');
+    var angleSlider = document.getElementById('bgAngleSlider');
+    var angleVal = document.getElementById('bgAngleVal');
+
+    if (input1) input1.value = beautifyData.bgColor1 || '#ffffff';
+    if (input2) input2.value = beautifyData.bgColor2 || '#eaf2f8';
+    if (input3) input3.value = beautifyData.bgColor3 || '#d5e5f5';
+
+    if (dot1) dot1.style.backgroundColor = beautifyData.bgColor1 || '#ffffff';
+    if (dot2) dot2.style.backgroundColor = beautifyData.bgColor2 || '#eaf2f8';
+    if (dot3) dot3.style.backgroundColor = beautifyData.bgColor3 || '#d5e5f5';
+
+    if (angleSlider) angleSlider.value = beautifyData.bgAngle || 135;
+    if (angleVal) angleVal.textContent = (beautifyData.bgAngle || 135) + '°';
+
+    if (beautifyData.colorMode === 'single') {
+      if (box2) box2.style.display = 'none';
+      if (box3) box3.style.display = 'none';
+      if (angleWrap) angleWrap.style.display = 'none';
+    } else if (beautifyData.colorMode === 'double') {
+      if (box2) box2.style.display = 'flex';
+      if (box3) box3.style.display = 'none';
+      if (angleWrap) angleWrap.style.display = 'flex';
+    } else if (beautifyData.colorMode === 'triple') {
+      if (box2) box2.style.display = 'flex';
+      if (box3) box3.style.display = 'flex';
+      if (angleWrap) angleWrap.style.display = 'flex';
+    }
+  }
+
+  function applyAndSaveNewBackground(bgUrl) {
+    beautifyData.bgType = 'image';
+    var bgLayer = document.getElementById('homeBgLayer');
+    if (bgLayer) {
+      bgLayer.style.backgroundColor = 'transparent';
+      bgLayer.style.backgroundImage = 'url("' + bgUrl + '")';
+    }
 
     if (window.AppDB) {
       window.AppDB.save('home_bg_img', bgUrl);
     }
+    try { localStorage.setItem('home_bg_img_cache', bgUrl); } catch(e){}
 
     if (!Array.isArray(beautifyData.bgHistory)) {
       beautifyData.bgHistory = [];
@@ -545,17 +811,27 @@
   function updateLivePreviewAndHistory() {
     var liveImg = document.getElementById('bgLivePreviewImg');
     var bgLayer = document.getElementById('homeBgLayer');
-    var currentBg = '';
 
-    if (bgLayer && bgLayer.style.backgroundImage) {
-      currentBg = bgLayer.style.backgroundImage;
-    }
-
-    if (liveImg) {
-      if (currentBg && currentBg !== 'none') {
-        liveImg.style.backgroundImage = currentBg;
+    if (liveImg && bgLayer) {
+      var angle = beautifyData.bgAngle || 135;
+      if (beautifyData.bgType === 'color') {
+        if (beautifyData.colorMode === 'single') {
+          liveImg.style.backgroundImage = 'none';
+          liveImg.style.backgroundColor = beautifyData.bgColor1 || '#ffffff';
+        } else if (beautifyData.colorMode === 'double') {
+          liveImg.style.backgroundColor = 'transparent';
+          liveImg.style.backgroundImage = 'linear-gradient(' + angle + 'deg, ' + (beautifyData.bgColor1 || '#ffffff') + ' 0%, ' + (beautifyData.bgColor2 || '#eaf2f8') + ' 100%)';
+        } else if (beautifyData.colorMode === 'triple') {
+          liveImg.style.backgroundColor = 'transparent';
+          liveImg.style.backgroundImage = 'linear-gradient(' + angle + 'deg, ' + (beautifyData.bgColor1 || '#ffffff') + ' 0%, ' + (beautifyData.bgColor2 || '#eaf2f8') + ' 50%, ' + (beautifyData.bgColor3 || '#d5e5f5') + ' 100%)';
+        }
       } else {
-        liveImg.style.backgroundImage = '';
+        liveImg.style.backgroundColor = 'transparent';
+        if (bgLayer.style.backgroundImage && bgLayer.style.backgroundImage !== 'none') {
+          liveImg.style.backgroundImage = bgLayer.style.backgroundImage;
+        } else {
+          liveImg.style.backgroundImage = '';
+        }
       }
     }
 
@@ -607,8 +883,14 @@
   }
 
   function uploadPwaIconToServer(croppedBase64) {
+    beautifyData.customPwaIconUrl = croppedBase64;
+    beautifyData.activePwaIcon = 'custom';
+    applyPwaIcon('custom', croppedBase64);
+    syncBeautifyUI();
+    saveBeautifyData();
+
     if (window.AppNav && window.AppNav.showToast) {
-      window.AppNav.showToast('正在生成桌面图标...');
+      window.AppNav.showToast('DIY图标已设定成功');
     }
 
     fetch('/api/upload', {
@@ -622,44 +904,21 @@
     })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      if (data.success && data.url) {
+      if (data && data.success && data.url) {
         beautifyData.customPwaIconUrl = data.url;
-        beautifyData.activePwaIcon = 'custom';
         applyPwaIcon('custom', data.url);
-        syncBeautifyUI();
         saveBeautifyData();
-        if (window.AppNav && window.AppNav.showToast) {
-          window.AppNav.showToast('DIY桌面图标已设定成功');
-        }
-      } else {
-        beautifyData.customPwaIconUrl = croppedBase64;
-        beautifyData.activePwaIcon = 'custom';
-        applyPwaIcon('custom', croppedBase64);
-        syncBeautifyUI();
-        saveBeautifyData();
-        if (window.AppNav && window.AppNav.showToast) {
-          window.AppNav.showToast('DIY图标已本地设定成功');
-        }
       }
     })
-    .catch(function() {
-      beautifyData.customPwaIconUrl = croppedBase64;
-      beautifyData.activePwaIcon = 'custom';
-      applyPwaIcon('custom', croppedBase64);
-      syncBeautifyUI();
-      saveBeautifyData();
-      if (window.AppNav && window.AppNav.showToast) {
-        window.AppNav.showToast('DIY图标已设定成功');
-      }
-    });
+    .catch(function() {});
   }
 
   function applyPwaIcon(type, customUrl) {
     var targetUrl = DEFAULT_HEART_URL;
     if (type === 'icon1') {
-      targetUrl = ICON_PATH_1;
+      targetUrl = OPT_ICONS.icon1 || RAW_ICON_PATH_1;
     } else if (type === 'icon2') {
-      targetUrl = ICON_PATH_2;
+      targetUrl = OPT_ICONS.icon2 || RAW_ICON_PATH_2;
     } else if (type === 'custom') {
       targetUrl = customUrl || beautifyData.customPwaIconUrl || DEFAULT_HEART_URL;
     }
@@ -716,6 +975,9 @@
     if (window.AppDB) {
       window.AppDB.save('beautify_settings', beautifyData);
     }
+    try {
+      localStorage.setItem('app_beautify_cache', JSON.stringify(beautifyData));
+    } catch(e) {}
   }
 
   function loadBeautifyData() {
@@ -785,6 +1047,10 @@
     if (brightVal) brightVal.textContent = beautifyData.brightness + '%';
     applyBrightness(beautifyData.brightness);
 
+    if (beautifyData.bgType === 'color') {
+      applyColorBackground();
+    }
+    syncColorControlsUI();
     updateLivePreviewAndHistory();
   }
 
@@ -807,4 +1073,3 @@
   }
 
 })();
-
