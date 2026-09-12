@@ -1,8 +1,17 @@
 
-(function() {
+(function(){
   'use strict';
-  
-  // ============ IndexedDB 存储引擎 ============
+
+  // 修复 iOS Safari 点击不冒泡 Bug，确保苹果手机上所有 div 上的点击都能顺畅触发
+  if (document.body) {
+    document.body.style.cursor = 'pointer';
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.body) document.body.style.cursor = 'pointer';
+    });
+  }
+
+  // ============ IndexedDB ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
   var STORE_NAME = 'appData';
@@ -91,6 +100,7 @@
         userInfo: { username: session.username }
       };
     }
+
     return null;
   }
 
@@ -108,6 +118,7 @@
       callback(cookieDev);
       return;
     }
+
     try {
       var localDev = localStorage.getItem('shared_device_id');
       if (localDev) {
@@ -122,6 +133,7 @@
         callback(savedId);
         return;
       }
+
       var w = Math.min(screen.width, screen.height);
       var h = Math.max(screen.width, screen.height);
       var cores = navigator.hardwareConcurrency || 4;
@@ -160,14 +172,23 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
+    function hideMask() {
+      mask.classList.remove('show');
+    }
+
+    function showMask() {
+      mask.classList.add('show');
+    }
+
     function onLoginVerified(token, userInfo) {
+      try {
+        localStorage.setItem('app_auth_token', token);
+        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+      } catch(e) {}
+
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          try {
-            localStorage.setItem('app_auth_token', token);
-            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-          } catch(e) {}
-          mask.classList.remove('show');
+          hideMask();
         });
       });
     }
@@ -176,7 +197,7 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
-          mask.classList.add('show');
+          showMask();
           if (message) showToast(message);
         });
       });
@@ -196,40 +217,30 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          if (data && data.isBanned === true) {
-            kickOut(data.message || '账号已被封禁');
+          if (data && data.kickOut === true) {
+            kickOut(data.message || '账号已失效');
           }
         })
         .catch(function() {});
       });
     }
 
-    var localToken = localStorage.getItem('app_auth_token');
-    var localInfoStr = localStorage.getItem('app_user_info');
-    var localInfo = null;
-    try { if (localInfoStr) localInfo = JSON.parse(localInfoStr); } catch(e) {}
-
-    if (localToken && localInfo && localInfo.username) {
-      mask.classList.remove('show');
-      realTimeVerify(localInfo);
-    } else {
-      dbGet('app_user_info', function(userInfo) {
-        dbGet('app_auth_token', function(token) {
-          if (token && userInfo && userInfo.username) {
-            mask.classList.remove('show');
-            realTimeVerify(userInfo);
+    dbGet('app_user_info', function(userInfo) {
+      dbGet('app_auth_token', function(token) {
+        if (token && userInfo && userInfo.username) {
+          hideMask();
+          realTimeVerify(userInfo);
+        } else {
+          var session = getGlobalSession();
+          if (session && session.token && session.userInfo && session.userInfo.username) {
+            onLoginVerified(session.token, session.userInfo);
+            realTimeVerify(session.userInfo);
           } else {
-            var session = getGlobalSession();
-            if (session && session.token && session.userInfo && session.userInfo.username) {
-              onLoginVerified(session.token, session.userInfo);
-              realTimeVerify(session.userInfo);
-            } else {
-              mask.classList.add('show');
-            }
+            showMask();
           }
-        });
+        }
       });
-    }
+    });
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
@@ -482,7 +493,7 @@
     }
   }
 
-  // ============ 全局统一导航绑定 ============
+  // ============ 全局统一导航与多级滑动统管 ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -557,17 +568,18 @@
       }
     });
 
-    // ============ 全局边缘滑动返回 (多级阻断，不越级) ============
+    // 核心多级滑动返回引擎
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
       var mainView = null;
       var isWorldbook = false;
+      var isWorldbookSub = false;
 
       page.addEventListener('touchstart', function(e) { 
         if (e.touches[0].clientX > 45) return; 
         
-        // 1. 档案内部手势完全由 archive.js 自身接管，app.js 绝不插手
+        // 档案自身全权管理内部手势，绝对不插手
         if (page.dataset.page === 'archive') return;
         
         startX = e.touches[0].clientX; 
@@ -576,20 +588,22 @@
         isDragging = true; 
         isLocked = false;
         isHoriz = false;
+        isWorldbookSub = false;
 
-        // 2. 美化中心二级视图检测
+        // 1. 美化中心多级视图检测
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
           isWorldbook = false;
         } 
-        // 3. 世界书多级视图检测
+        // 2. 世界书多级视图检测
         else if (page.dataset.page === 'worldbook') {
           isWorldbook = true;
           activeSubView = null;
           mainView = null;
           
           if (window.WorldbookState && window.WorldbookState.currentLevel && window.WorldbookState.currentLevel !== 'home') {
+            isWorldbookSub = true;
             if (window.WorldbookState.currentLevel === 'edit') {
               activeSubView = page.querySelector('#wbEditView');
             } else if (window.WorldbookState.currentLevel === 'book_meta') {
@@ -607,7 +621,7 @@
         if (activeSubView) {
           activeSubView.style.transition = 'none';
           if (mainView) mainView.style.transition = 'none';
-        } else {
+        } else if (!isWorldbookSub) {
           page.style.transition = 'none'; 
         }
       }, { passive: true });
@@ -633,7 +647,7 @@
               mainView.style.transform = 'translateX(' + mainOffset + '%)';
               mainView.style.opacity = Math.min(1, 0.4 + (currentX / window.innerWidth) * 0.6);
             }
-          } else {
+          } else if (!isWorldbookSub) {
             page.style.transform = 'translateX(' + currentX + 'px)'; 
           }
         }
@@ -646,20 +660,22 @@
         }
         isDragging = false;
 
-        // 子视图右滑返回上一级 (词条编辑 -> 列表 -> 首页)
-        if (activeSubView) {
-          if (currentX > window.innerWidth * 0.25) {
-            activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
-            activeSubView.style.transform = 'translateX(100%)';
+        // 子视图右滑返回上一级
+        if (activeSubView || isWorldbookSub) {
+          if (currentX > window.innerWidth * 0.22) {
+            if (activeSubView) {
+              activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+              activeSubView.style.transform = 'translateX(100%)';
+            }
             setTimeout(function() {
-              activeSubView.style.transform = '';
+              if (activeSubView) activeSubView.style.transform = '';
               if (isWorldbook) {
                 window.dispatchEvent(new CustomEvent('wbStepBack'));
               } else {
                 window.dispatchEvent(new Event('closeBeautifySub'));
               }
             }, 220);
-          } else {
+          } else if (activeSubView) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
             activeSubView.style.transform = 'translateX(0)';
             if (mainView) {
@@ -669,7 +685,7 @@
             }
           }
         } 
-        // 顶层 App 页面右滑返回桌面 (Home)
+        // 只有第一层大首页才允许退回桌面
         else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
