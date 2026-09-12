@@ -162,13 +162,8 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
-    function hideMask() {
-      mask.classList.remove('show');
-    }
-
-    function showMask() {
-      mask.classList.add('show');
-    }
+    function hideMask() { mask.classList.remove('show'); }
+    function showMask() { mask.classList.add('show'); }
 
     function onLoginVerified(token, userInfo) {
       try {
@@ -428,12 +423,12 @@
     window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: name } }));
   }
 
-  // ============ 桌面双屏滑动交互 ============
+  // ============ 桌面双屏平滑滑动交互 ============
   function setupDesktopSlider() {
     var slider = document.getElementById('desktopSlider');
     var dots = document.querySelectorAll('.desktop-dot');
     var currentScreen = 0;
-    var startX = 0, startY = 0, distX = 0, distY = 0, isDragging = false;
+    var startX = 0, startY = 0, distX = 0, distY = 0, isDragging = false, isTouchLocked = false;
 
     function goToScreen(idx) {
       currentScreen = idx;
@@ -459,6 +454,7 @@
         distX = 0;
         distY = 0;
         isDragging = true;
+        isTouchLocked = false;
       }, { passive: true });
 
       slider.addEventListener('touchmove', function(e) {
@@ -467,12 +463,16 @@
         var curY = e.touches[0].clientY;
         distX = curX - startX;
         distY = curY - startY;
+
+        if (!isTouchLocked && (Math.abs(distX) > 6 || Math.abs(distY) > 6)) {
+          isTouchLocked = true;
+        }
       }, { passive: true });
 
       slider.addEventListener('touchend', function() {
         if (!isDragging) return;
         isDragging = false;
-        if (Math.abs(distX) > Math.abs(distY) && Math.abs(distX) > 35) {
+        if (Math.abs(distX) > Math.abs(distY) && Math.abs(distX) > 30) {
           if (distX < 0 && currentScreen === 0) {
             goToScreen(1);
           } else if (distX > 0 && currentScreen === 1) {
@@ -520,7 +520,7 @@
       });
     });
 
-    // 全局页面与应用跳转事件委托
+    // 核心桌面与全局应用点击委托（全面穿透打通）
     document.addEventListener('click', function(e) { 
       var b = e.target.closest('[data-back]'); 
       if (b) {
@@ -546,7 +546,7 @@
       }
 
       var coupleItem = e.target.closest('.couple-icon-item');
-      if (coupleItem && !coupleItem.dataset.openApp && !coupleItem.dataset.goto) {
+      if (coupleItem) {
         var action = coupleItem.dataset.action;
         if (action === 'worldbook') {
           showPage('worldbook');
@@ -556,6 +556,8 @@
           showPage('beautify');
         } else if (action === 'archive') {
           showPage('archive');
+        } else if (coupleItem.dataset.goto) {
+          showPage(coupleItem.dataset.goto);
         }
       }
     });
@@ -648,7 +650,6 @@
         }
         isDragging = false;
 
-        // 子视图右滑返回上一级
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.25) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -670,9 +671,7 @@
               mainView.style.opacity = '0.4';
             }
           }
-        } 
-        // 顶层 App 页面右滑返回桌面 (Home)
-        else {
+        } else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
           if (currentX > window.innerWidth * 0.28) { 
