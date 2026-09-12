@@ -64,7 +64,7 @@
     document.documentElement.style.setProperty('--wb-cur-theme-bg', theme.bg);
   }
 
-  // ============ 调用系统图片裁剪引擎 ============
+  // ============ 裁剪封面 ============
   function handleCoverClick(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
     if (!wb) return;
@@ -105,7 +105,7 @@
     }
   }
 
-  // ============ .docx 文件解压与流式提取内核 ============
+  // ============ 导入 .docx ============
   function importWorldbookDocx() {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -181,14 +181,13 @@
         }
         return textParts.join('\n');
       }
-
       return '';
     } catch (e) {
       return '';
     }
   }
 
-  // ============ 导出 JSON 功能 ============
+  // ============ 导出 JSON ============
   function exportWorldbookJSON(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
     if (!wb) return;
@@ -238,16 +237,18 @@
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
-        // 1. 顶栏：左侧大标题及英文 + 右侧微缩上移双圆圈(⇅ 和 +)
+        // 1. 顶栏：虚线横贯全屏 + 居中 ⇅ + 右侧 +
         + '  <div class="wb-top-header-row" id="wbTopHeaderRow">'
         + '    <div class="wb-header-left-col">'
         + '      <span class="wb-title-main" id="wbHeaderMainTitle">世界书</span>'
         + '      <span class="wb-title-sub-en" id="wbHeaderSubEn">WORLD BOOK</span>'
         + '    </div>'
-        + '    <div class="wb-header-right-circles-row">'
+        + '    <div class="wb-header-center-wrap">'
         + '      <button class="wb-header-circle-btn" id="wbBtnLeftSwitch" type="button" title="切换板块">'
         + '        <div class="wb-circle-core">⇅</div>'
         + '      </button>'
+        + '    </div>'
+        + '    <div class="wb-header-right-wrap">'
         + '      <button class="wb-header-circle-btn" id="wbBtnRightAction" type="button" title="新建与改色">'
         + '        <div class="wb-circle-core">+</div>'
         + '      </button>'
@@ -258,7 +259,7 @@
         + '      <div class="wb-pop-item" data-switch-to="preset">预设</div>'
         + '      <div class="wb-pop-item" data-switch-to="regex">正则</div>'
         + '    </div>'
-        // 新建、导入与专属改色浮层
+        // 新建与改色浮层
         + '    <div class="wb-right-menu-popover" id="wbRightMenuPopover">'
         + '      <button class="wb-action-card-btn" id="wbPopBtnNew" type="button">'
         + '        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'
@@ -281,7 +282,7 @@
         // 2. 主视口画卷（首页列表）
         + '  <div class="wb-viewport-box" id="wbHomeView"></div>'
 
-        // 3. 新建世界书名称页面 (左返回，右确定，极简黑横线)
+        // 3. 新建世界书名称页面
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbBookMetaView"></div>'
 
         // 4. 词条列表视口
@@ -290,10 +291,10 @@
         // 5. 词条编辑视口
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEditView"></div>'
 
-        // 6. 全屏沉浸式正文编辑弹层
+        // 6. 全屏沉浸式编辑弹层
         + '  <div class="wb-expanded-modal" id="wbExpandedModal">'
-        + '    <div class="wb-sub-nav-bar">'
-        + '      <span class="wb-nav-book-title">沉浸编辑</span>'
+        + '    <div class="wb-edit-nav-bar" style="justify-content:space-between;">'
+        + '      <span style="font-size:15px; font-weight:800; color:#1c1c1e;">沉浸编辑</span>'
         + '      <button class="wb-btn-expand-icon" id="wbBtnCollapse" type="button">'
         + '        <svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>'
         + '      </button>'
@@ -374,9 +375,15 @@
       html = '<div class="wb-empty-tip">✦ 模块正在运行中 ✦</div>';
     }
     homeBox.innerHTML = html;
+    setupSmoothDragSort(homeBox, '.wb-main-card', function (newOrderIds) {
+      state.worldbooks.sort(function (a, b) {
+        return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
+      });
+      saveWorldbooksData();
+    });
   }
 
-  // ============ 2. 渲染新建世界书名称页面 (极简下划线设计) ============
+  // ============ 2. 渲染新建世界书名称页面 ============
   function renderBookMetaView(wbId) {
     state.currentLevel = 'book_meta';
     state.currentWbId = wbId;
@@ -418,7 +425,7 @@
     metaBox.innerHTML = html;
   }
 
-  // ============ 3. 渲染词条列表页 (大卡片) ============
+  // ============ 3. 渲染词条列表页 (标题居中下划线 + 左返回 + 底部保存) ============
   function renderEntriesView(wbId) {
     state.currentLevel = 'entries';
     state.currentWbId = wbId;
@@ -445,11 +452,17 @@
     entriesBox.scrollTop = 0;
 
     var html = ''
-      + '<div class="wb-sub-nav-bar">'
-      + '  <span class="wb-nav-book-title">' + (wb.title || '世界书') + '</span>'
+      + '<div class="wb-entries-nav-bar">'
+      + '  <button class="wb-entries-back-btn" id="wbBtnEntriesBack" type="button">'
+      + '    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>'
+      + '  </button>'
+      + '  <div class="wb-entries-title-center-wrap" id="wbBtnEditBookTitle" title="点击编辑书名">'
+      + '    <span class="wb-entries-book-title">' + (wb.title || '世界书') + '</span>'
+      + '    <div class="wb-entries-title-underline"></div>'
+      + '  </div>'
       + '  <button class="wb-nav-btn-new" id="wbNavBtnNewEntry" type="button">+ 新建</button>'
       + '</div>'
-      + '<div class="wb-viewport-box">';
+      + '<div class="wb-viewport-box" id="wbEntriesListBox">';
 
     if (!wb.entries || wb.entries.length === 0) {
       html += '<div class="wb-empty-tip">✦ 暂无词条，请点击右上角新建 ✦</div>';
@@ -457,7 +470,7 @@
       wb.entries.forEach(function (entry) {
         var toggleState = entry.enabled !== false ? 'on' : 'off';
         html += ''
-          + '<div class="wb-entry-item-card">'
+          + '<div class="wb-entry-item-card" data-entry-id="' + entry.id + '">'
           + '  <div class="wb-entry-left-row" data-open-entry="' + entry.id + '">'
           + '    <span class="wb-entry-title-text">' + (entry.name || '未命名词条') + '</span>'
           + '  </div>'
@@ -471,10 +484,27 @@
       });
     }
     html += '</div>';
+
+    // 底部正中间保存按钮
+    html += ''
+      + '<div class="wb-entries-bottom-save-bar">'
+      + '  <button class="wb-entries-btn-save-center" id="wbBtnSaveEntriesConfirm" type="button">保存</button>'
+      + '</div>';
+
     entriesBox.innerHTML = html;
+
+    var listWrap = document.getElementById('wbEntriesListBox');
+    if (listWrap) {
+      setupSmoothDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
+        wb.entries.sort(function (a, b) {
+          return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
+        });
+        saveWorldbooksData();
+      });
+    }
   }
 
-  // ============ 4. 渲染词条编辑页 (纯净顶栏，无任何多余文字) ============
+  // ============ 4. 渲染词条编辑页 ============
   function renderEditView(entryId) {
     state.currentLevel = 'edit';
     state.currentEntryId = entryId;
@@ -637,7 +667,80 @@
     saveWorldbooksData();
   }
 
-  // ============ 响应 app.js 全局多级滑返控制信号 ============
+  // ============ 极速丝滑触控拖拽排序引擎 (Smooth Touch Reorder Engine) ============
+  function setupSmoothDragSort(container, itemSelector, onReorderCallback) {
+    var items = container.querySelectorAll(itemSelector);
+    if (!items || items.length < 2) return;
+
+    items.forEach(function (el) {
+      var startY = 0, currentY = 0, initialTop = 0, isDragging = false, dragTimer = null;
+
+      function onTouchStart(e) {
+        if (e.target.closest('button') || e.target.closest('.wb-cover-wrap') || e.target.closest('.wb-dropdown-menu')) return;
+        var touch = e.touches[0];
+        startY = touch.clientY;
+
+        dragTimer = setTimeout(function () {
+          isDragging = true;
+          el.classList.add('wb-dragging');
+          initialTop = el.getBoundingClientRect().top;
+          if (navigator.vibrate) navigator.vibrate(15);
+        }, 220); // 220ms 灵敏长按激活拖拽
+      }
+
+      function onTouchMove(e) {
+        if (!isDragging) {
+          if (Math.abs(e.touches[0].clientY - startY) > 8) {
+            clearTimeout(dragTimer);
+          }
+          return;
+        }
+        e.preventDefault();
+        var touch = e.touches[0];
+        currentY = touch.clientY;
+        var deltaY = currentY - startY;
+        el.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
+
+        // 丝滑碰撞重排
+        var allCards = Array.from(container.querySelectorAll(itemSelector));
+        var targetCard = allCards.find(function (card) {
+          if (card === el) return false;
+          var rect = card.getBoundingClientRect();
+          return currentY > rect.top && currentY < rect.bottom;
+        });
+
+        if (targetCard) {
+          var draggingIndex = allCards.indexOf(el);
+          var targetIndex = allCards.indexOf(targetCard);
+          if (draggingIndex < targetIndex) {
+            container.insertBefore(el, targetCard.nextSibling);
+          } else {
+            container.insertBefore(el, targetCard);
+          }
+        }
+      }
+
+      function onTouchEnd() {
+        clearTimeout(dragTimer);
+        if (!isDragging) return;
+        isDragging = false;
+        el.classList.remove('wb-dragging');
+        el.style.transform = '';
+
+        var reorderedIds = Array.from(container.querySelectorAll(itemSelector)).map(function (c) {
+          return c.dataset.wbId || c.dataset.entryId;
+        });
+        if (onReorderCallback) onReorderCallback(reorderedIds);
+      }
+
+      el.addEventListener('touchstart', onTouchStart, { passive: false });
+      el.addEventListener('touchmove', onTouchMove, { passive: false });
+      el.addEventListener('touchend', onTouchEnd);
+      el.addEventListener('touchcancel', onTouchEnd);
+    });
+  }
+
+  // ============ 响应 app.js 多级滑返 ============
   window.addEventListener('wbStepBack', function () {
     if (state.currentLevel === 'edit') {
       saveCurrentEditEntry();
@@ -676,7 +779,7 @@
       var wbContainer = document.getElementById('wbMainContainer');
       if (!wbContainer || !wbContainer.contains(e.target)) return;
 
-      // 1. 左侧圆圈 ⇅
+      // 1. 中间圆圈 ⇅ 切换浮层
       if (e.target.closest('#wbBtnLeftSwitch')) {
         e.stopPropagation();
         var pLeft = document.getElementById('wbLeftSwitchPopover');
@@ -710,7 +813,7 @@
         return;
       }
 
-      // 新建世界书 ➜ 进入极简名称页面
+      // 新建世界书
       if (e.target.closest('#wbPopBtnNew')) {
         e.stopPropagation();
         var popR = document.getElementById('wbRightMenuPopover');
@@ -728,7 +831,7 @@
         return;
       }
 
-      // 导入世界书 (.docx)
+      // 导入 .docx
       if (e.target.closest('#wbPopBtnImport')) {
         e.stopPropagation();
         var popR2 = document.getElementById('wbRightMenuPopover');
@@ -751,7 +854,7 @@
         return;
       }
 
-      // 新建名称页：左上角返回
+      // 新建名称页返回
       if (e.target.closest('#wbBtnMetaBack')) {
         if (state.isCreatingNewWb) {
           state.worldbooks = state.worldbooks.filter(function (w) { return w.id !== state.currentWbId; });
@@ -761,7 +864,7 @@
         return;
       }
 
-      // 新建名称页：右上角确定 ➜ 直接进入新建词条编辑页！
+      // 新建名称页确定
       if (e.target.closest('#wbBtnSaveBookMeta')) {
         var bookTitleIpt = document.getElementById('wbIptBookTitle');
         var currentBook = state.worldbooks.find(function (w) { return w.id === state.currentWbId; });
@@ -773,7 +876,27 @@
         return;
       }
 
-      // 编辑词条页：左上角纯返回箭头 ➜ 精准退回单本世界书词条列表
+      // 内部词条页：点击居中带下划线标题进行重命名
+      if (e.target.closest('#wbBtnEditBookTitle')) {
+        renderBookMetaView(state.currentWbId);
+        return;
+      }
+
+      // 内部词条页：左上角返回
+      if (e.target.closest('#wbBtnEntriesBack')) {
+        renderHomeView();
+        return;
+      }
+
+      // 内部词条页：底部中间保存按钮
+      if (e.target.closest('#wbBtnSaveEntriesConfirm')) {
+        saveWorldbooksData();
+        if (window.AppNav) window.AppNav.showToast('✦ 世界书已保存 ✦');
+        renderHomeView();
+        return;
+      }
+
+      // 编辑词条页：左上角返回
       if (e.target.closest('#wbBtnEditBack')) {
         saveCurrentEditEntry();
         renderEntriesView(state.currentWbId);
@@ -790,7 +913,7 @@
         if (popRgt) popRgt.classList.remove('show');
       }
 
-      // 3. 竖三点菜单
+      // 竖三点菜单
       var moreBtn = e.target.closest('[data-wb-more]');
       if (moreBtn) {
         e.stopPropagation();
@@ -841,7 +964,7 @@
       }
       document.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
 
-      // 4. 点击封面触发系统裁剪
+      // 封面点击
       var coverWrap = e.target.closest('[data-cover-wb]');
       if (coverWrap) {
         e.stopPropagation();
@@ -849,27 +972,27 @@
         return;
       }
 
-      // 5. 点击进入世界书词条列表
+      // 进入词条列表
       var enterWbBtn = e.target.closest('[data-enter-wb]');
       if (enterWbBtn) {
         renderEntriesView(enterWbBtn.dataset.enterWb);
         return;
       }
 
-      // 6. 新建词条
+      // 新建词条
       if (e.target.closest('#wbNavBtnNewEntry')) {
         renderEditView(null);
         return;
       }
 
-      // 7. 打开已有词条
+      // 打开词条
       var openEntryItem = e.target.closest('[data-open-entry]');
       if (openEntryItem) {
         renderEditView(openEntryItem.dataset.openEntry);
         return;
       }
 
-      // 8. 词条项操作 (编辑 / 复制 / 删除 / 开启)
+      // 词条操作 (编辑 / 复制 / 删除 / 开启)
       var actBtn = e.target.closest('[data-entry-act]');
       if (actBtn) {
         e.stopPropagation();
@@ -915,7 +1038,7 @@
         return;
       }
 
-      // 9. 模式切换
+      // 模式切换
       var modePill = e.target.closest('.wb-mode-pill');
       if (modePill) {
         document.querySelectorAll('.wb-mode-pill').forEach(function (p) { p.classList.remove('active'); });
@@ -933,7 +1056,7 @@
         return;
       }
 
-      // 10. 注入位置切换
+      // 注入位置切换
       var depthBtn = e.target.closest('.wb-depth-pos-btn');
       if (depthBtn) {
         document.querySelectorAll('.wb-depth-pos-btn').forEach(function (b) { b.classList.remove('active'); });
@@ -946,7 +1069,7 @@
         return;
       }
 
-      // 11. 删除标签
+      // 删除标签
       var delTagBtn = e.target.closest('[data-del-tag]');
       if (delTagBtn) {
         state.editTempTags.splice(parseInt(delTagBtn.dataset.delTag, 10), 1);
@@ -954,7 +1077,7 @@
         return;
       }
 
-      // 12. 扩大与收起
+      // 扩大与收起
       if (e.target.closest('#wbBtnExpand')) {
         var normalIpt = document.getElementById('wbIptContent');
         var expModal = document.getElementById('wbExpandedModal');
