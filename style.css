@@ -1,10 +1,19 @@
+
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --app-header-top: calc(12px + var(--safe-top));
 }
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+* { 
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box; 
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
 
 html, body {
   width: 100vw;
@@ -22,9 +31,185 @@ html, body {
   user-select: none;
 }
 
+img, svg {
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: auto;
+}
+
 [contenteditable="true"] {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* ========== 纯白背景 + 蓝光晕登录门禁 (层级: 500) ========== */
+.auth-gate-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #ffffff;
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+.auth-gate-mask.show {
+  display: flex;
+  animation: authFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes authFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.auth-gate-card {
+  width: 100%;
+  max-width: 375px;
+  min-height: 480px;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-glow-top {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(176,204,232,0.45) 0%, rgba(245,248,252,0) 70%);
+  pointer-events: none;
+}
+
+.auth-glow-bottom {
+  position: absolute;
+  bottom: -60px;
+  left: -60px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(136,171,218,0.3) 0%, rgba(221,232,244,0) 70%);
+  pointer-events: none;
+}
+
+.auth-content-box {
+  width: 280px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.auth-subtitle {
+  font-size: 8px;
+  color: rgba(136,171,218,0.7);
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.auth-title {
+  font-size: 24px;
+  font-weight: 300;
+  color: #6a8aa8;
+  letter-spacing: 6px;
+  text-indent: 6px;
+}
+
+.auth-divider {
+  width: 40px;
+  height: 1px;
+  background: rgba(136,171,218,0.3);
+  margin: 12px auto 24px;
+}
+
+.auth-inputs-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.auth-inputs-wrap input {
+  width: 100%;
+  height: 44px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,1);
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 13px;
+  color: #6a8aa8;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.auth-inputs-wrap input::placeholder {
+  color: rgba(106, 138, 168, 0.5);
+}
+.auth-inputs-wrap input:focus {
+  background: rgba(255,255,255,0.9);
+  border-color: rgba(176,204,232,0.8);
+  box-shadow: 0 0 10px rgba(136,171,218,0.15);
+}
+
+.auth-submit-btn {
+  width: 100%;
+  height: 44px;
+  background: linear-gradient(135deg, #b0cce8, #88abda);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: 4px;
+  text-indent: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(136,171,218,0.25);
+  transition: all 0.2s ease;
+}
+.auth-submit-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+.auth-submit-btn:disabled {
+  opacity: 0.6;
+  transform: none;
+}
+
+.auth-switch-text {
+  margin-top: 18px;
+  font-size: 13px;
+  color: rgba(106, 138, 168, 0.75);
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+}
+.auth-switch-text span {
+  color: #6a8aa8;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-switch-text span:active {
+  opacity: 0.5;
+}
+
+.auth-hidden {
+  display: none !important;
 }
 
 /* ========== 全屏壁纸层 (层级: 0) ========== */
@@ -296,7 +481,7 @@ html, body {
 .photo-action-mask.show { display: block; }
 
 /* ======================================================== */
-/* 3. 全局高定「双选确认弹窗」                              */
+/* 3. 全局高定「双选确认弹窗」 (层级: 850 穿透门禁)          */
 /* ======================================================== */
 .app-dialog-mask {
   position: fixed;
