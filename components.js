@@ -13,10 +13,19 @@
     setupCoupleStyle();
   }
 
+  // 多重安全时序启动：确保在任何情况下都会立即初始化桌面所有组件
   if (window._dbReady) {
     initAllComponents();
   } else {
-    window.addEventListener('dbReady', initAllComponents, { once: true });
+    window.addEventListener('dbReady', initAllComponents);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(initAllComponents, 50);
+    });
+  } else {
+    setTimeout(initAllComponents, 50);
   }
 
   function bindPlainTextPaste(el) {
@@ -65,10 +74,15 @@
       if (!file) return;
       var reader = new FileReader();
       reader.onload = function(e) {
-        window.AppCropper.open(e.target.result, { aspectRatio: 9/16 }, function(croppedData) {
-          if (bgLayer) bgLayer.style.backgroundImage = 'url(' + croppedData + ')';
-          if (window.AppDB) window.AppDB.save('home_bg_img', croppedData);
-        });
+        if (window.AppCropper) {
+          window.AppCropper.open(e.target.result, { aspectRatio: 9/16 }, function(croppedData) {
+            if (bgLayer) bgLayer.style.backgroundImage = 'url(' + croppedData + ')';
+            if (window.AppDB) window.AppDB.save('home_bg_img', croppedData);
+          });
+        } else {
+          if (bgLayer) bgLayer.style.backgroundImage = 'url(' + e.target.result + ')';
+          if (window.AppDB) window.AppDB.save('home_bg_img', e.target.result);
+        }
       };
       reader.readAsDataURL(file);
       this.value = '';
@@ -155,7 +169,6 @@
       style: { glass: false, color: '#ffffff', opacity: 80 }
     };
 
-    // 背景图点击：已设置背景时弹出选择/删除，无背景时直接选照片
     if (cardUpper) {
       cardUpper.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -176,7 +189,6 @@
       });
     }
 
-    // 头像点击：已有头像时精准弹出【选择照片 / 删除照片】碎花卡片
     if (avatarBtn) {
       avatarBtn.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -200,13 +212,21 @@
       if (!file) return;
       var reader = new FileReader();
       reader.onload = function(e) {
-        window.AppCropper.open(e.target.result, { aspectRatio: 16/11 }, function(croppedData) {
+        if (window.AppCropper) {
+          window.AppCropper.open(e.target.result, { aspectRatio: 16/11 }, function(croppedData) {
+            if (cardBg) {
+              cardBg.style.backgroundImage = 'url(' + croppedData + ')';
+              cardBg.classList.add('has-bg');
+            }
+            if (window.AppDB) window.AppDB.save('card_bg', croppedData);
+          });
+        } else {
           if (cardBg) {
-            cardBg.style.backgroundImage = 'url(' + croppedData + ')';
+            cardBg.style.backgroundImage = 'url(' + e.target.result + ')';
             cardBg.classList.add('has-bg');
           }
-          if (window.AppDB) window.AppDB.save('card_bg', croppedData);
-        });
+          if (window.AppDB) window.AppDB.save('card_bg', e.target.result);
+        }
       };
       reader.readAsDataURL(file);
       this.value = '';
@@ -217,11 +237,17 @@
       if (!file) return;
       var reader = new FileReader();
       reader.onload = function(e) {
-        window.AppCropper.open(e.target.result, { aspectRatio: 1 }, function(croppedData) {
-          if (avatarImg) avatarImg.src = croppedData;
+        if (window.AppCropper) {
+          window.AppCropper.open(e.target.result, { aspectRatio: 1 }, function(croppedData) {
+            if (avatarImg) avatarImg.src = croppedData;
+            if (avatarBtn) avatarBtn.classList.add('has-img');
+            if (window.AppDB) window.AppDB.save('card_avatar', croppedData);
+          });
+        } else {
+          if (avatarImg) avatarImg.src = e.target.result;
           if (avatarBtn) avatarBtn.classList.add('has-img');
-          if (window.AppDB) window.AppDB.save('card_avatar', croppedData);
-        });
+          if (window.AppDB) window.AppDB.save('card_avatar', e.target.result);
+        }
       };
       reader.readAsDataURL(file);
       this.value = '';
@@ -399,7 +425,6 @@
 
     var msgBadgeState = { bgColor: '#8e8e93', textColor: '#ffffff' };
 
-    // 消息角色头像：已有头像时弹出选择/删除
     if (messageAvatar) {
       messageAvatar.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -423,11 +448,17 @@
       if (!file) return;
       var reader = new FileReader();
       reader.onload = function(e) {
-        window.AppCropper.open(e.target.result, { aspectRatio: 1 }, function(croppedData) {
-          if (messageAvatarImg) messageAvatarImg.src = croppedData;
+        if (window.AppCropper) {
+          window.AppCropper.open(e.target.result, { aspectRatio: 1 }, function(croppedData) {
+            if (messageAvatarImg) messageAvatarImg.src = croppedData;
+            if (messageAvatar) messageAvatar.classList.add('has-img');
+            if (window.AppDB) window.AppDB.save('message_avatar', croppedData);
+          });
+        } else {
+          if (messageAvatarImg) messageAvatarImg.src = e.target.result;
           if (messageAvatar) messageAvatar.classList.add('has-img');
-          if (window.AppDB) window.AppDB.save('message_avatar', croppedData);
-        });
+          if (window.AppDB) window.AppDB.save('message_avatar', e.target.result);
+        }
       };
       reader.readAsDataURL(file);
       this.value = '';
@@ -710,7 +741,7 @@
 
 })();
 
-// ========== 头像展示区数据（独立模块） ==========
+// ========== 头像展示区数据与日历模块 ==========
 (function() {
   'use strict';
 
@@ -760,7 +791,15 @@
   if (window._dbReady) {
     initCoupleSection();
   } else {
-    window.addEventListener('dbReady', initCoupleSection, { once: true });
+    window.addEventListener('dbReady', initCoupleSection);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(initCoupleSection, 50);
+    });
+  } else {
+    setTimeout(initCoupleSection, 50);
   }
 
   function applyCoupleData() {
@@ -861,14 +900,23 @@
       if (!file) return;
       var reader = new FileReader();
       reader.onload = function(e) {
-        window.AppCropper.open(e.target.result, { aspectRatio: 1 }, function(cropped) {
-          coupleData['avatar' + idx] = cropped;
-          var img = document.getElementById('coupleAvatarImg' + idx);
-          var circle = document.getElementById('coupleAvatar' + idx);
-          if (img) img.src = cropped;
-          if (circle) circle.classList.add('has-img');
+        if (window.AppCropper) {
+          window.AppCropper.open(e.target.result, { aspectRatio: 1 }, function(cropped) {
+            coupleData['avatar' + idx] = cropped;
+            var img = document.getElementById('coupleAvatarImg' + idx);
+            var circle = document.getElementById('coupleAvatar' + idx);
+            if (img) img.src = cropped;
+            if (circle) circle.classList.add('has-img');
+            saveCoupleData();
+          });
+        } else {
+          coupleData['avatar' + idx] = e.target.result;
+          var img2 = document.getElementById('coupleAvatarImg' + idx);
+          var circle2 = document.getElementById('coupleAvatar' + idx);
+          if (img2) img2.src = e.target.result;
+          if (circle2) circle2.classList.add('has-img');
           saveCoupleData();
-        });
+        }
       };
       reader.readAsDataURL(file);
       this.value = '';
