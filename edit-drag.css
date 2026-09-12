@@ -3,7 +3,7 @@
 html, body, button, .edit-btn, .reset-layout-btn, .edit-tool-btn, .popup-card {
   touch-action: manipulation;
 }
-
+ 
 /* ========== 编辑按钮（统一样式） ========== */
 .edit-btn {
   position: absolute;
