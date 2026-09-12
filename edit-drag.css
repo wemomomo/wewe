@@ -29,7 +29,9 @@ html, body, button, .edit-btn, .reset-layout-btn, .edit-tool-btn, .popup-card {
   -webkit-user-select: none;
 }
 .app-shell.edit-mode .edit-btn,
-.edit-mode .edit-btn {
+.edit-mode .edit-btn,
+.app-shell.edit-mode ~ .tabbar-edit-btn,
+body.edit-mode .tabbar-edit-btn {
   opacity: 1 !important;
   pointer-events: auto !important;
 }
@@ -38,11 +40,11 @@ html, body, button, .edit-btn, .reset-layout-btn, .edit-tool-btn, .popup-card {
   opacity: 0.8;
 }
 
-/* 底部栏编辑按钮（fixed独立定位） */
+/* 2. 底部栏编辑按钮：基于屏幕安全区定位，绝对不被网址栏挡，PWA也绝无白条 */
 .tabbar-edit-btn {
   position: fixed;
   top: auto;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 75px);
+  bottom: calc(85px + env(safe-area-inset-bottom, 0px));
   right: 24px;
   z-index: 600;
 }
