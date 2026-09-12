@@ -2,7 +2,7 @@
 (function(){
   'use strict';
 
-  // ============ IndexedDB ============
+  // ============ IndexedDB 核心数据库 ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
   var STORE_NAME = 'appData';
@@ -14,7 +14,9 @@
     var request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = function(e) {
       var database = e.target.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
+      if (!database.objectStoreNames.contains(STORE_NAME)) {
+        database.createObjectStore(STORE_NAME);
+      }
     };
     request.onsuccess = function(e) { 
       db = e.target.result; 
@@ -38,6 +40,7 @@
       tx.onerror = function() { if (cb) cb(); };
     } catch(e) { if (cb) cb(); }
   }
+
   function dbGet(key, cb) {
     if (!db) { if (cb) cb(null); return; }
     try {
@@ -46,6 +49,7 @@
       r.onerror = function() { if (cb) cb(null); };
     } catch(e) { if (cb) cb(null); }
   }
+
   function dbDelete(key, cb) {
     if (!db) { if (cb) cb(); return; }
     try {
@@ -91,7 +95,6 @@
         userInfo: { username: session.username }
       };
     }
-
     return null;
   }
 
@@ -163,13 +166,8 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
-    function hideMask() {
-      mask.classList.remove('show');
-    }
-
-    function showMask() {
-      mask.classList.add('show');
-    }
+    function hideMask() { mask.classList.remove('show'); }
+    function showMask() { mask.classList.add('show'); }
 
     function onLoginVerified(token, userInfo) {
       try {
@@ -521,6 +519,7 @@
       });
     });
 
+    // 全局通用导航事件委托（绝不阻断 components.js 等组件原生点击）
     document.addEventListener('click', function(e) { 
       var b = e.target.closest('[data-back]'); 
       if (b) {
@@ -534,7 +533,7 @@
       }
 
       var g = e.target.closest('[data-goto]'); 
-      if (g) {
+      if (g && g.dataset.goto) {
         showPage(g.dataset.goto);
         return;
       }
@@ -556,13 +555,11 @@
           showPage('beautify');
         } else if (action === 'archive') {
           showPage('archive');
-        } else {
-          showToast('✦ 该功能正在精心研发中 ✦');
         }
       }
     });
 
-    // 核心多级滑动返回引擎：美化中心、世界书三级、基础页面统管
+    // 核心多级滑动返回引擎
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var activeSubView = null;
@@ -580,13 +577,13 @@
         isLocked = false;
         isHoriz = false;
 
-        // 1. 美化中心多级视图检测
+        // 1. 美化中心多级视图
         if (page.dataset.page === 'beautify') {
           activeSubView = page.querySelector('.beautify-sub-view.active');
           mainView = page.querySelector('.beautify-main-view');
           isWorldbook = false;
         } 
-        // 2. 世界书专属三级视图检测 (词条编辑 / 词条列表 / 封面修改 / 首页)
+        // 2. 世界书专属三级视图
         else if (page.dataset.page === 'worldbook') {
           isWorldbook = true;
           activeSubView = null;
@@ -650,7 +647,6 @@
         }
         isDragging = false;
 
-        // 子视图右滑返回上一级
         if (activeSubView) {
           if (currentX > window.innerWidth * 0.25) {
             activeSubView.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -672,9 +668,7 @@
               mainView.style.opacity = '0.4';
             }
           }
-        } 
-        // 顶层 App 页面右滑返回桌面 (Home)
-        else {
+        } else {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
           if (currentX > window.innerWidth * 0.28) { 
