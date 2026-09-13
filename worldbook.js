@@ -9,9 +9,9 @@
   };
 
   var sectionMeta = {
-    wb: { title: '世界书' },
-    preset: { title: '预设' },
-    regex: { title: '正则' }
+    wb: { title: '世界书', en: 'WORLD BOOK' },
+    preset: { title: '预设', en: 'PRESETS' },
+    regex: { title: '正则', en: 'REGEX' }
   };
 
   var state = {
@@ -81,7 +81,7 @@
             var reader = new FileReader();
             reader.onload = function (evt) {
               if (window.AppCropper) {
-                window.AppCropper.open(evt.target.result, { aspectRatio: 1 }, function (croppedData) {
+                window.AppCropper.open(evt.target.result, { aspectRatio: 54 / 80 }, function (croppedData) {
                   wb.cover = croppedData;
                   saveWorldbooksData();
                   renderHomeView();
@@ -131,7 +131,7 @@
             var parsedEntries = data.entries.map(function (item, idx) {
               return {
                 id: 'entry_' + Date.now() + '_' + idx,
-                name: item.name || item.comment || ('词条 ' + (idx + 1)),
+                name: item.name || item.comment || ('条目 ' + (idx + 1)),
                 content: item.content || '',
                 mode: (item.mode === 'const' || item.constant) ? 'const' : 'key',
                 keys: Array.isArray(item.keys) ? item.keys : (Array.isArray(item.key) ? item.key : []),
@@ -279,12 +279,13 @@
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
-        // 1. 顶栏：世界书 + ∨ 下拉箭头
+        // 1. 顶栏：主标题 + 英文副标题 + ∨ 下拉箭头
         + '  <div class="wb-gallery-header-row" id="wbGalleryHeaderRow">'
         + '    <div class="wb-header-switch-wrap" id="wbHeaderSwitchWrap">'
         + '      <span class="wb-gallery-main-title" id="wbGalleryMainTitle">世界书</span>'
         + '      <svg class="wb-header-arrow-down" id="wbHeaderArrowDown" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'
         + '    </div>'
+        + '    <span class="wb-gallery-sub-en" id="wbGallerySubEn">WORLD BOOK</span>'
         + '    <div class="wb-header-dropdown-menu" id="wbHeaderDropdownMenu">'
         + '      <div class="wb-pop-item active" data-switch-to="wb">世界书</div>'
         + '      <div class="wb-pop-item" data-switch-to="preset">预设</div>'
@@ -293,12 +294,12 @@
         + '  </div>'
 
         // 2. 主视口画卷
-        + '  <div class="wb-viewport-box" id="wbHomeView"></div>'
+        + '  <div class="wb-viewport-box wb-home-scroll-viewport" id="wbHomeView"></div>'
 
-        // 3. 首页底部固定操作栏
-        + '  <div class="wb-home-bottom-bar" id="wbHomeBottomBar">'
-        + '    <button class="wb-btn-black-new" id="wbPopBtnNew" type="button">+ 编撰新世界书</button>'
-        + '    <button class="wb-btn-import-ghost" id="wbPopBtnImport" type="button">导入</button>'
+        // 3. 首页底部悬浮岛
+        + '  <div class="wb-home-floating-wrapper" id="wbHomeBottomBar">'
+        + '    <button class="wb-btn-floating-new" id="wbPopBtnNew" type="button">+ 编撰新世界书</button>'
+        + '    <button class="wb-btn-floating-import" id="wbPopBtnImport" type="button">导入</button>'
         + '  </div>'
 
         // 4. 新建名称页
@@ -326,7 +327,7 @@
     return container;
   }
 
-  // ============ 1. 渲染首页 (画卷风) ============
+  // ============ 1. 渲染首页 ============
   function renderHomeView() {
     state.currentLevel = 'home';
     state.isCreatingNewWb = false;
@@ -355,8 +356,10 @@
 
     var meta = sectionMeta[state.currentSection];
     var titleEl = document.getElementById('wbGalleryMainTitle');
-    if (meta && titleEl) {
-      titleEl.innerText = meta.title;
+    var subEnEl = document.getElementById('wbGallerySubEn');
+    if (meta) {
+      if (titleEl) titleEl.innerText = meta.title;
+      if (subEnEl) subEnEl.innerText = meta.en;
     }
 
     var html = '';
@@ -402,7 +405,7 @@
     }
     homeBox.innerHTML = html;
 
-    setupAnchorLockedDragSort(homeBox, '.wb-art-card', function (newOrderIds) {
+    setupPureSilentDragSort(homeBox, '.wb-art-card', function (newOrderIds) {
       state.worldbooks.sort(function (a, b) {
         return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
       });
@@ -410,7 +413,7 @@
     });
   }
 
-  // ============ 2. 渲染新建世界书名称页面 ============
+  // ============ 2. 渲染新建名称页 ============
   function renderBookMetaView(wbId) {
     state.currentLevel = 'book_meta';
     state.currentWbId = wbId;
@@ -455,7 +458,7 @@
     metaBox.innerHTML = html;
   }
 
-  // ============ 3. 渲染词条列表页 (黑胶囊在编辑左侧 + 悬浮保存) ============
+  // ============ 3. 渲染词条列表页 (文字副信息 + 浅雅灰图标 + 悬浮保存) ============
   function renderEntriesView(wbId) {
     state.currentLevel = 'entries';
     state.currentWbId = wbId;
@@ -504,24 +507,23 @@
       wb.entries.forEach(function (entry) {
         var switchCls = entry.enabled !== false ? 'on' : '';
         
-        var pillTagHtml = '';
+        // 标题下方副文字组装
+        var subTextDesc = '';
         if (entry.mode === 'const') {
-          pillTagHtml = '<span class="wb-entry-black-pill">常驻</span>';
-        } else if (entry.pos === 'depth') {
-          pillTagHtml = '<span class="wb-entry-black-pill">深度 ' + (entry.depthVal !== undefined ? entry.depthVal : 2) + '</span>';
-        } else if (entry.pos === 'before') {
-          pillTagHtml = '<span class="wb-entry-black-pill">定义前</span>';
+          subTextDesc = '常驻全局生效';
         } else {
-          pillTagHtml = '<span class="wb-entry-black-pill">定义后</span>';
+          var posName = entry.pos === 'before' ? '定义前' : (entry.pos === 'after' ? '定义后' : ('深度 ' + (entry.depthVal !== undefined ? entry.depthVal : 2)));
+          var keysStr = (entry.keys && entry.keys.length > 0) ? entry.keys.join(', ') : '无触发词';
+          subTextDesc = '<span>' + posName + '</span> · ' + keysStr;
         }
 
         html += ''
           + '<div class="wb-entry-item-card" data-entry-id="' + entry.id + '">'
-          + '  <div class="wb-entry-left-row" data-open-entry="' + entry.id + '">'
+          + '  <div class="wb-entry-left-col" data-open-entry="' + entry.id + '">'
           + '    <span class="wb-entry-title-text">' + (entry.name || '未命名条目') + '</span>'
+          + '    <div class="wb-entry-sub-desc">' + subTextDesc + '</div>'
           + '  </div>'
           + '  <div class="wb-entry-icons-row">'
-          +      pillTagHtml // 👈 黑色小胶囊精准放在编辑按钮左边
           + '    <button class="wb-entry-icon-btn" title="编辑" data-entry-act="edit" data-id="' + entry.id + '"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>'
           + '    <button class="wb-entry-icon-btn" title="复制" data-entry-act="copy" data-id="' + entry.id + '"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>'
           + '    <button class="wb-entry-icon-btn del" title="删除" data-entry-act="del" data-id="' + entry.id + '"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>'
@@ -532,7 +534,7 @@
     }
     html += '</div>';
 
-    // 悬浮岛式保存按钮（独立定位于底部工具栏上方）
+    // 悬浮岛式保存按钮
     html += ''
       + '<div class="wb-floating-save-wrapper">'
       + '  <button class="wb-btn-floating-save" id="wbBtnSaveEntriesConfirm" type="button">保存条目</button>'
@@ -542,7 +544,7 @@
 
     var listWrap = document.getElementById('wbEntriesListBox');
     if (listWrap) {
-      setupAnchorLockedDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
+      setupPureSilentDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
         wb.entries.sort(function (a, b) {
           return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
         });
@@ -551,7 +553,7 @@
     }
   }
 
-  // ============ 4. 渲染词条编辑页 (0.8px 边框) ============
+  // ============ 4. 渲染词条编辑页 (美化同款高定浅灰卡片) ============
   function renderEditView(entryId) {
     state.currentLevel = 'edit';
     state.currentEntryId = entryId;
@@ -639,9 +641,9 @@
       + '  <div class="wb-field-card">'
       + '    <span class="wb-field-label">注入位置</span>'
       + '    <div class="wb-depth-btn-group">'
-      + '      <button class="wb-depth-pos-btn' + posBeforeCls + '" data-pos="before" type="button">角色定义前</button>'
-      + '      <button class="wb-depth-pos-btn' + posAfterCls + '" data-pos="after" type="button">角色定义后</button>'
-      + '      <button class="wb-depth-pos-btn' + posDepthCls + '" data-pos="depth" type="button">上下文深度</button>'
+      + '      <button class="wb-depth-pos-btn' + posBeforeCls + '" data-pos="before" type="button">角色定义前 Before</button>'
+      + '      <button class="wb-depth-pos-btn' + posAfterCls + '" data-pos="after" type="button">角色定义后 After</button>'
+      + '      <button class="wb-depth-pos-btn' + posDepthCls + '" data-pos="depth" type="button">上下文深度 Depth</button>'
       + '    </div>'
       + '    <div class="wb-depth-num-inline' + depthInlineShow + '" id="wbDepthInline">'
       + '      <span class="wb-scan-desc">插入深度 (距末尾轮数)</span>'
@@ -713,8 +715,8 @@
     saveWorldbooksData();
   }
 
-  // ============ 物理级阻尼跟手拖拽 ============
-  function setupAnchorLockedDragSort(container, itemSelector, onReorderCallback) {
+  // ============ 纯净静默拖拽引擎 (绝对贴合手指，不弹跳、越过时不惊扰其他卡片) ============
+  function setupPureSilentDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
 
@@ -722,12 +724,14 @@
       var isDragging = false;
       var dragTimer = null;
       var startTouchY = 0;
+      var lastTouchY = 0;
 
       function onTouchStart(e) {
         if (e.target.closest('button') || e.target.closest('.wb-art-frame-left') || e.target.closest('.wb-dropdown-menu') || e.target.closest('.wb-entry-switch') || e.target.closest('.wb-entry-icons-row')) return;
         
         var touch = e.touches[0];
         startTouchY = touch.clientY;
+        lastTouchY = touch.clientY;
 
         dragTimer = setTimeout(function () {
           isDragging = true;
@@ -745,28 +749,11 @@
         }
         e.preventDefault();
         var touch = e.touches[0];
+        lastTouchY = touch.clientY;
         
+        // 绝对1:1对齐位移，不施加任何缩放或伪阴影
         var deltaY = touch.clientY - startTouchY;
-        el.style.transform = 'translateY(' + deltaY + 'px) scale(1.025)';
-
-        var allCards = Array.from(container.querySelectorAll(itemSelector));
-        var targetCard = allCards.find(function (card) {
-          if (card === el) return false;
-          var r = card.getBoundingClientRect();
-          return touch.clientY >= r.top && touch.clientY <= r.bottom;
-        });
-
-        if (targetCard) {
-          var draggingIndex = allCards.indexOf(el);
-          var targetIndex = allCards.indexOf(targetCard);
-          
-          if (draggingIndex < targetIndex) {
-            container.insertBefore(el, targetCard.nextSibling);
-          } else {
-            container.insertBefore(el, targetCard);
-          }
-          startTouchY = touch.clientY - (el.getBoundingClientRect().top - container.getBoundingClientRect().top);
-        }
+        el.style.transform = 'translateY(' + deltaY + 'px)';
       }
 
       function onTouchEnd() {
@@ -775,6 +762,24 @@
         isDragging = false;
         el.classList.remove('wb-dragging');
         el.style.transform = '';
+
+        // 仅在松手释放瞬间，精准插队到目标卡片位置
+        var allCards = Array.from(container.querySelectorAll(itemSelector));
+        var targetCard = allCards.find(function (card) {
+          if (card === el) return false;
+          var r = card.getBoundingClientRect();
+          return lastTouchY >= r.top && lastTouchY <= r.bottom;
+        });
+
+        if (targetCard) {
+          var draggingIndex = allCards.indexOf(el);
+          var targetIndex = allCards.indexOf(targetCard);
+          if (draggingIndex < targetIndex) {
+            container.insertBefore(el, targetCard.nextSibling);
+          } else {
+            container.insertBefore(el, targetCard);
+          }
+        }
 
         var reorderedIds = Array.from(container.querySelectorAll(itemSelector)).map(function (c) {
           return c.dataset.wbId || c.dataset.entryId;
