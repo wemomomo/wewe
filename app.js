@@ -2,7 +2,6 @@
 (function() {
   'use strict';
 
-  // 修复 iOS Safari 点击不冒泡 Bug，确保苹果手机上所有 div 上的点击都能顺畅触发
   if (document.body) {
     document.body.style.cursor = 'pointer';
   } else {
@@ -100,7 +99,6 @@
         userInfo: { username: session.username }
       };
     }
-
     return null;
   }
 
@@ -118,7 +116,6 @@
       callback(cookieDev);
       return;
     }
-
     try {
       var localDev = localStorage.getItem('shared_device_id');
       if (localDev) {
@@ -133,7 +130,6 @@
         callback(savedId);
         return;
       }
-
       var w = Math.min(screen.width, screen.height);
       var h = Math.max(screen.width, screen.height);
       var cores = navigator.hardwareConcurrency || 4;
@@ -172,13 +168,8 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
-    function hideMask() {
-      mask.classList.remove('show');
-    }
-
-    function showMask() {
-      mask.classList.add('show');
-    }
+    function hideMask() { mask.classList.remove('show'); }
+    function showMask() { mask.classList.add('show'); }
 
     function onLoginVerified(token, userInfo) {
       try {
@@ -493,11 +484,10 @@
     }
   }
 
-  // 严丝合缝的子页面侦测器（实时双重校验 JS 状态与 DOM 元素）
+  // 严丝合缝的子页面侦测器
   function checkSubViewStatus(page) {
     var pageName = page.dataset.page;
 
-    // 1. 世界书
     if (pageName === 'worldbook') {
       if (window.WorldbookState && window.WorldbookState.currentLevel && window.WorldbookState.currentLevel !== 'home') {
         return {
@@ -519,7 +509,6 @@
       }
     }
 
-    // 2. 档案中心
     if (pageName === 'archive') {
       if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
         return {
@@ -543,7 +532,6 @@
       }
     }
 
-    // 3. 美化中心
     if (pageName === 'beautify' || pageName === 'beautiful') {
       var bSub = page.querySelector('.beautify-sub-view.active');
       if (bSub) {
@@ -554,7 +542,6 @@
       }
     }
 
-    // 4. 设置及其他二级 App
     if (pageName === 'api' || pageName === 'data') {
       return {
         isSub: true,
@@ -565,7 +552,7 @@
     return { isSub: false, action: null };
   }
 
-  // ============ 全局统一导航绑定 ============
+  // ============ 全局统一导航绑定 (拖拽时锁死页面外壳位移) ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -640,14 +627,15 @@
       }
     });
 
-    // 核心多级滑动返回引擎 (实时校验，绝不误杀)
+    // 核心边缘滑动返回（拖拽排序时 100% 锁死外壳）
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var subInfo = { isSub: false, action: null };
 
       page.addEventListener('touchstart', function(e) { 
-        if (e.touches[0].clientX > 45) return; 
-        
+        if (e.touches[0].clientX > 28) return; 
+        if (document.body.classList.contains('wb-is-sorting')) return;
+
         startX = e.touches[0].clientX; 
         startY = e.touches[0].clientY;
         currentX = 0;
@@ -655,7 +643,6 @@
         isLocked = false;
         isHoriz = false;
 
-        // 每次手势触发瞬间，精确判定当前 App 所在的深层状态
         subInfo = checkSubViewStatus(page);
 
         if (!subInfo.isSub) {
@@ -665,19 +652,24 @@
 
       page.addEventListener('touchmove', function(e) { 
         if (!isDragging) return; 
+        if (document.body.classList.contains('wb-is-sorting')) {
+          isDragging = false;
+          page.style.transform = '';
+          return;
+        }
+
         var diffX = e.touches[0].clientX - startX;
         var diffY = e.touches[0].clientY - startY;
 
-        if (!isLocked && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
+        if (!isLocked && (Math.abs(diffX) > 6 || Math.abs(diffY) > 6)) {
           isLocked = true;
-          isHoriz = Math.abs(diffX) > Math.abs(diffY);
+          isHoriz = Math.abs(diffX) > (Math.abs(diffY) * 1.5);
         }
 
         if (!isHoriz) return;
 
         if (diffX > 0) {
           currentX = diffX;
-          // 只要处在子页面，外层 Page 绝对不作位移，防止暴露底层！
           if (!subInfo.isSub) {
             page.style.transform = 'translateX(' + currentX + 'px)'; 
           }
@@ -691,7 +683,6 @@
         }
         isDragging = false;
 
-        // 【最核心保护机制】：如果在任意 App 子页面中，100% 仅触发子页面的回退，绝不调 showPage('home')！
         if (subInfo.isSub && typeof subInfo.action === 'function') {
           if (currentX > 35) {
             subInfo.action();
@@ -699,7 +690,6 @@
           return;
         }
 
-        // 只有在 App 的第一层大首页，且手势位移充足时，才退回桌面
         if (!subInfo.isSub) {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
@@ -831,7 +821,7 @@
     else if (cropDragMode==='b') { cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
     else if (cropDragMode==='t') { var ba=sc.y+sc.h; var ny=Math.max(0,Math.min(ba-CROP_MIN,sc.y+dy)); cropBox.y=ny; cropBox.h=ba-ny; }
     else if (cropDragMode==='br') { cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
-    else if (cropDragMode==='bl') { var ra2=sc.x+sc.w; var nx2=Math.max(0,Math.min(ra2-CROP_MIN,sc.x+dx)); cropBox.x=nx2; cropBox.w=ra2-nx2; cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
+    else if (cropDragMode==='bl') { var ra2=sc.x+sc.w; var nx2=Math.max(0,Math.min(ra2-CROP_MIN,sc.x+dx)); cropBox.x=nx2; cropBox.w=ra2-nx2; cropBox.h=Math.max(CROP_MIN,cropDisplayH-sc.y,sc.h+dy)); }
     else if (cropDragMode==='tr') { var ba2=sc.y+sc.h; var ny2=Math.max(0,Math.min(ba2-CROP_MIN,sc.y+dy)); cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.y=ny2; cropBox.h=ba2-ny2; }
     else if (cropDragMode==='tl') { var ra3=sc.x+sc.w; var ba3=sc.y+sc.h; var nx3=Math.max(0,Math.min(ra3-CROP_MIN,sc.x+dx)); var ny3=Math.max(0,Math.min(ba3-CROP_MIN,sc.y+dy)); cropBox.x=nx3; cropBox.w=ra3-nx3; cropBox.y=ny3; cropBox.h=ba3-ny3; }
     if (cropLockedRatio) {
