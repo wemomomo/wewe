@@ -20,7 +20,12 @@
     bgHistory: []
   };
 
+  // 1. 默认蓝色爱心 SVG
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
+  
+  // 2. 纯白底·浅淡初雪蓝雪花 SVG (与默认爱心完全同源架构，苹果深色模式绝对不反色变黑！)
+  var SNOWFLAKE_SVG_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23ffffff'/%3E%3Ctext x='50%25' y='56%25' font-size='62' font-family='-apple-system, BlinkMacSystemFont, sans-serif' text-anchor='middle' dominant-baseline='middle' fill='rgba(120, 165, 215, 0.72)'%3E%E2%9D%85%3C/text%3E%3C/svg%3E";
+
   var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
   var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
 
@@ -28,31 +33,6 @@
     icon1: '',
     icon2: ''
   };
-
-  // 生成纯净、无杂质、大字号且绝对居中的纯正 PNG 初雪雪花图标 (192x192)
-  function generateSnowflakePng() {
-    try {
-      var canvas = document.createElement('canvas');
-      canvas.width = 192;
-      canvas.height = 192;
-      var ctx = canvas.getContext('2d');
-
-      // 1. 纯白底色
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 192, 192);
-
-      // 2. 绘制纯粹浅淡初雪蓝雪花 ❆ (字号加大至 128px，移除落雪粒子，绝对几何居中)
-      ctx.fillStyle = 'rgba(120, 165, 215, 0.65)';
-      ctx.font = '128px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('❆', 96, 98); // 98px 视觉垂直对齐最佳重心
-
-      return canvas.toDataURL('image/png');
-    } catch(e) {
-      return DEFAULT_HEART_URL;
-    }
-  }
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
@@ -148,7 +128,7 @@
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
 
-              // 1. 主图1（放大居中的纯净初雪冰晶 ❆）
+              // 纯白底·抗反黑初雪雪花
               '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
                 '<div class="pwa-icon-preview">' +
                   '<div class="pwa-snowflake-container">' +
@@ -158,7 +138,7 @@
                 '<span class="pwa-icon-name">初雪</span>' +
               '</div>' +
 
-              // 2. 主图2（原主图1图片）
+              // 原主图1图片
               '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图">' +
                 '<div class="pwa-icon-preview">' +
                   '<img src="' + RAW_ICON_PATH_1 + '" alt="主图" loading="eager">' +
@@ -166,7 +146,7 @@
                 '<span class="pwa-icon-name">主图</span>' +
               '</div>' +
 
-              // 3. 自定义项
+              // 自定义项
               '<div class="pwa-icon-item pwa-custom-item" id="pwaCustomItem" data-pwa-val="custom" data-pwa-name="自定义">' +
                 '<div class="pwa-icon-preview" id="pwaCustomPreview">' +
                   '<div class="pwa-custom-placeholder" id="pwaCustomPlaceholder">' +
@@ -419,13 +399,13 @@
           {
             src: targetUrl,
             sizes: "192x192",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any"
           },
           {
             src: targetUrl,
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any maskable"
           }
         ]
@@ -449,8 +429,8 @@
 
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      var pngSnowflake = generateSnowflakePng();
-      setManifestAndAppleIcons(pngSnowflake);
+      // 纯矢量 SVG 初雪雪花，格式与默认爱心完全一样，彻底抗深色模式反黑！
+      setManifestAndAppleIcons(SNOWFLAKE_SVG_URL);
       return;
     } else if (type === 'icon2') {
       convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
@@ -1075,8 +1055,7 @@
 
     var themeBoxes = document.querySelectorAll('.theme-box-card');
     for (var m = 0; m < themeBoxes.length; m++) {
-      if (themeBoxes[m].getAttribute('data-tmode') === beautifyData.themeMode) themeBoxes[m].classList.add('active');
-      else themeBoxes[m].classList.remove('active');
+      themeBoxes[m].getAttribute('data-tmode') === beautifyData.themeMode ? themeBoxes[m].classList.add('active') : themeBoxes[m].classList.remove('active');
     }
     applyThemeMode(beautifyData.themeMode);
 
