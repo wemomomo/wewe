@@ -47,7 +47,7 @@ img, svg {
   user-select: text;
 }
 
-/* ========== 纯白背景 + 蓝光晕登录门禁 (层级: 500) ========== */
+/* ========== 1:1 比例专属背景图登录门禁 (层级: 500) ========== */
 .auth-gate-mask {
   position: fixed;
   top: 0;
@@ -61,7 +61,7 @@ img, svg {
   display: none;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
   overflow: hidden;
 }
 .auth-gate-mask.show {
@@ -74,116 +74,119 @@ img, svg {
   to { opacity: 1; transform: scale(1); }
 }
 
+/* 严格 1:1 正方形卡片 */
 .auth-gate-card {
   width: 100%;
-  max-width: 375px;
-  min-height: 480px;
-  background: transparent;
+  max-width: 360px;
+  aspect-ratio: 1 / 1;
+  border-radius: 20px;
   position: relative;
   overflow: hidden;
-  border-radius: 20px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #ffffff;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.18);
 }
 
-.auth-glow-top {
+/* 墨墨专属背景图层 */
+.auth-bg-img-layer {
   position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(176,204,232,0.45) 0%, rgba(245,248,252,0) 70%);
-  pointer-events: none;
-}
-
-.auth-glow-bottom {
-  position: absolute;
-  bottom: -60px;
-  left: -60px;
-  width: 280px;
-  height: 280px;
-  background: radial-gradient(circle, rgba(136,171,218,0.3) 0%, rgba(221,232,244,0) 70%);
-  pointer-events: none;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('https://niveousmoon.top/images/img_1789330892302_ya6di.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 1;
 }
 
 .auth-content-box {
-  width: 280px;
-  text-align: center;
   position: relative;
   z-index: 2;
+  width: 84%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.auth-subtitle {
-  font-size: 8px;
-  color: rgba(136,171,218,0.7);
-  letter-spacing: 4px;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
-
-.auth-title {
+/* 顶部大标题 Niveous */
+.auth-main-title {
   font-size: 24px;
   font-weight: 300;
-  color: #6a8aa8;
+  color: #4a6d8c;
   letter-spacing: 6px;
   text-indent: 6px;
+  line-height: 1.1;
+}
+
+/* 副标题：被雪覆盖过后的纯净白色。 */
+.auth-sub-desc {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(90, 120, 150, 0.85);
+  letter-spacing: 1.2px;
+  margin-top: 5px;
+  line-height: 1.4;
 }
 
 .auth-divider {
-  width: 40px;
+  width: 32px;
   height: 1px;
-  background: rgba(136,171,218,0.3);
-  margin: 12px auto 24px;
+  background: rgba(136, 171, 218, 0.45);
+  margin: 10px auto 14px;
 }
 
 .auth-inputs-wrap {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
+/* 常驻激活态浅冰蓝边框与微光 */
 .auth-inputs-wrap input {
   width: 100%;
-  height: 44px;
-  background: rgba(255,255,255,0.6);
-  border: 1px solid rgba(255,255,255,1);
-  border-radius: 10px;
-  padding: 0 14px;
-  font-size: 13px;
-  color: #6a8aa8;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.2px solid rgba(136, 171, 218, 0.95) !important;
+  border-radius: 9px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  color: #334e68;
   outline: none;
   box-sizing: border-box;
   font-family: inherit;
+  box-shadow: 0 0 8px rgba(136, 171, 218, 0.28) !important;
   transition: all 0.2s ease;
   -webkit-user-select: text;
   user-select: text;
 }
 .auth-inputs-wrap input::placeholder {
-  color: rgba(106, 138, 168, 0.5);
-}
-.auth-inputs-wrap input:focus {
-  background: rgba(255,255,255,0.9);
-  border-color: rgba(176,204,232,0.8);
-  box-shadow: 0 0 10px rgba(136,171,218,0.15);
+  color: rgba(106, 138, 168, 0.6);
 }
 
 .auth-submit-btn {
   width: 100%;
-  height: 44px;
-  background: linear-gradient(135deg, #b0cce8, #88abda);
+  height: 38px;
+  background: linear-gradient(135deg, #a6c6e8, #7fa5d6);
   border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 14px;
-  letter-spacing: 4px;
-  text-indent: 4px;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-indent: 3px;
   cursor: pointer;
   font-family: inherit;
-  box-shadow: 0 4px 12px rgba(136,171,218,0.25);
-  transition: all 0.2s ease;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(127, 165, 214, 0.35);
+  transition: all 0.15s ease;
 }
 .auth-submit-btn:active {
   transform: scale(0.98);
@@ -194,23 +197,24 @@ img, svg {
   transform: none;
 }
 
+/* 字体调大的注册提示栏 */
 .auth-switch-text {
-  margin-top: 18px;
-  font-size: 13px;
-  color: rgba(106, 138, 168, 0.75);
-  letter-spacing: 0.5px;
-  line-height: 1.5;
+  margin-top: 10px;
+  font-size: 13px; /* 字体调大更加清晰易读 */
+  color: rgba(90, 120, 150, 0.85);
+  letter-spacing: 0.6px;
+  line-height: 1.4;
 }
 .auth-switch-text span {
-  color: #6a8aa8;
-  font-weight: 700;
+  color: #4a6d8c;
+  font-weight: 800;
   cursor: pointer;
-  padding: 2px 4px;
   text-decoration: underline;
   text-underline-offset: 3px;
+  margin-left: 3px;
 }
 .auth-switch-text span:active {
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 .auth-hidden {
@@ -712,7 +716,7 @@ img, svg {
   padding-top: 0 !important;
 }
 
-/* 核心修复：世界书容器顶部严格遵循 var(--safe-top)，与原生 App 保持一致舒适间距 */
+/* 世界书容器安全区计算 */
 .wb-container {
   position: absolute;
   inset: 0;
