@@ -18,7 +18,7 @@
 <title>Niveous</title>
 
 <!-- 核心防缓存机制：确保苹果手机每次实时拉取最新样式 -->
-<link rel="stylesheet" href="style.css?v=2.0.3">
+<link rel="stylesheet" href="style.css?v=2.0.4">
 <link rel="stylesheet" href="components.css?v=2.0.2">
 <link rel="stylesheet" href="apps.css?v=2.0.2">
 <link rel="stylesheet" href="tabbar.css?v=2.0.2">
@@ -34,16 +34,17 @@
 </head>
 <body>
 
-<!-- 全局登录/注册门禁层 (1:1 比例专属背景卡片) -->
+<!-- 全局登录/注册门禁层 -->
 <div class="auth-gate-mask" id="authGateMask">
   <div class="auth-gate-card">
-    <!-- 专属背景图片层 -->
+    <!-- 专属背景图片层 (完整舒展呈现) -->
     <div class="auth-bg-img-layer"></div>
 
     <!-- 1. 登录表单 -->
     <div class="auth-content-box" id="authLoginBox">
       <div class="auth-main-title">Niveous</div>
       <div class="auth-sub-desc">被雪覆盖过后的纯净白色。</div>
+      <div class="auth-form-title">账号登录</div>
       <div class="auth-divider"></div>
 
       <div class="auth-inputs-wrap">
@@ -60,6 +61,7 @@
     <div class="auth-content-box auth-hidden" id="authRegisterBox">
       <div class="auth-main-title">Niveous</div>
       <div class="auth-sub-desc">被雪覆盖过后的纯净白色。</div>
+      <div class="auth-form-title">新用户注册</div>
       <div class="auth-divider"></div>
 
       <div class="auth-inputs-wrap">
