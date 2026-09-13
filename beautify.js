@@ -115,25 +115,39 @@
               '<div class="beautify-card-title">主屏幕快捷图标</div>' +
               '<div class="beautify-card-desc">选择预设或点击自定义从相册裁剪上传属于你的专属App图标</div>' +
             '</div>' +
-            '<div class="pwa-icons-grid">' +
+                       '<div class="pwa-icons-grid">' +
               '<div class="pwa-icon-item active" data-pwa-val="heart" data-pwa-name="默认">' +
                 '<div class="pwa-icon-preview">' +
                   '<div class="pwa-svg-box">&#9825;</div>' +
                 '</div>' +
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
-              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="主图1">' +
+
+              // 👇 1. 这是调换到前面来的：主图1（初雪冰晶 ❆）
+              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图1" loading="eager">' +
+                  '<div class="pwa-snowflake-container">' +
+                    '<div class="pwa-snow-particles">' +
+                      '<span class="pwa-snow-dot pwa-dot-1"></span>' +
+                      '<span class="pwa-snow-dot pwa-dot-2"></span>' +
+                      '<span class="pwa-snow-dot pwa-dot-3"></span>' +
+                      '<span class="pwa-snow-dot pwa-dot-4"></span>' +
+                    '</div>' +
+                    '<div class="pwa-snowflake-main">❆</div>' +
+                  '</div>' +
                 '</div>' +
-                '<span class="pwa-icon-name">主图1</span>' +
+                '<span class="pwa-icon-name">初雪</span>' +
               '</div>' +
-              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
+
+              // 👇 2. 这是调换到后面去的：主图2（原主图1图片）
+              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + RAW_ICON_PATH_2 + '" alt="主图2" loading="eager">' +
+                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图" loading="eager">' +
                 '</div>' +
-                '<span class="pwa-icon-name">主图2</span>' +
+                '<span class="pwa-icon-name">主图</span>' +
               '</div>' +
+
+              // 3. 自定义项保持不变
               '<div class="pwa-icon-item pwa-custom-item" id="pwaCustomItem" data-pwa-val="custom" data-pwa-name="自定义">' +
                 '<div class="pwa-icon-preview" id="pwaCustomPreview">' +
                   '<div class="pwa-custom-placeholder" id="pwaCustomPlaceholder">' +
@@ -414,15 +428,17 @@
     } catch(e) {}
   }
 
+    // 浅淡初雪雪花的矢量 Base64
+  var DEFAULT_SNOWFLAKE_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23ffffff'/%3E%3Ctext x='50%25' y='54%25' font-size='48' text-anchor='middle' dominant-baseline='middle' fill='rgba(120,165,215,0.55)'%3E%E2%9D%85%3C/text%3E%3C/svg%3E";
+
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
-        OPT_ICONS.icon1 = pngBase64;
-        setManifestAndAppleIcons(pngBase64);
-      });
+      // 主图1应用浅淡初雪 ❆
+      setManifestAndAppleIcons(DEFAULT_SNOWFLAKE_SVG);
       return;
     } else if (type === 'icon2') {
-      convertImgToPngBase64(RAW_ICON_PATH_2, function(pngBase64) {
+      // 主图2应用原图
+      convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
         OPT_ICONS.icon2 = pngBase64;
         setManifestAndAppleIcons(pngBase64);
       });
@@ -433,6 +449,7 @@
       return;
     }
 
+    // 默认心形
     setManifestAndAppleIcons(DEFAULT_HEART_URL);
   }
 
