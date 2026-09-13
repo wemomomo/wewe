@@ -16,7 +16,7 @@
 
   var state = {
     currentSection: 'wb',
-    currentLevel: 'home', // 'home' | 'entries' | 'edit' | 'book_meta'
+    currentLevel: 'home',
     worldbooks: [],
     presets: [],
     regexes: [],
@@ -29,56 +29,35 @@
 
   window.WorldbookState = state;
 
-  // ============ Tokens 实时精准核算算法 ============
   function calculateTokens(text) {
     if (!text || typeof text !== 'string') return 0;
     var str = text.trim();
     if (!str) return 0;
-    
     var chineseCount = (str.match(/[\u4e00-\u9fa5\u3000-\u303f\uff01-\uff5e]/g) || []).length;
     var otherStr = str.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff01-\uff5e]/g, '');
     var englishWords = otherStr.trim().split(/\s+/).filter(Boolean).length;
     var otherChars = otherStr.length;
-    
-    var tokenEstimate = Math.ceil(chineseCount * 1.3 + englishWords * 1.3 + (otherChars - englishWords) * 0.3);
-    return Math.max(1, tokenEstimate);
+    return Math.max(1, Math.ceil(chineseCount * 1.3 + englishWords * 1.3 + (otherChars - englishWords) * 0.3));
   }
 
   function getEntryTokens(entry) {
     if (!entry) return 0;
-    var fullText = (entry.name || '') + ' ' + (entry.keys ? entry.keys.join(' ') : '') + ' ' + (entry.content || '');
-    return calculateTokens(fullText);
+    return calculateTokens((entry.name || '') + ' ' + (entry.keys ? entry.keys.join(' ') : '') + ' ' + (entry.content || ''));
   }
 
   function getWbTokensStats(wb) {
-    if (!wb || !Array.isArray(wb.entries)) {
-      return { total: 0, active: 0, count: 0 };
-    }
-    var totalTokens = 0;
-    var activeTokens = 0;
-    
+    if (!wb || !Array.isArray(wb.entries)) return { total: 0, active: 0, count: 0 };
+    var total = 0, active = 0;
     wb.entries.forEach(function (en) {
       var t = getEntryTokens(en);
-      totalTokens += t;
-      if (en.enabled !== false) {
-        activeTokens += t;
-      }
+      total += t;
+      if (en.enabled !== false) active += t;
     });
-
-    return {
-      total: totalTokens,
-      active: activeTokens,
-      count: wb.entries.length
-    };
+    return { total: total, active: active, count: wb.entries.length };
   }
 
-  // ============ 数据持久化 ============
   function loadAllData(callback) {
-    if (!window.AppDB) {
-      state.worldbooks = [];
-      if (callback) callback();
-      return;
-    }
+    if (!window.AppDB) { state.worldbooks = []; if (callback) callback(); return; }
     window.AppDB.get('app_worldbooks_data', function (wbData) {
       state.worldbooks = Array.isArray(wbData) ? wbData.filter(function (w) { return w.title !== '默认角色世界观'; }) : [];
       window.AppDB.get('app_presets_data', function (preData) {
@@ -107,11 +86,9 @@
     document.documentElement.style.setProperty('--wb-cur-theme-bg', theme.bg);
   }
 
-  // ============ 封面图片剪裁 ============
   function handleCoverClick(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
     if (!wb) return;
-
     if (window.PhotoAction) {
       window.PhotoAction.show(
         function () {
@@ -148,7 +125,6 @@
     }
   }
 
-  // ============ 导入 .docx / 自有标准 .json ============
   function importWorldbookDocx() {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -158,7 +134,6 @@
       if (!file) return;
       var fileName = file.name.replace(/\.[^/.]+$/, '') || '导入的世界书';
       var isJson = file.name.toLowerCase().endsWith('.json');
-
       var reader = new FileReader();
 
       if (isJson) {
@@ -169,8 +144,6 @@
               if (window.AppNav) window.AppNav.showToast('非标准数据格式，无法导入');
               return;
             }
-
-            var wbTitle = data.name || fileName;
             var parsedEntries = data.entries.map(function (item, idx) {
               return {
                 id: 'entry_' + Date.now() + '_' + idx,
@@ -184,17 +157,15 @@
                 enabled: item.enabled !== false && item.disable !== true
               };
             });
-
             state.worldbooks.push({
               id: 'wb_' + Date.now(),
-              title: wbTitle,
+              title: data.name || fileName,
               cover: data.cover || '',
               entries: parsedEntries
             });
-
             saveWorldbooksData();
             renderHomeView();
-            if (window.AppNav) window.AppNav.showToast('✦ 成功导入：《' + wbTitle + '》 ✦');
+            if (window.AppNav) window.AppNav.showToast('✦ 成功导入：《' + (data.name || fileName) + '》 ✦');
           } catch (err) {
             if (window.AppNav) window.AppNav.showToast('文件损坏，导入失败');
           }
@@ -203,32 +174,23 @@
       } else {
         reader.onload = function (evt) {
           try {
-            var arrayBuffer = evt.target.result;
-            var textContent = extractDocxText(arrayBuffer);
-            if (!textContent || !textContent.trim()) {
-              textContent = '从文档中导入的内容设定。';
-            }
-
-            var newEntry = {
-              id: 'entry_' + Date.now(),
-              name: fileName + ' 设定',
-              content: textContent.trim(),
-              mode: 'key',
-              keys: [fileName],
-              scanDepth: 4,
-              pos: 'depth',
-              depthVal: 2,
-              enabled: true
-            };
-
-            var newWb = {
+            var fullText = extractDocxText(evt.target.result);
+            state.worldbooks.push({
               id: 'wb_' + Date.now(),
               title: fileName,
               cover: '',
-              entries: [newEntry]
-            };
-
-            state.worldbooks.push(newWb);
+              entries: [{
+                id: 'entry_' + Date.now(),
+                name: fileName + ' 设定',
+                content: fullText || '从文档中导入的内容设定。',
+                mode: 'key',
+                keys: [fileName],
+                scanDepth: 4,
+                pos: 'depth',
+                depthVal: 2,
+                enabled: true
+              }]
+            });
             saveWorldbooksData();
             renderHomeView();
             if (window.AppNav) window.AppNav.showToast('✦ 成功导入文档：《' + fileName + '》 ✦');
@@ -244,40 +206,20 @@
 
   function extractDocxText(buffer) {
     try {
-      var bytes = new Uint8Array(buffer);
-      var textParts = [];
-      var decoder = new TextDecoder('utf-8');
-      var decoded = decoder.decode(bytes);
-
+      var decoded = new TextDecoder('utf-8').decode(new Uint8Array(buffer));
       var matches = decoded.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g);
       if (matches && matches.length) {
-        for (var i = 0; i < matches.length; i++) {
-          var clean = matches[i].replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, '');
-          clean = clean.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
-          textParts.push(clean);
-        }
-        return textParts.join('');
-      }
-
-      var pMatches = decoded.match(/<w:p[^>]*>([\s\S]*?)<\/w:p>/g);
-      if (pMatches && pMatches.length) {
-        for (var j = 0; j < pMatches.length; j++) {
-          var pClean = pMatches[j].replace(/<[^>]+>/g, '');
-          if (pClean && pClean.trim()) textParts.push(pClean.trim());
-        }
-        return textParts.join('\n');
+        return matches.map(function(m) {
+          return m.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+        }).join('');
       }
       return '';
-    } catch (e) {
-      return '';
-    }
+    } catch (e) { return ''; }
   }
 
-  // ============ 导出 JSON ============
   function exportWorldbookJSON(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
     if (!wb) return;
-
     var exportData = {
       name: wb.title || 'WorldBook',
       cover: wb.cover || '',
@@ -294,23 +236,18 @@
         };
       })
     };
-
-    var dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportData, null, 2));
-    var downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', (wb.title || 'worldbook') + '.json');
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-
+    var a = document.createElement('a');
+    a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    a.download = (wb.title || 'worldbook') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
     if (window.AppNav) window.AppNav.showToast('世界书已成功导出');
   }
 
-  // ============ 单例 DOM 构建 ============
   function ensureWorldbookDOM() {
     var page = document.querySelector('[data-page="worldbook"]');
     if (!page) return null;
-
     var container = document.getElementById('worldbookContent');
     if (!container) {
       container = document.createElement('div');
@@ -318,7 +255,6 @@
       container.id = 'worldbookContent';
       page.appendChild(container);
     }
-
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
@@ -334,18 +270,14 @@
         + '      <div class="wb-pop-item" data-switch-to="regex">正则</div>'
         + '    </div>'
         + '  </div>'
-
         + '  <div class="wb-viewport-box wb-home-scroll-viewport" id="wbHomeView"></div>'
-
         + '  <div class="wb-home-floating-wrapper" id="wbHomeBottomBar">'
         + '    <button class="wb-btn-floating-new" id="wbPopBtnNew" type="button">+ 编撰新世界书</button>'
         + '    <button class="wb-btn-floating-import" id="wbPopBtnImport" type="button">导入</button>'
         + '  </div>'
-
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbBookMetaView"></div>'
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEntriesView"></div>'
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEditView"></div>'
-
         + '  <div class="wb-expanded-modal" id="wbExpandedModal">'
         + '    <div class="wb-entries-nav-bar">'
         + '      <span style="font-size:16px; font-weight:800; color:#1c1c1e;">沉浸编辑</span>'
@@ -357,21 +289,16 @@
         + '  </div>'
         + '</div>';
     }
-
     return container;
   }
 
-  // ============ 1. 渲染首页 ============
   function renderHomeView() {
     state.currentLevel = 'home';
     state.isCreatingNewWb = false;
-
     var headerRow = document.getElementById('wbGalleryHeaderRow');
     if (headerRow) headerRow.style.display = 'flex';
-
     var homeBottomBar = document.getElementById('wbHomeBottomBar');
     if (homeBottomBar) homeBottomBar.style.display = 'flex';
-
     var homeBox = document.getElementById('wbHomeView');
     if (!homeBox) return;
 
@@ -381,10 +308,8 @@
 
     var metaView = document.getElementById('wbBookMetaView');
     if (metaView) metaView.classList.add('wb-view-hidden');
-
     var entriesView = document.getElementById('wbEntriesView');
     if (entriesView) entriesView.classList.add('wb-view-hidden');
-
     var editView = document.getElementById('wbEditView');
     if (editView) editView.classList.add('wb-view-hidden');
 
@@ -397,7 +322,6 @@
     }
 
     var html = '';
-
     if (state.currentSection === 'wb') {
       if (!state.worldbooks || state.worldbooks.length === 0) {
         html = '<div class="wb-empty-tip">✦ 暂无世界书，请点击下方「+ 编撰新世界书」 ✦</div>';
@@ -405,7 +329,6 @@
         state.worldbooks.forEach(function (wb) {
           var coverImgHtml = wb.cover ? '<img src="' + wb.cover + '" alt="封面">' : '<img src="" alt="封面">';
           var hasImgCls = wb.cover ? ' has-img' : '';
-          
           var stats = getWbTokensStats(wb);
 
           html += ''
@@ -450,7 +373,6 @@
     });
   }
 
-  // ============ 2. 渲染新建名称页 ============
   function renderBookMetaView(wbId) {
     state.currentLevel = 'book_meta';
     state.currentWbId = wbId;
@@ -458,44 +380,32 @@
 
     var headerRow = document.getElementById('wbGalleryHeaderRow');
     if (headerRow) headerRow.style.display = 'none';
-
     var homeBottomBar = document.getElementById('wbHomeBottomBar');
     if (homeBottomBar) homeBottomBar.style.display = 'none';
-
     var homeView = document.getElementById('wbHomeView');
     if (homeView) homeView.classList.add('wb-view-hidden');
-
     var entriesView = document.getElementById('wbEntriesView');
     if (entriesView) entriesView.classList.add('wb-view-hidden');
-
     var editView = document.getElementById('wbEditView');
     if (editView) editView.classList.add('wb-view-hidden');
 
     var metaBox = document.getElementById('wbBookMetaView');
     if (!metaBox) return;
-
     metaBox.classList.remove('wb-view-hidden');
     metaBox.style.display = 'flex';
     metaBox.scrollTop = 0;
 
-    var titleVal = (wb && wb.title) ? wb.title : '';
-
-    var html = ''
+    metaBox.innerHTML = ''
       + '<div class="wb-meta-nav-bar">'
-      + '  <button class="wb-meta-back-btn" id="wbBtnMetaBack" type="button">'
-      + '    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>'
-      + '  </button>'
+      + '  <button class="wb-meta-back-btn" id="wbBtnMetaBack" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
       + '  <button class="wb-meta-confirm-btn" id="wbBtnSaveBookMeta" type="button">确定</button>'
       + '</div>'
       + '<div class="wb-meta-body-wrap">'
       + '  <span class="wb-meta-title-label">世界书名称</span>'
-      + '  <input class="wb-underline-input" type="text" id="wbIptBookTitle" value="' + titleVal + '" placeholder="输入世界书名称" autofocus>'
+      + '  <input class="wb-underline-input" type="text" id="wbIptBookTitle" value="' + ((wb && wb.title) ? wb.title : '') + '" placeholder="输入世界书名称" autofocus>'
       + '</div>';
-
-    metaBox.innerHTML = html;
   }
 
-  // ============ 3. 渲染词条列表页 ============
   function renderEntriesView(wbId) {
     state.currentLevel = 'entries';
     state.currentWbId = wbId;
@@ -504,31 +414,24 @@
 
     var headerRow = document.getElementById('wbGalleryHeaderRow');
     if (headerRow) headerRow.style.display = 'none';
-
     var homeBottomBar = document.getElementById('wbHomeBottomBar');
     if (homeBottomBar) homeBottomBar.style.display = 'none';
-
     var homeView = document.getElementById('wbHomeView');
     if (homeView) homeView.classList.add('wb-view-hidden');
-
     var metaView = document.getElementById('wbBookMetaView');
     if (metaView) metaView.classList.add('wb-view-hidden');
-
     var editView = document.getElementById('wbEditView');
     if (editView) editView.classList.add('wb-view-hidden');
 
     var entriesBox = document.getElementById('wbEntriesView');
     if (!entriesBox) return;
-
     entriesBox.classList.remove('wb-view-hidden');
     entriesBox.style.display = 'flex';
     entriesBox.scrollTop = 0;
 
     var html = ''
       + '<div class="wb-entries-nav-bar">'
-      + '  <button class="wb-entries-back-btn" id="wbBtnEntriesBack" type="button">'
-      + '    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>'
-      + '  </button>'
+      + '  <button class="wb-entries-back-btn" id="wbBtnEntriesBack" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
       + '  <div class="wb-entries-title-center-wrap" id="wbBtnEditBookTitle" title="点击重命名">'
       + '    <span class="wb-entries-book-title">' + (wb.title || '世界书') + '</span>'
       + '  </div>'
@@ -544,8 +447,8 @@
       wb.entries.forEach(function (entry) {
         var switchCls = entry.enabled !== false ? 'on' : '';
         var entryTokens = getEntryTokens(entry);
-
         var subTextDesc = '';
+
         if (entry.mode === 'const') {
           subTextDesc = '常驻全局 · <span>' + entryTokens + ' Tokens</span>';
         } else {
@@ -589,7 +492,6 @@
     }
   }
 
-  // ============ 4. 渲染词条编辑页 ============
   function renderEditView(entryId) {
     state.currentLevel = 'edit';
     state.currentEntryId = entryId;
@@ -600,22 +502,17 @@
 
     var headerRow = document.getElementById('wbGalleryHeaderRow');
     if (headerRow) headerRow.style.display = 'none';
-
     var homeBottomBar = document.getElementById('wbHomeBottomBar');
     if (homeBottomBar) homeBottomBar.style.display = 'none';
-
     var homeView = document.getElementById('wbHomeView');
     if (homeView) homeView.classList.add('wb-view-hidden');
-
     var metaView = document.getElementById('wbBookMetaView');
     if (metaView) metaView.classList.add('wb-view-hidden');
-
     var entriesView = document.getElementById('wbEntriesView');
     if (entriesView) entriesView.classList.add('wb-view-hidden');
 
     var editBox = document.getElementById('wbEditView');
     if (!editBox) return;
-
     editBox.classList.remove('wb-view-hidden');
     editBox.style.display = 'flex';
     editBox.scrollTop = 0;
@@ -626,33 +523,21 @@
     var depthVal = (entry && entry.depthVal !== undefined) ? entry.depthVal : 2;
     var content = (entry && entry.content) ? entry.content : '';
 
-    var keyActiveCls = mode === 'key' ? ' active' : '';
-    var constActiveCls = mode === 'const' ? ' active' : '';
-    var keyWrapOpacity = mode === 'const' ? 'style="opacity:0.35;"' : '';
-
-    var posBeforeCls = pos === 'before' ? ' active' : '';
-    var posAfterCls = pos === 'after' ? ' active' : '';
-    var posDepthCls = pos === 'depth' ? ' active' : '';
-    var depthInlineShow = pos === 'depth' ? ' show' : '';
-
-    var html = ''
+    editBox.innerHTML = ''
       + '<div class="wb-edit-nav-bar">'
-      + '  <button class="wb-edit-back-btn" id="wbBtnEditBack" type="button">'
-      + '    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>'
-      + '  </button>'
+      + '  <button class="wb-edit-back-btn" id="wbBtnEditBack" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
       + '</div>'
       + '<div class="wb-viewport-box">'
       + '  <div class="wb-field-card">'
       + '    <div class="wb-field-head-row">'
       + '      <span class="wb-field-label">条目名称</span>'
       + '      <div class="wb-mode-switch-capsule">'
-      + '        <button class="wb-mode-pill' + keyActiveCls + '" data-mode="key" type="button">关键词触发</button>'
-      + '        <button class="wb-mode-pill' + constActiveCls + '" data-mode="const" type="button">常驻注入</button>'
+      + '        <button class="wb-mode-pill' + (mode === 'key' ? ' active' : '') + '" data-mode="key" type="button">关键词触发</button>'
+      + '        <button class="wb-mode-pill' + (mode === 'const' ? ' active' : '') + '" data-mode="const" type="button">常驻注入</button>'
       + '      </div>'
       + '    </div>'
       + '    <input class="wb-clean-input" type="text" id="wbIptName" value="' + (entry ? entry.name : '') + '" placeholder="如: 角色背景 / 特殊设定">'
       + '  </div>'
-
       + '  <div class="wb-field-card">'
       + '    <div class="wb-field-head-row">'
       + '      <span class="wb-field-label">条目内容</span>'
@@ -663,8 +548,7 @@
       + '      <span class="wb-char-count" id="wbCharCount">' + content.length + ' 字</span>'
       + '    </div>'
       + '  </div>'
-
-      + '  <div class="wb-field-card" id="wbKeyWrap" ' + keyWrapOpacity + '>'
+      + '  <div class="wb-field-card" id="wbKeyWrap" ' + (mode === 'const' ? 'style="opacity:0.35;"' : '') + '>'
       + '    <div class="wb-field-head-row"><span class="wb-field-label">触发关键词</span></div>'
       + '    <div class="wb-tag-box" id="wbTagBox"></div>'
       + '    <input class="wb-clean-input" type="text" id="wbIptKeyInput" placeholder="输入词后回车添加...">'
@@ -673,22 +557,20 @@
       + '      <input class="wb-scan-input" type="number" id="wbIptScanDepth" value="' + scanDepth + '" min="1" max="50">'
       + '    </div>'
       + '  </div>'
-
       + '  <div class="wb-field-card">'
       + '    <span class="wb-field-label">注入位置</span>'
       + '    <div class="wb-depth-btn-group">'
-      + '      <button class="wb-depth-pos-btn' + posBeforeCls + '" data-pos="before" type="button">角色定义前 Before</button>'
-      + '      <button class="wb-depth-pos-btn' + posAfterCls + '" data-pos="after" type="button">角色定义后 After</button>'
-      + '      <button class="wb-depth-pos-btn' + posDepthCls + '" data-pos="depth" type="button">上下文深度 Depth</button>'
+      + '      <button class="wb-depth-pos-btn' + (pos === 'before' ? ' active' : '') + '" data-pos="before" type="button">角色定义前 Before</button>'
+      + '      <button class="wb-depth-pos-btn' + (pos === 'after' ? ' active' : '') + '" data-pos="after" type="button">角色定义后 After</button>'
+      + '      <button class="wb-depth-pos-btn' + (pos === 'depth' ? ' active' : '') + '" data-pos="depth" type="button">上下文深度 Depth</button>'
       + '    </div>'
-      + '    <div class="wb-depth-num-inline' + depthInlineShow + '" id="wbDepthInline">'
+      + '    <div class="wb-depth-num-inline' + (pos === 'depth' ? ' show' : '') + '" id="wbDepthInline">'
       + '      <span class="wb-scan-desc">插入深度 (距末尾轮数)</span>'
       + '      <input class="wb-scan-input" type="number" id="wbIptDepthVal" value="' + depthVal + '" min="0" max="99">'
       + '    </div>'
       + '  </div>'
       + '</div>';
 
-    editBox.innerHTML = html;
     renderTags();
   }
 
@@ -711,7 +593,6 @@
     if (!nameInput) return;
     var name = (nameInput.value || '').trim();
     var content = (document.getElementById('wbIptContent').value || '').trim();
-
     if (!name && !content && !state.currentEntryId) return;
 
     name = name || '未命名条目';
@@ -751,7 +632,6 @@
     saveWorldbooksData();
   }
 
-   // ============ 0 抖动让位拖拽 (带拖拽锁，绝不触发布局晃动) ============
   function setupZeroJitterDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -779,8 +659,6 @@
 
           itemStep = el.offsetHeight + 10;
           isDragging = true;
-
-          // 👈 核心第 1 处：抓取瞬间给页面加锁，锁死外壳
           document.body.classList.add('wb-is-sorting');
 
           el.style.transform = 'scale(1.025)';
@@ -794,9 +672,7 @@
 
       function onTouchMove(e) {
         if (!isDragging) {
-          if (Math.abs(e.touches[0].clientY - startY) > 6) {
-            clearTimeout(dragTimer);
-          }
+          if (Math.abs(e.touches[0].clientY - startY) > 6) clearTimeout(dragTimer);
           return;
         }
         e.preventDefault();
@@ -810,23 +686,13 @@
 
         if (newTarget !== targetIndex) {
           targetIndex = newTarget;
-
           allCards.forEach(function (card, idx) {
             if (card === el) return;
             card.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0.2, 1)';
-
             if (fromIndex < targetIndex) {
-              if (idx > fromIndex && idx <= targetIndex) {
-                card.style.transform = 'translateY(-' + itemStep + 'px)';
-              } else {
-                card.style.transform = '';
-              }
+              card.style.transform = (idx > fromIndex && idx <= targetIndex) ? 'translateY(-' + itemStep + 'px)' : '';
             } else if (fromIndex > targetIndex) {
-              if (idx >= targetIndex && idx < fromIndex) {
-                card.style.transform = 'translateY(' + itemStep + 'px)';
-              } else {
-                card.style.transform = '';
-              }
+              card.style.transform = (idx >= targetIndex && idx < fromIndex) ? 'translateY(' + itemStep + 'px)' : '';
             } else {
               card.style.transform = '';
             }
@@ -836,7 +702,6 @@
 
       function onTouchEnd() {
         clearTimeout(dragTimer);
-        // 👈 核心第 2 处：松手解锁
         document.body.classList.remove('wb-is-sorting');
 
         if (!isDragging) return;
@@ -871,7 +736,6 @@
     });
   }
 
-  // ============ 响应 app.js 多级滑返 ============
   window.addEventListener('wbStepBack', function () {
     if (state.currentLevel === 'edit') {
       saveCurrentEditEntry();
@@ -894,7 +758,6 @@
     }
   });
 
-  // ============ 事件委托 ============
   function bindInternalEvents(container) {
     if (state.initialized) return;
     state.initialized = true;
@@ -921,7 +784,6 @@
     });
 
     container.addEventListener('click', function (e) {
-      // 1. 顶栏 ∨ 下拉切换
       if (e.target.closest('#wbHeaderSwitchWrap')) {
         e.stopPropagation();
         var menu = document.getElementById('wbHeaderDropdownMenu');
@@ -938,26 +800,18 @@
         state.currentSection = targetSec;
         container.querySelectorAll('.wb-pop-item').forEach(function (it) { it.classList.remove('active'); });
         switchItem.classList.add('active');
-        
         var dMenu = document.getElementById('wbHeaderDropdownMenu');
         var dArrow = document.getElementById('wbHeaderArrowDown');
         if (dMenu) dMenu.classList.remove('show');
         if (dArrow) dArrow.classList.remove('open');
-        
         renderHomeView();
         return;
       }
 
-      // 2. 首页新建与导入
       if (e.target.closest('#wbPopBtnNew')) {
         e.stopPropagation();
         var tempId = 'wb_' + Date.now();
-        state.worldbooks.push({
-          id: tempId,
-          title: '',
-          cover: '',
-          entries: []
-        });
+        state.worldbooks.push({ id: tempId, title: '', cover: '', entries: [] });
         state.isCreatingNewWb = true;
         state.currentWbId = tempId;
         renderBookMetaView(tempId);
@@ -970,7 +824,6 @@
         return;
       }
 
-      // 3. 新建名称页返回与确定
       if (e.target.closest('#wbBtnMetaBack')) {
         if (state.isCreatingNewWb) {
           state.worldbooks = state.worldbooks.filter(function (w) { return w.id !== state.currentWbId; });
@@ -996,7 +849,6 @@
         return;
       }
 
-      // 4. 词条列表返回与保存
       if (e.target.closest('#wbBtnEntriesBack')) {
         renderHomeView();
         return;
@@ -1009,14 +861,12 @@
         return;
       }
 
-      // 5. 编辑页返回
       if (e.target.closest('#wbBtnEditBack')) {
         saveCurrentEditEntry();
         renderEntriesView(state.currentWbId);
         return;
       }
 
-      // 关闭下拉菜单
       if (!e.target.closest('#wbHeaderSwitchWrap') && !e.target.closest('#wbHeaderDropdownMenu')) {
         var hMenu = document.getElementById('wbHeaderDropdownMenu');
         var hArr = document.getElementById('wbHeaderArrowDown');
@@ -1024,7 +874,6 @@
         if (hArr) hArr.classList.remove('open');
       }
 
-      // 6. 三星芒按钮菜单
       var moreBtn = e.target.closest('[data-wb-more]');
       if (moreBtn) {
         e.stopPropagation();
@@ -1073,7 +922,6 @@
       }
       container.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
 
-      // 7. 点击封面换图
       var coverWrap = e.target.closest('[data-cover-wb]');
       if (coverWrap) {
         e.stopPropagation();
@@ -1081,27 +929,23 @@
         return;
       }
 
-      // 8. 进入世界书列表
       var enterWbBtn = e.target.closest('[data-enter-wb]');
       if (enterWbBtn) {
         renderEntriesView(enterWbBtn.dataset.enterWb);
         return;
       }
 
-      // 9. 新建条目
       if (e.target.closest('#wbNavBtnNewEntry')) {
         renderEditView(null);
         return;
       }
 
-      // 10. 打开已有条目
       var openEntryItem = e.target.closest('[data-open-entry]');
       if (openEntryItem) {
         renderEditView(openEntryItem.dataset.openEntry);
         return;
       }
 
-      // 11. 条目列表内操作 (编辑 / 复制 / 删除 / 开关)
       var actBtn = e.target.closest('[data-entry-act]');
       if (actBtn) {
         e.stopPropagation();
@@ -1143,15 +987,12 @@
             saveWorldbooksData();
             if (enToggle.enabled) actBtn.classList.add('on');
             else actBtn.classList.remove('on');
-            
-            // 实时更新当前条目及外层 Tokens
             renderEntriesView(state.currentWbId);
           }
         }
         return;
       }
 
-      // 12. 模式与注入位置切换
       var modePill = e.target.closest('.wb-mode-pill');
       if (modePill) {
         container.querySelectorAll('.wb-mode-pill').forEach(function (p) { p.classList.remove('active'); });
@@ -1181,7 +1022,6 @@
         return;
       }
 
-      // 13. 标签删除
       var delTagBtn = e.target.closest('[data-del-tag]');
       if (delTagBtn) {
         state.editTempTags.splice(parseInt(delTagBtn.dataset.delTag, 10), 1);
@@ -1189,7 +1029,6 @@
         return;
       }
 
-      // 14. 沉浸编辑扩大与收起
       if (e.target.closest('#wbBtnExpand')) {
         var normalIpt = document.getElementById('wbIptContent');
         var expModal = document.getElementById('wbExpandedModal');
@@ -1216,11 +1055,9 @@
   }
 
   var isEngineStarted = false;
-
   function startWorldbookEngine() {
     if (isEngineStarted) return;
     isEngineStarted = true;
-
     var container = ensureWorldbookDOM();
     if (!container) return;
     bindInternalEvents(container);
