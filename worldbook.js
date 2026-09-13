@@ -29,13 +29,12 @@
 
   window.WorldbookState = state;
 
-  // ============ Tokens 估算算法 (中英文混合精确估算) ============
+  // ============ Tokens 实时精准核算算法 ============
   function calculateTokens(text) {
     if (!text || typeof text !== 'string') return 0;
     var str = text.trim();
     if (!str) return 0;
     
-    // 中文字符、标点及 Emoji 约 1.2 Tokens/字，英文单词及符号约 1.3 字符/Token
     var chineseCount = (str.match(/[\u4e00-\u9fa5\u3000-\u303f\uff01-\uff5e]/g) || []).length;
     var otherStr = str.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff01-\uff5e]/g, '');
     var englishWords = otherStr.trim().split(/\s+/).filter(Boolean).length;
@@ -323,6 +322,7 @@
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
+        // 1. 顶栏：主标题 + 英文副标题 + ∨ 下拉箭头
         + '  <div class="wb-gallery-header-row" id="wbGalleryHeaderRow">'
         + '    <div class="wb-header-switch-wrap" id="wbHeaderSwitchWrap">'
         + '      <span class="wb-gallery-main-title" id="wbGalleryMainTitle">世界书</span>'
@@ -336,17 +336,25 @@
         + '    </div>'
         + '  </div>'
 
+        // 2. 主视口画卷
         + '  <div class="wb-viewport-box wb-home-scroll-viewport" id="wbHomeView"></div>'
 
+        // 3. 首页底部悬浮岛
         + '  <div class="wb-home-floating-wrapper" id="wbHomeBottomBar">'
         + '    <button class="wb-btn-floating-new" id="wbPopBtnNew" type="button">+ 编撰新世界书</button>'
         + '    <button class="wb-btn-floating-import" id="wbPopBtnImport" type="button">导入</button>'
         + '  </div>'
 
+        // 4. 新建名称页
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbBookMetaView"></div>'
+
+        // 5. 词条列表页
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEntriesView"></div>'
+
+        // 6. 词条编辑页
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEditView"></div>'
 
+        // 7. 沉浸式编辑弹层
         + '  <div class="wb-expanded-modal" id="wbExpandedModal">'
         + '    <div class="wb-entries-nav-bar">'
         + '      <span style="font-size:16px; font-weight:800; color:#1c1c1e;">沉浸编辑</span>'
@@ -407,7 +415,6 @@
           var coverImgHtml = wb.cover ? '<img src="' + wb.cover + '" alt="封面">' : '<img src="" alt="封面">';
           var hasImgCls = wb.cover ? ' has-img' : '';
           
-          // 计算该世界书的总计与实际发送 Tokens
           var stats = getWbTokensStats(wb);
 
           html += ''
@@ -427,7 +434,8 @@
             + '    </div>'
             + '    <div class="wb-art-dot-divider"></div>'
             + '    <div class="wb-art-meta-bottom" data-enter-wb="' + wb.id + '">'
-            + '      <span class="wb-art-count">' + stats.count + ' 条 · 总计 ' + stats.total + ' · 发送 <span>' + stats.active + '</span></span>'
+            // 👇 加上最直观的 Tokens 单位
+            + '      <span class="wb-art-count">' + stats.count + ' 条 · 总计 ' + stats.total + ' Tokens · 发送 <span>' + stats.active + ' Tokens</span></span>'
             + '      <span class="wb-art-enter">ENTER ➔</span>'
             + '    </div>'
             + '  </div>'
@@ -444,7 +452,7 @@
     }
     homeBox.innerHTML = html;
 
-    setupFluidDragSort(homeBox, '.wb-art-card', function (newOrderIds) {
+    setupLiveSwapDragSort(homeBox, '.wb-art-card', function (newOrderIds) {
       state.worldbooks.sort(function (a, b) {
         return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
       });
@@ -549,11 +557,11 @@
 
         var subTextDesc = '';
         if (entry.mode === 'const') {
-          subTextDesc = '常驻全局 · <span>Tokens: ' + entryTokens + '</span>';
+          subTextDesc = '常驻全局 · <span>' + entryTokens + ' Tokens</span>';
         } else {
           var posName = entry.pos === 'before' ? '定义前' : (entry.pos === 'after' ? '定义后' : ('深度 ' + (entry.depthVal !== undefined ? entry.depthVal : 2)));
           var keysStr = (entry.keys && entry.keys.length > 0) ? entry.keys.join(', ') : '无触发词';
-          subTextDesc = '<span>' + posName + '</span> · ' + keysStr + ' · <span>Tokens: ' + entryTokens + '</span>';
+          subTextDesc = '<span>' + posName + '</span> · ' + keysStr + ' · <span>' + entryTokens + ' Tokens</span>';
         }
 
         html += ''
@@ -573,7 +581,6 @@
     }
     html += '</div>';
 
-    // 悬浮岛式保存按钮
     html += ''
       + '<div class="wb-floating-save-wrapper">'
       + '  <button class="wb-btn-floating-save" id="wbBtnSaveEntriesConfirm" type="button">保存条目</button>'
@@ -583,7 +590,7 @@
 
     var listWrap = document.getElementById('wbEntriesListBox');
     if (listWrap) {
-      setupFluidDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
+      setupLiveSwapDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
         wb.entries.sort(function (a, b) {
           return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
         });
@@ -592,7 +599,7 @@
     }
   }
 
-  // ============ 4. 渲染词条编辑页 (美化同款高定浅灰卡片) ============
+  // ============ 4. 渲染词条编辑页 ============
   function renderEditView(entryId) {
     state.currentLevel = 'edit';
     state.currentEntryId = entryId;
@@ -754,8 +761,8 @@
     saveWorldbooksData();
   }
 
-  // ============ 物理流式拖拽引擎 (微放大 + 越过平滑插队让位) ============
-  function setupFluidDragSort(container, itemSelector, onReorderCallback) {
+  // ============ 物理流式插队拖拽引擎 ============
+  function setupLiveSwapDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
 
@@ -763,18 +770,19 @@
       var isDragging = false;
       var dragTimer = null;
       var startTouchY = 0;
-      var startOffsetTop = 0;
 
       function onTouchStart(e) {
         if (e.target.closest('button') || e.target.closest('.wb-art-frame-left') || e.target.closest('.wb-dropdown-menu') || e.target.closest('.wb-entry-switch') || e.target.closest('.wb-entry-icons-row')) return;
         
         var touch = e.touches[0];
         startTouchY = touch.clientY;
-        startOffsetTop = el.getBoundingClientRect().top;
 
         dragTimer = setTimeout(function () {
           isDragging = true;
-          el.classList.add('wb-dragging');
+          el.style.transform = 'scale(1.025)';
+          el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+          el.style.zIndex = '100';
+          el.style.transition = 'none';
           if (navigator.vibrate) navigator.vibrate(15);
         }, 180);
       }
@@ -788,36 +796,40 @@
         }
         e.preventDefault();
         var touch = e.touches[0];
-        
         var deltaY = touch.clientY - startTouchY;
-        el.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
+        
+        el.style.transform = 'translateY(' + deltaY + 'px) scale(1.025)';
 
+        var currentMiddleY = el.getBoundingClientRect().top + (el.offsetHeight / 2);
         var allCards = Array.from(container.querySelectorAll(itemSelector));
-        var targetCard = allCards.find(function (card) {
-          if (card === el) return false;
-          var r = card.getBoundingClientRect();
-          return touch.clientY >= r.top && touch.clientY <= r.bottom;
-        });
+        var draggingIndex = allCards.indexOf(el);
 
-        if (targetCard) {
-          var draggingIndex = allCards.indexOf(el);
-          var targetIndex = allCards.indexOf(targetCard);
-          
-          if (draggingIndex < targetIndex) {
-            container.insertBefore(el, targetCard.nextSibling);
-          } else {
-            container.insertBefore(el, targetCard);
+        allCards.forEach(function (otherCard, index) {
+          if (otherCard === el) return;
+          var rect = otherCard.getBoundingClientRect();
+          var otherMiddleY = rect.top + (rect.height / 2);
+
+          if (draggingIndex < index && currentMiddleY > otherMiddleY) {
+            container.insertBefore(el, otherCard.nextSibling);
+            startTouchY = touch.clientY;
+            draggingIndex = index;
+          } else if (draggingIndex > index && currentMiddleY < otherMiddleY) {
+            container.insertBefore(el, otherCard);
+            startTouchY = touch.clientY;
+            draggingIndex = index;
           }
-          startTouchY = touch.clientY - (el.getBoundingClientRect().top - startOffsetTop);
-        }
+        });
       }
 
       function onTouchEnd() {
         clearTimeout(dragTimer);
         if (!isDragging) return;
         isDragging = false;
-        el.classList.remove('wb-dragging');
+        
         el.style.transform = '';
+        el.style.boxShadow = '';
+        el.style.zIndex = '';
+        el.style.transition = '';
 
         var reorderedIds = Array.from(container.querySelectorAll(itemSelector)).map(function (c) {
           return c.dataset.wbId || c.dataset.entryId;
