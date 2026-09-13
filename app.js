@@ -2,6 +2,16 @@
 (function() {
   'use strict';
 
+  // 1. 彻底杜绝 iOS 双击放大网页
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e) {
+    var now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+      if (e.cancelable) e.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
+
   // ============ IndexedDB 存储引擎 ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
@@ -11,22 +21,28 @@
   window._dbReady = false;
 
   function openDB(callback) {
-    var request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = function(e) {
-      var database = e.target.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = function(e) { 
-      db = e.target.result; 
+    try {
+      var request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = function(e) {
+        var database = e.target.result;
+        if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
+      };
+      request.onsuccess = function(e) { 
+        db = e.target.result; 
+        window._dbReady = true;
+        window.dispatchEvent(new Event('dbReady'));
+        if (callback) callback(); 
+      };
+      request.onerror = function() { 
+        window._dbReady = true;
+        window.dispatchEvent(new Event('dbReady'));
+        if (callback) callback(); 
+      };
+    } catch(e) {
       window._dbReady = true;
       window.dispatchEvent(new Event('dbReady'));
-      if (callback) callback(); 
-    };
-    request.onerror = function() { 
-      window._dbReady = true;
-      window.dispatchEvent(new Event('dbReady'));
-      if (callback) callback(); 
-    };
+      if (callback) callback();
+    }
   }
 
   function dbSave(key, value, cb) {
@@ -397,7 +413,8 @@
       subPage.className = 'page app-page';
       subPage.dataset.page = sub.name;
       subPage.innerHTML = '<div class="app-header"><button class="icon-back-btn" data-back="'+sub.back+'"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><div class="app-title">'+sub.title+'</div></div><div class="app-content" id="'+sub.name+'PageContent"></div>';
-      document.getElementById('pageContainer').appendChild(subPage);
+      var pContainer = document.getElementById('pageContainer');
+      if (pContainer) pContainer.appendChild(subPage);
     });
   }
 
@@ -543,7 +560,7 @@
     return { isSub: false, action: null };
   }
 
-  // ============ 全局统一导航绑定 ============
+  // ============ 全局统一导航绑定 (0 毫秒立即生效) ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -781,7 +798,7 @@
     var c = cropBox, H = CROP_HANDLE;
     if (px>=c.x-H&&px<=c.x+H&&py>=c.y-H&&py<=c.y+H) return 'tl';
     if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'tr';
-    if (px>=c.x-H&&px<=c.x+H&&py>=c.y-H&&py<=c.y+H) return 'bl';
+    if (px>=c.x-H&&px<=c.x+H&&py>=c.y+c.h-H&&py<=c.y+c.h+H) return 'bl';
     if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'br';
     if (py>=c.y-H&&py<=c.y+H&&px>c.x+H&&px<c.x+c.w-H) return 't';
     if (py>=c.y+c.h-H&&py<=c.y+c.h+H&&px>c.x+H&&px<c.x+c.w-H) return 'b';
@@ -973,14 +990,22 @@
 
   window.AppNav = { showPage: showPage, showToast: showToast };
 
-  // ============ 初始化 ============
-  openDB(function() {
+  // ============ 核心自启动：0 毫秒立即同步绑定所有界面与导航 ============
+  function startCoreApp() {
     setupPhotoAction();
     setupAppDialog();
     initAppShells();
     setupDesktopSlider();
     bindNavigation();
-    checkActivation();
-  });
+    openDB(function() {
+      checkActivation();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startCoreApp);
+  } else {
+    startCoreApp();
+  }
 
 })();
