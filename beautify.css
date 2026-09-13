@@ -1,3 +1,4 @@
+
 /* ======================================================== */
 /* 美化中心 (Beautify Studio) - 高定极简冷灰列表          */
 /* ======================================================== */
@@ -262,7 +263,7 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   border: 1.5px solid #e5e5ea;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  background: #f2f2f7;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,6 +292,28 @@
   font-size: 26px;
   font-weight: 300;
   user-select: none;
+}
+
+/* 纯白底·加大精准居中浅蓝雪花 ❆ */
+.pwa-snowflake-container {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.pwa-snowflake-main {
+  font-size: 42px; /* 字体加大，饱满居中 */
+  color: rgba(120, 165, 215, 0.65);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  filter: drop-shadow(0 0 4px rgba(120, 165, 215, 0.2));
 }
 
 .pwa-custom-placeholder {
@@ -411,12 +434,10 @@
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03), inset 0 0.5px 1px rgba(255, 255, 255, 0.9);
 }
 
-/* 上方较高的横形挡板 */
 .bg-preview-panel.tall {
   height: 48px;
 }
 
-/* 下方较矮的横形挡板 */
 .bg-preview-panel.short {
   height: 28px;
 }
@@ -915,78 +936,3 @@ body.icon-emboss .couple-icon-circle {
   text-align: right;
   font-weight: 600;
 }
-
-/* ========== PWA 初雪冰晶雪花图标专属样式 ========== */
-.pwa-snowflake-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.pwa-snowflake-main {
-  position: relative;
-  z-index: 2;
-  font-size: 38px;
-  color: rgba(120, 165, 215, 0.55);
-  line-height: 1;
-  user-select: none;
-  filter: drop-shadow(0 0 8px rgba(120, 165, 215, 0.25));
-}
-
-.pwa-snow-particles {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 1;
-}
-
-.pwa-snow-dot {
-  position: absolute;
-  border-radius: 50%;
-}
-
-.pwa-dot-1 {
-  top: -5px; left: 16%; width: 2.2px; height: 2.2px;
-  background: rgba(120, 165, 215, 0.4);
-  animation: pwaSnowDrift1 4.5s linear infinite;
-}
-.pwa-dot-2 {
-  top: -5px; left: 74%; width: 3px; height: 3px;
-  background: rgba(120, 165, 215, 0.25);
-  filter: blur(0.4px);
-  animation: pwaSnowDrift2 5.5s linear 0.8s infinite;
-}
-.pwa-dot-3 {
-  top: -5px; left: 46%; width: 1.5px; height: 1.5px;
-  background: rgba(120, 165, 215, 0.45);
-  animation: pwaSnowDrift1 3.8s linear 1.5s infinite;
-}
-.pwa-dot-4 {
-  top: -5px; left: 86%; width: 2.4px; height: 2.4px;
-  background: rgba(120, 165, 215, 0.3);
-  animation: pwaSnowDrift2 5.0s linear 0.3s infinite;
-}
-
-@keyframes pwaSnowDrift1 {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  20% { opacity: 0.8; }
-  50% { transform: translateY(32px) translateX(3px); }
-  80% { opacity: 0.8; }
-  100% { transform: translateY(68px) translateX(-2px); opacity: 0; }
-}
-
-@keyframes pwaSnowDrift2 {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  20% { opacity: 0.7; }
-  50% { transform: translateY(32px) translateX(-4px); }
-  80% { opacity: 0.7; }
-  100% { transform: translateY(68px) translateX(3px); opacity: 0; }
-}
-
-
