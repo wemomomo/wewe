@@ -194,7 +194,7 @@
 
             saveWorldbooksData();
             renderHomeView();
-            if (window.AppNav) window.AppNav.showToast('成功导入：《' + wbTitle + '》');
+            if (window.AppNav) window.AppNav.showToast('✦ 成功导入：《' + wbTitle + '》 ✦');
           } catch (err) {
             if (window.AppNav) window.AppNav.showToast('文件损坏，导入失败');
           }
@@ -231,7 +231,7 @@
             state.worldbooks.push(newWb);
             saveWorldbooksData();
             renderHomeView();
-            if (window.AppNav) window.AppNav.showToast('成功导入文档：《' + fileName + '》');
+            if (window.AppNav) window.AppNav.showToast('✦ 成功导入文档：《' + fileName + '》 ✦');
           } catch (err) {
             if (window.AppNav) window.AppNav.showToast('文档解析失败，请确保为标准 .docx 格式');
           }
@@ -322,7 +322,6 @@
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
-        // 1. 顶栏：主标题 + 英文副标题 + ∨ 下拉箭头
         + '  <div class="wb-gallery-header-row" id="wbGalleryHeaderRow">'
         + '    <div class="wb-header-switch-wrap" id="wbHeaderSwitchWrap">'
         + '      <span class="wb-gallery-main-title" id="wbGalleryMainTitle">世界书</span>'
@@ -336,25 +335,17 @@
         + '    </div>'
         + '  </div>'
 
-        // 2. 主视口画卷
         + '  <div class="wb-viewport-box wb-home-scroll-viewport" id="wbHomeView"></div>'
 
-        // 3. 首页底部悬浮岛
         + '  <div class="wb-home-floating-wrapper" id="wbHomeBottomBar">'
         + '    <button class="wb-btn-floating-new" id="wbPopBtnNew" type="button">+ 编撰新世界书</button>'
         + '    <button class="wb-btn-floating-import" id="wbPopBtnImport" type="button">导入</button>'
         + '  </div>'
 
-        // 4. 新建名称页
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbBookMetaView"></div>'
-
-        // 5. 词条列表页
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEntriesView"></div>'
-
-        // 6. 词条编辑页
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEditView"></div>'
 
-        // 7. 沉浸式编辑弹层
         + '  <div class="wb-expanded-modal" id="wbExpandedModal">'
         + '    <div class="wb-entries-nav-bar">'
         + '      <span style="font-size:16px; font-weight:800; color:#1c1c1e;">沉浸编辑</span>'
@@ -434,7 +425,6 @@
             + '    </div>'
             + '    <div class="wb-art-dot-divider"></div>'
             + '    <div class="wb-art-meta-bottom" data-enter-wb="' + wb.id + '">'
-            // 👇 加上最直观的 Tokens 单位
             + '      <span class="wb-art-count">' + stats.count + ' 条 · 总计 ' + stats.total + ' Tokens · 发送 <span>' + stats.active + ' Tokens</span></span>'
             + '      <span class="wb-art-enter">ENTER ➔</span>'
             + '    </div>'
@@ -452,7 +442,7 @@
     }
     homeBox.innerHTML = html;
 
-    setupLiveSwapDragSort(homeBox, '.wb-art-card', function (newOrderIds) {
+    setupZeroJitterDragSort(homeBox, '.wb-art-card', function (newOrderIds) {
       state.worldbooks.sort(function (a, b) {
         return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
       });
@@ -590,7 +580,7 @@
 
     var listWrap = document.getElementById('wbEntriesListBox');
     if (listWrap) {
-      setupLiveSwapDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
+      setupZeroJitterDragSort(listWrap, '.wb-entry-item-card', function (newOrderIds) {
         wb.entries.sort(function (a, b) {
           return newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id);
         });
@@ -761,75 +751,115 @@
     saveWorldbooksData();
   }
 
-  // ============ 物理流式插队拖拽引擎 ============
-  function setupLiveSwapDragSort(container, itemSelector, onReorderCallback) {
+  // ============ 0 抖动·iOS 原生虚拟位移让位拖拽引擎 ============
+  function setupZeroJitterDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
 
     items.forEach(function (el) {
       var isDragging = false;
       var dragTimer = null;
-      var startTouchY = 0;
+      var startY = 0;
+      var fromIndex = -1;
+      var targetIndex = -1;
+      var itemStep = 0;
+      var allCards = [];
 
       function onTouchStart(e) {
         if (e.target.closest('button') || e.target.closest('.wb-art-frame-left') || e.target.closest('.wb-dropdown-menu') || e.target.closest('.wb-entry-switch') || e.target.closest('.wb-entry-icons-row')) return;
         
         var touch = e.touches[0];
-        startTouchY = touch.clientY;
+        startY = touch.clientY;
 
         dragTimer = setTimeout(function () {
+          allCards = Array.from(container.querySelectorAll(itemSelector));
+          fromIndex = allCards.indexOf(el);
+          targetIndex = fromIndex;
+          if (fromIndex === -1) return;
+
+          // 计算单张卡片包含间距的完整高度步长
+          itemStep = el.offsetHeight + 10;
           isDragging = true;
+
+          // 抓取轻微升起
           el.style.transform = 'scale(1.025)';
           el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
           el.style.zIndex = '100';
           el.style.transition = 'none';
+
           if (navigator.vibrate) navigator.vibrate(15);
         }, 180);
       }
 
       function onTouchMove(e) {
         if (!isDragging) {
-          if (Math.abs(e.touches[0].clientY - startTouchY) > 6) {
+          if (Math.abs(e.touches[0].clientY - startY) > 6) {
             clearTimeout(dragTimer);
           }
           return;
         }
         e.preventDefault();
         var touch = e.touches[0];
-        var deltaY = touch.clientY - startTouchY;
-        
-        el.style.transform = 'translateY(' + deltaY + 'px) scale(1.025)';
+        var dy = touch.clientY - startY;
 
-        var currentMiddleY = el.getBoundingClientRect().top + (el.offsetHeight / 2);
-        var allCards = Array.from(container.querySelectorAll(itemSelector));
-        var draggingIndex = allCards.indexOf(el);
+        // 1. 被抓取的卡片 100% 紧随手指，零延迟
+        el.style.transform = 'translateY(' + dy + 'px) scale(1.025)';
 
-        allCards.forEach(function (otherCard, index) {
-          if (otherCard === el) return;
-          var rect = otherCard.getBoundingClientRect();
-          var otherMiddleY = rect.top + (rect.height / 2);
+        // 2. 算当前应该插入哪个槽位
+        var slotOffset = Math.round(dy / itemStep);
+        var newTarget = Math.max(0, Math.min(allCards.length - 1, fromIndex + slotOffset));
 
-          if (draggingIndex < index && currentMiddleY > otherMiddleY) {
-            container.insertBefore(el, otherCard.nextSibling);
-            startTouchY = touch.clientY;
-            draggingIndex = index;
-          } else if (draggingIndex > index && currentMiddleY < otherMiddleY) {
-            container.insertBefore(el, otherCard);
-            startTouchY = touch.clientY;
-            draggingIndex = index;
-          }
-        });
+        if (newTarget !== targetIndex) {
+          targetIndex = newTarget;
+
+          // 3. 其他卡片纯用 CSS translateY 优雅让出空位，绝不修改 DOM，绝对 0 抖动！
+          allCards.forEach(function (card, idx) {
+            if (card === el) return;
+            card.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0.2, 1)';
+
+            if (fromIndex < targetIndex) {
+              // 往下拖：位于 (fromIndex, targetIndex] 之间的卡片平滑往上挪
+              if (idx > fromIndex && idx <= targetIndex) {
+                card.style.transform = 'translateY(-' + itemStep + 'px)';
+              } else {
+                card.style.transform = '';
+              }
+            } else if (fromIndex > targetIndex) {
+              // 往上拖：位于 [targetIndex, fromIndex) 之间的卡片平滑往下挪
+              if (idx >= targetIndex && idx < fromIndex) {
+                card.style.transform = 'translateY(' + itemStep + 'px)';
+              } else {
+                card.style.transform = '';
+              }
+            } else {
+              card.style.transform = '';
+            }
+          });
+        }
       }
 
       function onTouchEnd() {
         clearTimeout(dragTimer);
         if (!isDragging) return;
         isDragging = false;
-        
-        el.style.transform = '';
-        el.style.boxShadow = '';
-        el.style.zIndex = '';
-        el.style.transition = '';
+
+        // 清空所有让位动画样式
+        allCards.forEach(function (c) {
+          c.style.transform = '';
+          c.style.boxShadow = '';
+          c.style.zIndex = '';
+          c.style.transition = '';
+        });
+
+        // 只有松开手时，才正式一次性在 DOM 里插队落位！
+        if (fromIndex !== targetIndex && targetIndex >= 0) {
+          var targetCard = allCards[targetIndex];
+          if (fromIndex < targetIndex) {
+            container.insertBefore(el, targetCard.nextSibling);
+          } else {
+            container.insertBefore(el, targetCard);
+          }
+        }
 
         var reorderedIds = Array.from(container.querySelectorAll(itemSelector)).map(function (c) {
           return c.dataset.wbId || c.dataset.entryId;
@@ -1116,6 +1146,9 @@
             saveWorldbooksData();
             if (enToggle.enabled) actBtn.classList.add('on');
             else actBtn.classList.remove('on');
+            
+            // 实时更新当前条目及外层 Tokens
+            renderEntriesView(state.currentWbId);
           }
         }
         return;
