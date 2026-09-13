@@ -751,7 +751,7 @@
     saveWorldbooksData();
   }
 
-  // ============ 0 抖动·iOS 原生虚拟位移让位拖拽引擎 ============
+   // ============ 0 抖动让位拖拽 (带拖拽锁，绝不触发布局晃动) ============
   function setupZeroJitterDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -777,11 +777,12 @@
           targetIndex = fromIndex;
           if (fromIndex === -1) return;
 
-          // 计算单张卡片包含间距的完整高度步长
           itemStep = el.offsetHeight + 10;
           isDragging = true;
 
-          // 抓取轻微升起
+          // 👈 核心第 1 处：抓取瞬间给页面加锁，锁死外壳
+          document.body.classList.add('wb-is-sorting');
+
           el.style.transform = 'scale(1.025)';
           el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
           el.style.zIndex = '100';
@@ -802,30 +803,25 @@
         var touch = e.touches[0];
         var dy = touch.clientY - startY;
 
-        // 1. 被抓取的卡片 100% 紧随手指，零延迟
         el.style.transform = 'translateY(' + dy + 'px) scale(1.025)';
 
-        // 2. 算当前应该插入哪个槽位
         var slotOffset = Math.round(dy / itemStep);
         var newTarget = Math.max(0, Math.min(allCards.length - 1, fromIndex + slotOffset));
 
         if (newTarget !== targetIndex) {
           targetIndex = newTarget;
 
-          // 3. 其他卡片纯用 CSS translateY 优雅让出空位，绝不修改 DOM，绝对 0 抖动！
           allCards.forEach(function (card, idx) {
             if (card === el) return;
             card.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0.2, 1)';
 
             if (fromIndex < targetIndex) {
-              // 往下拖：位于 (fromIndex, targetIndex] 之间的卡片平滑往上挪
               if (idx > fromIndex && idx <= targetIndex) {
                 card.style.transform = 'translateY(-' + itemStep + 'px)';
               } else {
                 card.style.transform = '';
               }
             } else if (fromIndex > targetIndex) {
-              // 往上拖：位于 [targetIndex, fromIndex) 之间的卡片平滑往下挪
               if (idx >= targetIndex && idx < fromIndex) {
                 card.style.transform = 'translateY(' + itemStep + 'px)';
               } else {
@@ -840,10 +836,12 @@
 
       function onTouchEnd() {
         clearTimeout(dragTimer);
+        // 👈 核心第 2 处：松手解锁
+        document.body.classList.remove('wb-is-sorting');
+
         if (!isDragging) return;
         isDragging = false;
 
-        // 清空所有让位动画样式
         allCards.forEach(function (c) {
           c.style.transform = '';
           c.style.boxShadow = '';
@@ -851,7 +849,6 @@
           c.style.transition = '';
         });
 
-        // 只有松开手时，才正式一次性在 DOM 里插队落位！
         if (fromIndex !== targetIndex && targetIndex >= 0) {
           var targetCard = allCards[targetIndex];
           if (fromIndex < targetIndex) {
