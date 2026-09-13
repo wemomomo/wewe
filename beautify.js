@@ -29,7 +29,7 @@
     icon2: ''
   };
 
-  // 生成符合 iOS 苹果标准的高清纯 PNG 格式雪花图标（解决苹果不支持 SVG 导致切换失败的 Bug）
+  // 生成纯净、无杂质、大字号且绝对居中的纯正 PNG 初雪雪花图标 (192x192)
   function generateSnowflakePng() {
     try {
       var canvas = document.createElement('canvas');
@@ -41,22 +41,12 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, 192, 192);
 
-      // 2. 绘制周围飘落的细碎雪花点
-      ctx.fillStyle = 'rgba(120, 165, 215, 0.45)';
-      ctx.beginPath(); ctx.arc(32, 45, 3.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(155, 38, 4.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(162, 140, 3.2, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(42, 150, 4.0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(120, 165, 215, 0.28)';
-      ctx.beginPath(); ctx.arc(96, 26, 2.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(130, 168, 2.8, 0, Math.PI * 2); ctx.fill();
-
-      // 3. 绘制中心主雪花 ❆ (初雪浅蓝色)
-      ctx.fillStyle = 'rgba(120, 165, 215, 0.72)';
-      ctx.font = '96px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      // 2. 绘制纯粹浅淡初雪蓝雪花 ❆ (字号加大至 128px，移除落雪粒子，绝对几何居中)
+      ctx.fillStyle = 'rgba(120, 165, 215, 0.65)';
+      ctx.font = '128px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('❆', 96, 102);
+      ctx.fillText('❆', 96, 98); // 98px 视觉垂直对齐最佳重心
 
       return canvas.toDataURL('image/png');
     } catch(e) {
@@ -158,16 +148,10 @@
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
 
-              // 1. 主图1（初雪冰晶 ❆）
+              // 1. 主图1（放大居中的纯净初雪冰晶 ❆）
               '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
                 '<div class="pwa-icon-preview">' +
                   '<div class="pwa-snowflake-container">' +
-                    '<div class="pwa-snow-particles">' +
-                      '<span class="pwa-snow-dot pwa-dot-1"></span>' +
-                      '<span class="pwa-snow-dot pwa-dot-2"></span>' +
-                      '<span class="pwa-snow-dot pwa-dot-3"></span>' +
-                      '<span class="pwa-snow-dot pwa-dot-4"></span>' +
-                    '</div>' +
                     '<div class="pwa-snowflake-main">❆</div>' +
                   '</div>' +
                 '</div>' +
@@ -465,7 +449,6 @@
 
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      // 核心修复：通过 Canvas 实时生成一张标准的 192x192 纯 PNG 格式雪花图，苹果 iOS 完美识别！
       var pngSnowflake = generateSnowflakePng();
       setManifestAndAppleIcons(pngSnowflake);
       return;
@@ -1110,7 +1093,6 @@
     updateLivePreviewAndHistory();
   }
 
-  // 严格只在点击进入美化中心时按需初始化，开机0毫秒延迟！
   window.addEventListener('pageChange', function(e) {
     if (e.detail && e.detail.page === 'beautify') {
       initBeautifyApp();
