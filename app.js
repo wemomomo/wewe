@@ -2,14 +2,6 @@
 (function() {
   'use strict';
 
-  if (document.body) {
-    document.body.style.cursor = 'pointer';
-  } else {
-    document.addEventListener('DOMContentLoaded', function() {
-      if (document.body) document.body.style.cursor = 'pointer';
-    });
-  }
-
   // ============ IndexedDB 存储引擎 ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
@@ -484,7 +476,6 @@
     }
   }
 
-  // 严丝合缝的子页面侦测器
   function checkSubViewStatus(page) {
     var pageName = page.dataset.page;
 
@@ -552,7 +543,7 @@
     return { isSub: false, action: null };
   }
 
-  // ============ 全局统一导航绑定 (拖拽时锁死页面外壳位移) ============
+  // ============ 全局统一导航绑定 ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -627,7 +618,7 @@
       }
     });
 
-    // 核心边缘滑动返回（拖拽排序时 100% 锁死外壳）
+    // 边缘滑动手势管理
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var subInfo = { isSub: false, action: null };
@@ -790,7 +781,7 @@
     var c = cropBox, H = CROP_HANDLE;
     if (px>=c.x-H&&px<=c.x+H&&py>=c.y-H&&py<=c.y+H) return 'tl';
     if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'tr';
-    if (px>=c.x-H&&px<=c.x+H&&py>=c.y+c.h-H&&py<=c.y+c.h+H) return 'bl';
+    if (px>=c.x-H&&px<=c.x+H&&py>=c.y-H&&py<=c.y+H) return 'bl';
     if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'br';
     if (py>=c.y-H&&py<=c.y+H&&px>c.x+H&&px<c.x+c.w-H) return 't';
     if (py>=c.y+c.h-H&&py<=c.y+c.h+H&&px>c.x+H&&px<c.x+c.w-H) return 'b';
