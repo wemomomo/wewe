@@ -1,7 +1,16 @@
 
 (function() {
   'use strict';
-  
+
+  // 修复 iOS Safari 点击不冒泡 Bug，确保苹果手机上所有 div 上的点击都能顺畅触发
+  if (document.body) {
+    document.body.style.cursor = 'pointer';
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.body) document.body.style.cursor = 'pointer';
+    });
+  }
+
   // ============ IndexedDB 存储引擎 ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
@@ -91,6 +100,7 @@
         userInfo: { username: session.username }
       };
     }
+
     return null;
   }
 
@@ -108,6 +118,7 @@
       callback(cookieDev);
       return;
     }
+
     try {
       var localDev = localStorage.getItem('shared_device_id');
       if (localDev) {
@@ -122,6 +133,7 @@
         callback(savedId);
         return;
       }
+
       var w = Math.min(screen.width, screen.height);
       var h = Math.max(screen.width, screen.height);
       var cores = navigator.hardwareConcurrency || 4;
@@ -160,14 +172,23 @@
     var submitBtn = document.getElementById('authSubmitBtn');
     if (!mask) return;
 
+    function hideMask() {
+      mask.classList.remove('show');
+    }
+
+    function showMask() {
+      mask.classList.add('show');
+    }
+
     function onLoginVerified(token, userInfo) {
+      try {
+        localStorage.setItem('app_auth_token', token);
+        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
+      } catch(e) {}
+
       dbSave('app_auth_token', token, function() {
         dbSave('app_user_info', userInfo, function() {
-          try {
-            localStorage.setItem('app_auth_token', token);
-            localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-          } catch(e) {}
-          mask.classList.remove('show');
+          hideMask();
         });
       });
     }
@@ -176,7 +197,7 @@
       dbDelete('app_auth_token', function() {
         dbDelete('app_user_info', function() {
           clearAllAuth();
-          mask.classList.add('show');
+          showMask();
           if (message) showToast(message);
         });
       });
@@ -196,40 +217,30 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          if (data && data.isBanned === true) {
-            kickOut(data.message || '账号已被封禁');
+          if (data && data.kickOut === true) {
+            kickOut(data.message || '账号已失效');
           }
         })
         .catch(function() {});
       });
     }
 
-    var localToken = localStorage.getItem('app_auth_token');
-    var localInfoStr = localStorage.getItem('app_user_info');
-    var localInfo = null;
-    try { if (localInfoStr) localInfo = JSON.parse(localInfoStr); } catch(e) {}
-
-    if (localToken && localInfo && localInfo.username) {
-      mask.classList.remove('show');
-      realTimeVerify(localInfo);
-    } else {
-      dbGet('app_user_info', function(userInfo) {
-        dbGet('app_auth_token', function(token) {
-          if (token && userInfo && userInfo.username) {
-            mask.classList.remove('show');
-            realTimeVerify(userInfo);
+    dbGet('app_user_info', function(userInfo) {
+      dbGet('app_auth_token', function(token) {
+        if (token && userInfo && userInfo.username) {
+          hideMask();
+          realTimeVerify(userInfo);
+        } else {
+          var session = getGlobalSession();
+          if (session && session.token && session.userInfo && session.userInfo.username) {
+            onLoginVerified(session.token, session.userInfo);
+            realTimeVerify(session.userInfo);
           } else {
-            var session = getGlobalSession();
-            if (session && session.token && session.userInfo && session.userInfo.username) {
-              onLoginVerified(session.token, session.userInfo);
-              realTimeVerify(session.userInfo);
-            } else {
-              mask.classList.add('show');
-            }
+            showMask();
           }
-        });
+        }
       });
-    }
+    });
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
@@ -375,7 +386,7 @@
     var appPages = ['beautify', 'archive', 'imgbed', 'wechat', 'offline', 'settings', 'check', 'worldbook'];
     appPages.forEach(function(name) {
       var page = document.querySelector('[data-page="'+name+'"]');
-      if (!page || page.querySelector('.app-header') || page.querySelector('#worldbookContent')) return;
+      if (!page || page.querySelector('.app-header') || (name === 'worldbook' && page.querySelector('#worldbookContent'))) return;
       var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗', worldbook: '世界书' }[name];
       
       if (name === 'worldbook') {
@@ -411,12 +422,9 @@
     var allPages = document.querySelectorAll('.page');
     allPages.forEach(function(p) {
       if (p.dataset.page === name) { p.classList.add('active'); p.style.transform = ''; }
-      else { p.classList.remove('active'); p.style.transform = ''; }
+      else { p.classList.remove('active'); }
     });
     
-    var homePage = document.querySelector('[data-page="home"]');
-    if (homePage) homePage.style.transform = '';
-
     var desktopPagination = document.getElementById('desktopPagination');
     if (name === 'home') { 
       if (dock) dock.style.display = 'flex'; 
@@ -427,7 +435,6 @@
       if (dockEditBtn) dockEditBtn.style.display = 'none'; 
       if (desktopPagination) desktopPagination.style.display = 'none';
     }
-
     window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: name } }));
   }
 
@@ -486,15 +493,80 @@
     }
   }
 
-  // ============ 统一点击导航绑定 ============
-  function bindNavigation() {
-    try {
-      history.pushState({ page: 'app_lock' }, '', '');
-      window.addEventListener('popstate', function() {
-        history.pushState({ page: 'app_lock' }, '', '');
-      });
-    } catch(e) {}
+  // 严丝合缝的子页面侦测器（实时双重校验 JS 状态与 DOM 元素）
+  function checkSubViewStatus(page) {
+    var pageName = page.dataset.page;
 
+    // 1. 世界书
+    if (pageName === 'worldbook') {
+      if (window.WorldbookState && window.WorldbookState.currentLevel && window.WorldbookState.currentLevel !== 'home') {
+        return {
+          isSub: true,
+          action: function() { window.dispatchEvent(new CustomEvent('wbStepBack')); }
+        };
+      }
+      var editV = page.querySelector('#wbEditView');
+      var entriesV = page.querySelector('#wbEntriesView');
+      var metaV = page.querySelector('#wbBookMetaView');
+      var isWbOpen = (editV && !editV.classList.contains('wb-view-hidden'))
+        || (entriesV && !entriesV.classList.contains('wb-view-hidden'))
+        || (metaV && !metaV.classList.contains('wb-view-hidden'));
+      if (isWbOpen) {
+        return {
+          isSub: true,
+          action: function() { window.dispatchEvent(new CustomEvent('wbStepBack')); }
+        };
+      }
+    }
+
+    // 2. 档案中心
+    if (pageName === 'archive') {
+      if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
+        return {
+          isSub: true,
+          action: function() {
+            if (window.ArchiveState.stepBack) window.ArchiveState.stepBack();
+            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
+          }
+        };
+      }
+      var arcSub = page.querySelector('.archive-sub-view.active, .char-edit-view.active, .archive-drawer.open, .archive-modal.show');
+      if (arcSub) {
+        return {
+          isSub: true,
+          action: function() {
+            var bBtn = arcSub.querySelector('[data-back], .icon-back-btn, #charEditBackBtn');
+            if (bBtn) bBtn.click();
+            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
+          }
+        };
+      }
+    }
+
+    // 3. 美化中心
+    if (pageName === 'beautify' || pageName === 'beautiful') {
+      var bSub = page.querySelector('.beautify-sub-view.active');
+      if (bSub) {
+        return {
+          isSub: true,
+          action: function() { window.dispatchEvent(new Event('closeBeautifySub')); }
+        };
+      }
+    }
+
+    // 4. 设置及其他二级 App
+    if (pageName === 'api' || pageName === 'data') {
+      return {
+        isSub: true,
+        action: function() { showPage('settings'); }
+      };
+    }
+
+    return { isSub: false, action: null };
+  }
+
+  // ============ 全局统一导航绑定 ============
+  function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
         var targetTab = this.dataset.tab;
@@ -568,9 +640,10 @@
       }
     });
 
-    // ============ 全局【15 ➜ 13 ➜ 10 严格物理层级滑动死锁引擎】 ============
+    // 核心多级滑动返回引擎 (实时校验，绝不误杀)
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
+      var subInfo = { isSub: false, action: null };
 
       page.addEventListener('touchstart', function(e) { 
         if (e.touches[0].clientX > 45) return; 
@@ -581,6 +654,13 @@
         isDragging = true; 
         isLocked = false;
         isHoriz = false;
+
+        // 每次手势触发瞬间，精确判定当前 App 所在的深层状态
+        subInfo = checkSubViewStatus(page);
+
+        if (!subInfo.isSub) {
+          page.style.transition = 'none'; 
+        }
       }, { passive: true });
 
       page.addEventListener('touchmove', function(e) { 
@@ -596,10 +676,13 @@
         if (!isHoriz) return;
 
         if (diffX > 0) {
-          if (e.cancelable) e.preventDefault();
           currentX = diffX;
+          // 只要处在子页面，外层 Page 绝对不作位移，防止暴露底层！
+          if (!subInfo.isSub) {
+            page.style.transform = 'translateX(' + currentX + 'px)'; 
+          }
         }
-      }, { passive: false });
+      }, { passive: true });
 
       page.addEventListener('touchend', function() {
         if (!isDragging || !isHoriz) {
@@ -608,90 +691,26 @@
         }
         isDragging = false;
 
-        // 滑动有效阈值判定
-        if (currentX < 40) return;
-
-        var pageName = page.dataset.page;
-
-        // ==========================================
-        // 1. 【世界书体系】15 ➜ 13 ➜ 10 严格层级处理
-        // ==========================================
-        if (pageName === 'worldbook') {
-          var edit15 = page.querySelector('#wbEditView');
-          var entries13 = page.querySelector('#wbEntriesView');
-          var meta13 = page.querySelector('#wbBookMetaView');
-
-          // 【15 级】：当前处于词条编辑页 ➜ 只能退回 13 级（词条列表）！
-          if (edit15 && !edit15.classList.contains('wb-view-hidden') && edit15.style.display !== 'none') {
-            window.dispatchEvent(new CustomEvent('wbStepBack'));
-            return;
+        // 【最核心保护机制】：如果在任意 App 子页面中，100% 仅触发子页面的回退，绝不调 showPage('home')！
+        if (subInfo.isSub && typeof subInfo.action === 'function') {
+          if (currentX > 35) {
+            subInfo.action();
           }
-
-          // 【13 级】：当前处于词条列表或新建书名 ➜ 只能退回 10 级（世界书首页）！
-          if ((entries13 && !entries13.classList.contains('wb-view-hidden') && entries13.style.display !== 'none') ||
-              (meta13 && !meta13.classList.contains('wb-view-hidden') && meta13.style.display !== 'none')) {
-            window.dispatchEvent(new CustomEvent('wbStepBack'));
-            return;
-          }
-
-          // 【10 级】：纯正的世界书首页 ➜ 才能退回手机桌面！
-          showPage('home');
           return;
         }
 
-        // ==========================================
-        // 2. 【档案体系】15 ➜ 13 ➜ 10 严格层级处理
-        // ==========================================
-        if (pageName === 'archive') {
-          // 【15 级 / 13 级】：检查是否有打开的编辑卡片、详情页或子弹层
-          var archiveSub13 = page.querySelector('.archive-sub-view.active, .char-edit-view.active, .archive-drawer.open, .archive-modal.show');
-          var archiveSubBackBtn = page.querySelector('.archive-sub-view.active [data-back], .char-edit-view.active #charEditBackBtn, .archive-sub-back');
-
-          if (archiveSubBackBtn) {
-            archiveSubBackBtn.click();
-            return;
+        // 只有在 App 的第一层大首页，且手势位移充足时，才退回桌面
+        if (!subInfo.isSub) {
+          page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          var backBtn = page.querySelector('[data-back]');
+          if (currentX > window.innerWidth * 0.28) { 
+            var targetBack = backBtn ? backBtn.dataset.back : 'home';
+            showPage(targetBack); 
+            setTimeout(function() { page.style.transform = ''; }, 280); 
+          } else { 
+            page.style.transform = 'translateX(0)'; 
           }
-          if (archiveSub13) {
-            window.dispatchEvent(new CustomEvent('archiveStepBack'));
-            return;
-          }
-          if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
-            if (typeof window.ArchiveState.stepBack === 'function') window.ArchiveState.stepBack();
-            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
-            return;
-          }
-
-          // 【10 级】：纯正的档案首页 ➜ 才能退回手机桌面！
-          showPage('home');
-          return;
         }
-
-        // ==========================================
-        // 3. 【美化中心】13 ➜ 10 严格层级处理
-        // ==========================================
-        if (pageName === 'beautify' || pageName === 'beautiful') {
-          var bSub13 = page.querySelector('.beautify-sub-view.active');
-          if (bSub13) {
-            window.dispatchEvent(new Event('closeBeautifySub'));
-            return;
-          }
-          showPage('home');
-          return;
-        }
-
-        // ==========================================
-        // 4. 【其他带二级页的应用（如设置）】
-        // ==========================================
-        var genericSub = page.querySelector('.sub-page.active [data-back], [data-is-sub="true"] [data-back]');
-        if (genericSub) {
-          genericSub.click();
-          return;
-        }
-
-        // 【10 级默认】：退回桌面
-        var backBtn = page.querySelector('[data-back]');
-        var targetBack = backBtn ? backBtn.dataset.back : 'home';
-        showPage(targetBack);
       });
     });
   }
@@ -984,4 +1003,3 @@
   });
 
 })();
-
