@@ -4,7 +4,7 @@
 
   var isSelectMode = false;
   var selectedUrls = [];
-  var memoryPreviewCache = {}; // 极速内存预览缓存池
+  var localPreviewCache = {}; // 内存极速预览缓存
 
   function initImgbedContent() {
     var page = document.querySelector('[data-page="imgbed"]');
@@ -97,11 +97,11 @@
     var viewerCopyBtn = document.getElementById('inAppViewerCopyBtn');
     var viewerClose = document.getElementById('inAppViewerClose');
 
-    // 0 延迟秒开大图预览引擎
-    function openViewer(url, directImageSrc) {
+    // 0 延迟秒开大图预览函数
+    function openViewer(url, directSrc) {
       if (!url) return;
-      var fastSrc = directImageSrc || memoryPreviewCache[url] || url;
-      viewerImg.src = fastSrc;
+      var fastImg = directSrc || localPreviewCache[url] || url;
+      viewerImg.src = fastImg;
       viewerInput.value = url;
       viewerModal.classList.add('show');
     }
@@ -158,7 +158,7 @@
     function compressImage(base64Str, callback) {
       var img = new Image();
       img.onload = function() {
-        var maxSide = 720;
+        var maxSide = 640;
         var w = img.width;
         var h = img.height;
 
@@ -176,15 +176,10 @@
         canvas.width = w;
         canvas.height = h;
         var ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, w, h);
 
         var compressed = canvas.toDataURL('image/png');
         callback(compressed);
-      };
-      img.onerror = function() {
-        callback(base64Str);
       };
       img.src = base64Str;
     }
@@ -194,7 +189,7 @@
       dropBox.style.pointerEvents = 'none';
 
       var customName = (customNameInput.value || '').trim();
-      var localSnapshot = safeBase64;
+      var currentSnapshot = safeBase64;
 
       fetch('/api/upload', {
         method: 'POST',
@@ -214,10 +209,10 @@
         safeBase64 = null;
 
         if (data && data.success && data.url) {
-          memoryPreviewCache[data.url] = localSnapshot; // 写入内存缓存
+          localPreviewCache[data.url] = currentSnapshot;
           if (window.AppNav) AppNav.showToast('上传成功！已生成极速 PNG');
           saveHistory(data.url);
-          openViewer(data.url, localSnapshot); // 瞬间秒开
+          openViewer(data.url, currentSnapshot); // 瞬间秒显
         } else {
           if (window.AppNav) AppNav.showToast((data && data.message) ? data.message : '上传失败');
         }
@@ -339,7 +334,7 @@
         var isSelected = (selectedUrls.indexOf(item.url) !== -1);
         return '<div class="imgbed-history-item' + (isSelected ? ' selected' : '') + '" data-url="' + item.url + '">'
           + '<div class="imgbed-check-circle"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>'
-          + '<img class="imgbed-history-thumb" src="' + item.url + '" loading="lazy">'
+          + '<img class="imgbed-history-thumb" src="' + item.url + '">'
           + '<div class="imgbed-history-info">'
           + '<div class="imgbed-history-url">' + item.url + '</div>'
           + '<div class="imgbed-history-tag">' + (isSelectMode ? (isSelected ? '✓ 已选中' : '点击勾选') : '点击放大预览') + '</div>'
