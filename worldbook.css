@@ -205,10 +205,10 @@
   transition: none !important;
 }
 
-/* 左侧：加宽书本造型封面画框 (由54px加宽至68px) */
+/* 左侧：书本造型封面画框  */
 .wb-art-frame-left {
   position: relative;
-  width: 65px !important;
+  width: 60px !important;
   height: 100%;
   background: #f4f4f6;
   border: 0.8px solid rgba(0,0,0,0.08);
@@ -778,22 +778,40 @@
 .wb-tag-box {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  min-height: 20px;
+  gap: 6px;
+  min-height: 24px;
+  margin-bottom: 4px; /* 增加与下方输入框的物理安全间距，杜绝误触 */
 }
 .wb-kw-tag {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  background: #f0f0f4;
+  gap: 6px;
+  font-size: 12px;
+  background: #fff;
   color: #1c1c1e;
   border: 1px solid var(--wb-border-line);
   border-radius: 6px;
-  padding: 2px 7px;
+  padding: 4px 8px;
   font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
-.wb-kw-tag-del { font-size: 11px; cursor: pointer; opacity: 0.6; }
+.wb-kw-tag:active {
+  background: #e5e5ea;
+}
+/* 放大删除按钮热区，带大面积透明 padding 方便手指盲按 */
+.wb-kw-tag-del {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: #8e8e93;
+  padding: 2px 4px;
+  margin-right: -2px;
+  cursor: pointer;
+}
+.wb-kw-tag-del:active {
+  color: #c95353;
+}
 
 .wb-scan-depth-row {
   display: flex;
