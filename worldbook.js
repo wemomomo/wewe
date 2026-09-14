@@ -692,7 +692,7 @@
     renderTags();
   }
 
-    function renderTags() {
+      function renderTags() {
     var box = document.getElementById('wbTagBox');
     if (!box) return;
     box.innerHTML = '';
@@ -704,6 +704,7 @@
     state.editTempTags.forEach(function (t, idx) {
       var tag = document.createElement('span');
       tag.className = 'wb-kw-tag';
+      tag.dataset.delTag = idx; // 绑定到整个标签上
       tag.innerHTML = t + ' <span class="wb-kw-tag-del" data-del-tag="' + idx + '">×</span>';
       box.appendChild(tag);
     });
@@ -1209,10 +1210,13 @@
         return;
       }
 
-      // 13. 标签删除
+      // 13. 标签删除（点击整个标签或点 × 均可秒删，并阻止事件冒泡防止触发输入框）
       var delTagBtn = e.target.closest('[data-del-tag]');
       if (delTagBtn) {
-        state.editTempTags.splice(parseInt(delTagBtn.dataset.delTag, 10), 1);
+        e.stopPropagation();
+        e.preventDefault();
+        var idx = parseInt(delTagBtn.dataset.delTag, 10);
+        state.editTempTags.splice(idx, 1);
         renderTags();
         return;
       }
