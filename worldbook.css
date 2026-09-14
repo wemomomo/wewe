@@ -268,8 +268,8 @@
 
 /* 上下距离拉近的竖排三星芒 ✦✦✦ */
 .wb-art-stars-btn {
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
