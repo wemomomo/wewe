@@ -152,7 +152,6 @@
   padding: 0;
   outline: none;
   margin-right: -4px; /* 微调右侧贴边距离 */
-  margin-top: -10px;
 }
 
 /* 彻底移除外圈线条 */
@@ -164,27 +163,29 @@
 .wb-star-node {
   position: absolute;
   color: var(--wb-cur-theme);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
   pointer-events: none;
+  text-shadow: 0 0 5px var(--wb-cur-theme);
 }
 
 /* 核心：用负坐标彻底拉开距离，与圆圈形成明显留白 */
 .wb-star-top { top: -2px; left: 50%; transform: translateX(-50%); }
-.wb-star-bottom { bottom: -1px; left: 50%; transform: translateX(-50%); }
-.wb-star-left { left: -1px; top: 50%; transform: translateY(-50%); }
-.wb-star-right { right: -1px; top: 50%; transform: translateY(-50%); }
+.wb-star-bottom { bottom: -2px; left: 50%; transform: translateX(-50%); }
+.wb-star-left { left: -2px; top: 50%; transform: translateY(-50%); }
+.wb-star-right { right: -2px; top: 50%; transform: translateY(-50%); }
 
 /* 核心圆芯：内部雪花 ❆ */
 .wb-circle-core {
-  width: 35px;
-  height: 35px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--wb-cur-theme);
   border: 1.5px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 0 3px var(--wb-cur-theme-bg), 0 2px 8px var(--wb-cur-theme);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   font-size: 14px;
   color: #ffffff;
