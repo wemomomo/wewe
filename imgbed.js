@@ -34,7 +34,7 @@
       + '<div class="imgbed-icon-circle"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>'
       + '<div class="imgbed-upload-info">'
       + '<div class="imgbed-upload-title" id="inAppUploadText">选择照片并裁剪上传</div>'
-      + '<div class="imgbed-upload-tip">超清视网膜画质 · 极速直链生成</div>'
+      + '<div class="imgbed-upload-tip">自动极速轻量化 PNG · 点击历史图片可放大预览</div>'
       + '</div>'
       + '<input type="file" id="inAppFileInput" accept="image/*" style="display:none">'
       + '</div>'
@@ -96,9 +96,9 @@
     var viewerCopyBtn = document.getElementById('inAppViewerCopyBtn');
     var viewerClose = document.getElementById('inAppViewerClose');
 
-    function openViewer(url, localPreviewSrc) {
+    function openViewer(url, localSrc) {
       if (!url) return;
-      viewerImg.src = localPreviewSrc || url;
+      viewerImg.src = localSrc || url;
       viewerInput.value = url;
       viewerModal.classList.add('show');
     }
@@ -137,13 +137,13 @@
         if (window.AppCropper) {
           window.AppCropper.open(rawBase64, { aspectRatio: 0 }, function(croppedData) {
             rawBase64 = null;
-            optimizeImage(croppedData, file.type, function(safeBase64, outMime) {
-              uploadToServer(safeBase64, file.name, outMime);
+            compressImage(croppedData, function(safeBase64) {
+              uploadToServer(safeBase64, file.name);
             });
           });
         } else {
-          optimizeImage(rawBase64, file.type, function(safeBase64, outMime) {
-            uploadToServer(safeBase64, file.name, outMime);
+          compressImage(rawBase64, function(safeBase64) {
+            uploadToServer(safeBase64, file.name);
           });
           rawBase64 = null;
         }
@@ -152,10 +152,10 @@
       this.value = '';
     });
 
-    function optimizeImage(base64Str, origMime, callback) {
+    function compressImage(base64Str, callback) {
       var img = new Image();
       img.onload = function() {
-        var maxSide = 800; // 800px 超清视网膜标准：画质细腻，秒级传输
+        var maxSide = 640;
         var w = img.width;
         var h = img.height;
 
@@ -177,23 +177,21 @@
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, w, h);
 
-        var isPng = (origMime && origMime.indexOf('png') !== -1) || base64Str.indexOf('data:image/png') === 0;
-        var outMime = isPng ? 'image/png' : 'image/jpeg';
-        var result = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.80);
-        callback(result, outMime);
+        var compressed = canvas.toDataURL('image/png');
+        callback(compressed);
       };
       img.onerror = function() {
-        callback(base64Str, origMime || 'image/jpeg');
+        callback(base64Str);
       };
       img.src = base64Str;
     }
 
-    function uploadToServer(safeBase64, originalName, mimeType) {
-      uploadText.textContent = '上传中...';
+    function uploadToServer(safeBase64, originalName) {
+      uploadText.textContent = '正在上传中...';
       dropBox.style.pointerEvents = 'none';
 
       var customName = (customNameInput.value || '').trim();
-      var localSnapshot = safeBase64;
+      var snapshot = safeBase64;
 
       fetch('/api/upload', {
         method: 'POST',
@@ -201,8 +199,9 @@
         body: JSON.stringify({
           base64Data: safeBase64,
           filename: originalName,
-          mimeType: mimeType || 'image/jpeg',
-          customName: customName
+          mimeType: 'image/png',
+          customName: customName,
+          forcePNG: true
         })
       })
       .then(function(res){
@@ -216,17 +215,18 @@
         if (data && data.success && data.url) {
           if (window.AppNav) AppNav.showToast('上传成功！');
           saveHistory(data.url);
-          openViewer(data.url, localSnapshot);
+          openViewer(data.url, snapshot);
         } else {
-          var msg = (data && data.message) ? data.message : '上传失败';
-          if (window.AppNav) AppNav.showToast(msg);
+          // 将真实的错误信息直接弹在手机屏幕上！
+          var errTip = (data && data.message) ? data.message : '服务器未返回有效信息';
+          if (window.AppNav) AppNav.showToast(errTip);
         }
       })
       .catch(function(err){
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
-        if (window.AppNav) AppNav.showToast('网络异常: ' + (err.message || '请重试'));
+        if (window.AppNav) AppNav.showToast('接口请求失败: ' + (err.message || '网络断开'));
       });
     }
 
