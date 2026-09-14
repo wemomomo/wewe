@@ -11,7 +11,7 @@
   --wb-icon-gray: #8e8e93;
 }
 
-/* 核心修复：彻底拔除外部父容器所有左右 padding，杜绝两边白色遮挡 */
+/* 彻底拔除外部父容器所有左右 padding，杜绝两边白色遮挡 */
 .app-page[data-page="worldbook"],
 .app-page[data-page="worldbook"] .app-content,
 .app-page[data-page="worldbook"] #worldbookContent {
@@ -74,19 +74,25 @@
   padding: 0 !important;
 }
 
-/* ========== 1. 首页顶栏：世界书 + 英文副标题 + ∨ 切换箭头 ========== */
+/* ========== 1. 首页顶栏：左标题 + 右上角浅黑虚线三横线圆钮 ========== */
 .wb-gallery-header-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
   height: 52px;
   flex-shrink: 0;
   width: 100%;
   padding: 0 2px;
   position: relative;
-  gap: 2px;
   box-sizing: border-box;
+}
+
+.wb-header-left-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
 }
 
 .wb-header-switch-wrap {
@@ -99,7 +105,7 @@
 .wb-header-switch-wrap:active { opacity: 0.7; }
 
 .wb-gallery-main-title {
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 900;
   color: #1c1c1e;
   letter-spacing: 1px;
@@ -122,9 +128,8 @@
   transform: rotate(180deg);
 }
 
-/* 英文副标题 */
 .wb-gallery-sub-en {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   color: #8e8e93;
   letter-spacing: 2px;
@@ -132,7 +137,59 @@
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 }
 
-/* 下拉菜单浮层 */
+/* 右上角虚线圆圈三横线按钮 (浅黑 + 宽间距虚线) */
+.wb-header-circle-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  outline: none;
+}
+
+/* 宽间距浅黑外虚线环 */
+.wb-header-circle-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.3px dashed rgba(99, 99, 102, 0.45);
+}
+
+.wb-circle-core {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #f4f4f6;
+  border: 1.5px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3a3a3c;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+.wb-header-circle-btn:active .wb-circle-core {
+  transform: scale(0.92);
+  background: #e5e5ea;
+}
+
+.wb-circle-core svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* 下拉菜单浮层 (左侧板块切换) */
 .wb-header-dropdown-menu {
   position: absolute;
   left: 2px;
@@ -169,9 +226,88 @@
   font-weight: 800;
 }
 
-/* ========== 2. 首页列表项 (加宽封面 + 紧凑星芒 + 悬浮底栏) ========== */
+/* 右上角展开的「新建/导入/改色」菜单浮层 */
+.wb-right-menu-popover {
+  position: absolute;
+  right: 2px;
+  top: 52px;
+  background: #ffffff;
+  border: 1px solid var(--wb-border-line);
+  border-radius: 14px;
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 55;
+  min-width: 160px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+.wb-right-menu-popover.show { display: flex; animation: wbDropIn 0.15s ease; }
+
+.wb-action-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c1c1e;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.wb-action-card-btn:active { background: #f0f0f4; }
+.wb-action-card-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  flex-shrink: 0;
+}
+
+.wb-menu-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 4px 2px;
+  border-top: 1px dashed var(--wb-border-line);
+  margin-top: 4px;
+}
+.wb-swatch-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  transition: transform 0.15s ease;
+}
+.wb-swatch-dot:active { transform: scale(0.9); }
+
+.wb-custom-color-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red);
+  cursor: pointer;
+}
+.wb-custom-color-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ========== 2. 首页列表项 ========== */
 .wb-home-scroll-viewport {
-  padding-bottom: 78px !important;
+  padding-bottom: 20px !important; /* 移除底部按钮后恢复正常舒适下边距 */
 }
 
 .wb-art-card {
@@ -179,7 +315,7 @@
   width: 100% !important;
   max-width: 100% !important;
   height: 88px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 0;
   display: flex;
@@ -188,7 +324,7 @@
   gap: 12px;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: none !important; /* 彻底清除阴影 */
+  box-shadow: none !important;
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
@@ -196,16 +332,14 @@
   transform: translateZ(0);
 }
 
-/* 拖拽浮起态：彻底无阴影 */
 .wb-art-card.wb-dragging {
   opacity: 0.96;
   z-index: 50;
-  box-shadow: none !important; /* 彻底清除阴影 */
+  box-shadow: none !important;
   border-color: #8e8e93 !important;
   transition: none !important;
 }
 
-/* 左侧：书本造型封面画框  */
 .wb-art-frame-left {
   position: relative;
   width: 58px !important;
@@ -238,7 +372,6 @@
   stroke-linejoin: round;
 }
 
-/* 右侧：文字与拉近距离的竖排三星芒 */
 .wb-art-info-right {
   flex: 1;
   min-width: 0;
@@ -266,7 +399,6 @@
   line-height: 1.2;
 }
 
-/* 上下距离拉近的竖排三星芒 ✦✦✦ */
 .wb-art-stars-btn {
   width: 20px;
   height: 20px;
@@ -289,7 +421,6 @@
   color: #1c1c1e;
 }
 
-/* 下移的虚线 */
 .wb-art-dot-divider {
   width: 100%;
   height: 1px;
@@ -329,7 +460,6 @@
   flex-shrink: 0;
 }
 
-/* 三星芒弹出的菜单 */
 .wb-dropdown-menu {
   position: absolute;
   right: 12px;
@@ -344,7 +474,6 @@
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 .wb-dropdown-menu.show { display: flex; animation: wbDropIn 0.15s ease; }
-/* 当卡片弹出菜单时，瞬间将卡片自身的层级提升到最顶层，彻底杜绝被下方遮挡 */
 .wb-art-card.menu-active {
   z-index: 55 !important;
 }
@@ -353,62 +482,14 @@
   padding: 8px 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #fff;
+  color: #ffffff;
   border-radius: 6px;
   cursor: pointer;
   text-align: center;
 }
-.wb-menu-item:active { background: #f0f0f4; }
-.wb-menu-item.del { color: #c95353; }
-.wb-menu-item.del:active { background: rgba(201,83,83,0.1); }
-
-/* 首页底部固定悬浮岛 */
-.wb-home-floating-wrapper {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: calc(18px + var(--safe-bottom));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  z-index: 50;
-  pointer-events: none;
-  padding: 0 16px;
-  box-sizing: border-box;
-}
-
-.wb-btn-floating-new {
-  pointer-events: auto;
-  flex: 1;
-  max-width: 220px;
-  height: 40px;
-  background: #1c1c1e;
-  color: #ffffff;
-  border: none;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.22);
-}
-.wb-btn-floating-new:active { opacity: 0.85; transform: scale(0.97); }
-
-.wb-btn-floating-import {
-  pointer-events: auto;
-  height: 40px;
-  padding: 0 18px;
-  background: #ffffff;
-  color: #1c1c1e;
-  border: 1px solid var(--wb-border-line);
-  border-radius: 20px;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-}
-.wb-btn-floating-import:active { background: #f0f0f4; transform: scale(0.97); }
+.wb-menu-item:active { background: #2c2c2e; }
+.wb-menu-item.del { color: #ff453a; }
+.wb-menu-item.del:active { background: rgba(255,69,58,0.15); }
 
 /* ========== 3. 新建名称页 ========== */
 .wb-meta-nav-bar {
@@ -465,7 +546,7 @@
   font-family: inherit;
 }
 
-/* ========== 4. 词条列表页 (柔和黑色开关) ========== */
+/* ========== 4. 词条列表页 ========== */
 .wb-entries-nav-bar {
   display: flex;
   align-items: center;
@@ -527,7 +608,7 @@
 }
 
 .wb-entry-item-card {
-  background: #fff;
+  background: #ffffff;
   border: 1px solid var(--wb-border-line) !important;
   border-radius: 12px;
   height: 64px;
@@ -539,25 +620,22 @@
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
-  border: 1px solid transparent;
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  box-shadow: none !important; /* 彻底清除阴影 */
+  box-shadow: none !important;
   transform: translateZ(0);
 }
 
-/* 词条拖拽浮起态：彻底无阴影 */
 .wb-entry-item-card.wb-dragging {
   opacity: 0.96;
   z-index: 50;
-  box-shadow: none !important; /* 彻底清除阴影 */
+  box-shadow: none !important;
   background: #ffffff !important;
   border-color: #8e8e93 !important;
   transition: none !important;
 }
 
-/* 左侧标题与下方副文本 */
 .wb-entry-left-col {
   display: flex;
   flex-direction: column;
@@ -576,7 +654,6 @@
   text-overflow: ellipsis;
 }
 
-/* 标题下方小文字 */
 .wb-entry-sub-desc {
   font-size: 12px;
   color: #8e8e93;
@@ -622,7 +699,6 @@
   stroke-linejoin: round;
 }
 
-/* 开启时改为柔和高定炭黑色 */
 .wb-entry-switch {
   width: 32px;
   height: 18px;
@@ -649,7 +725,6 @@
 .wb-entry-switch.on { background: #d1d1d6 !important; }
 .wb-entry-switch.on::after { transform: translateX(14px); }
 
-/* 词条页悬浮保存按钮 */
 .wb-floating-save-wrapper {
   position: fixed;
   left: 0;
@@ -684,7 +759,7 @@
   opacity: 0.85;
 }
 
-/* ========== 5. 编辑页 (无边框输入框 + 内容高度130px) ========== */
+/* ========== 5. 编辑页 ========== */
 .wb-edit-nav-bar {
   display: flex;
   align-items: center;
@@ -764,7 +839,6 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
-/* 彻底删掉输入框边框，纯净内嵌 */
 .wb-clean-input {
   width: 100%;
   height: 38px;
@@ -785,14 +859,14 @@
   flex-wrap: wrap;
   gap: 6px;
   min-height: 24px;
-  margin-bottom: 4px; /* 增加与下方输入框的物理安全间距，杜绝误触 */
+  margin-bottom: 4px;
 }
 .wb-kw-tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  background: #fff;
+  background: #ffffff;
   color: #1c1c1e;
   border: 1px solid var(--wb-border-line);
   border-radius: 6px;
@@ -801,10 +875,7 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.wb-kw-tag:active {
-  background: #e5e5ea;
-}
-/* 放大删除按钮热区，带大面积透明 padding 方便手指盲按 */
+.wb-kw-tag:active { background: #e5e5ea; }
 .wb-kw-tag-del {
   font-size: 14px;
   font-weight: 700;
@@ -814,9 +885,7 @@
   margin-right: -2px;
   cursor: pointer;
 }
-.wb-kw-tag-del:active {
-  color: #c95353;
-}
+.wb-kw-tag-del:active { color: #c95353; }
 
 .wb-scan-depth-row {
   display: flex;
@@ -844,7 +913,7 @@
 .wb-depth-pos-btn {
   flex: 1;
   height: 34px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 8px;
   font-size: 11px;
@@ -887,12 +956,11 @@
 
 .wb-textarea-wrap { position: relative; width: 100%; }
 
-/* 内容输入框高度加大到 130px，无边框设计 */
 .wb-clean-textarea {
   width: 100%;
   height: 140px !important;
   min-height: 140px !important;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid var(--wb-border-line) !important;
   border-radius: 10px;
   padding: 10px 12px 24px;
@@ -915,7 +983,6 @@
   pointer-events: none;
 }
 
-/* 全屏沉浸式弹层 */
 .wb-expanded-modal {
   position: absolute;
   inset: 0;
