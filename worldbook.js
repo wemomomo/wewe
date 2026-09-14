@@ -692,10 +692,15 @@
     renderTags();
   }
 
-  function renderTags() {
-    var box = document.getElementById('tagBox');
+    function renderTags() {
+    var box = document.getElementById('wbTagBox');
     if (!box) return;
     box.innerHTML = '';
+    if (!state.editTempTags || state.editTempTags.length === 0) {
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'flex';
     state.editTempTags.forEach(function (t, idx) {
       var tag = document.createElement('span');
       tag.className = 'wb-kw-tag';
@@ -903,30 +908,46 @@
     });
 
         function addKeyTagFromInput(inputEl) {
-      var val = (inputEl.value || '').trim().replace(/[,，]/g, '');
-      if (val && state.editTempTags.indexOf(val) === -1) {
-        state.editTempTags.push(val);
-        renderTags();
-      }
+      if (!inputEl) return;
+      var raw = inputEl.value || '';
+      // 支持空格、中英文逗号一次性切分多个词
+      var words = raw.split(/[,，\s]+/);
+      words.forEach(function (w) {
+        var clean = w.trim();
+        if (clean && state.editTempTags.indexOf(clean) === -1) {
+          state.editTempTags.push(clean);
+        }
+      });
+      renderTags();
       inputEl.value = '';
     }
 
+    // 1. 监听回车键与软键盘换行
     container.addEventListener('keydown', function (e) {
       if (e.target && e.target.id === 'wbIptKeyInput') {
-        if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',' || e.key === '，') {
+        if (e.key === 'Enter' || e.keyCode === 13) {
           e.preventDefault();
           addKeyTagFromInput(e.target);
         }
       }
     });
 
-    container.addEventListener('keyup', function (e) {
+    // 2. 监听输入逗号或空格即时转成标签
+    container.addEventListener('input', function (e) {
       if (e.target && e.target.id === 'wbIptKeyInput') {
-        if (e.keyCode === 13 || e.target.value.indexOf(',') !== -1 || e.target.value.indexOf('，') !== -1) {
+        var v = e.target.value;
+        if (v.indexOf(',') !== -1 || v.indexOf('，') !== -1) {
           addKeyTagFromInput(e.target);
         }
       }
     });
+
+    // 3. 手机软键盘收起（失去焦点）时，自动把框里打好的字变成标签！
+    container.addEventListener('blur', function (e) {
+      if (e.target && e.target.id === 'wbIptKeyInput') {
+        addKeyTagFromInput(e.target);
+      }
+    }, true);
 
     container.addEventListener('click', function (e) {
       // 1. 顶栏 ∨ 下拉切换
