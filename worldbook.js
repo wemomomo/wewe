@@ -1007,13 +1007,19 @@
         return;
       }
 
-      if (e.target.closest('#wbBtnSaveBookMeta')) {
+           if (e.target.closest('#wbBtnSaveBookMeta')) {
         var bookTitleIpt = document.getElementById('wbIptBookTitle');
         var currentBook = state.worldbooks.find(function (w) { return w.id === state.currentWbId; });
         if (currentBook && bookTitleIpt) {
           currentBook.title = (bookTitleIpt.value || '').trim() || '未命名世界书';
           saveWorldbooksData();
-          renderEditView(null);
+          
+          // 👈 核心区分：如果是新建世界书，去新建词条页；如果是重命名，直接退回条目列表页！
+          if (state.isCreatingNewWb) {
+            renderEditView(null);
+          } else {
+            renderEntriesView(state.currentWbId);
+          }
         }
         return;
       }
