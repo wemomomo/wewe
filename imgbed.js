@@ -96,9 +96,10 @@
     var viewerCopyBtn = document.getElementById('inAppViewerCopyBtn');
     var viewerClose = document.getElementById('inAppViewerClose');
 
-    function openViewer(url) {
+    // 0 秒秒开预览：支持优先使用本地缓存图片秒显，同时展示远程正式链接
+    function openViewer(url, localPreviewSrc) {
       if (!url) return;
-      viewerImg.src = url;
+      viewerImg.src = localPreviewSrc || url;
       viewerInput.value = url;
       viewerModal.classList.add('show');
     }
@@ -193,8 +194,8 @@
       dropBox.style.pointerEvents = 'none';
 
       var customName = (customNameInput.value || '').trim();
+      var localSnapshot = safeBase64; // 保留本地瞬显数据
 
-      // 9秒前端强行超时保护
       var controller = new AbortController();
       var timer = setTimeout(function() {
         controller.abort();
@@ -223,7 +224,8 @@
         if (data && data.success && data.url) {
           if (window.AppNav) AppNav.showToast('上传成功！');
           saveHistory(data.url);
-          openViewer(data.url);
+          // 0 秒本地秒开，无需等待远程网络加载
+          openViewer(data.url, localSnapshot);
         } else {
           var msg = (data && data.message) ? data.message : '上传失败';
           if (window.AppNav) AppNav.showToast(msg);
@@ -351,7 +353,7 @@
         var isSelected = (selectedUrls.indexOf(item.url) !== -1);
         return '<div class="imgbed-history-item' + (isSelected ? ' selected' : '') + '" data-url="' + item.url + '">'
           + '<div class="imgbed-check-circle"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>'
-          + '<img class="imgbed-history-thumb" src="' + item.url + '">'
+          + '<img class="imgbed-history-thumb" src="' + item.url + '" loading="lazy">'
           + '<div class="imgbed-history-info">'
           + '<div class="imgbed-history-url">' + item.url + '</div>'
           + '<div class="imgbed-history-tag">' + (isSelectMode ? (isSelected ? '✓ 已选中' : '点击勾选') : '点击放大预览') + '</div>'
