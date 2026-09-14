@@ -22,7 +22,9 @@
 
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
   var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
-  var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
+
+  // 纯白底 · 浅淡初雪蓝雪花 ❆ 的纯净 SVG 图标 DataURL
+  var SNOWFLAKE_ICON_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23ffffff'/%3E%3Ctext x='50%25' y='56%25' font-size='62' font-family='-apple-system,BlinkMacSystemFont,sans-serif' text-anchor='middle' dominant-baseline='middle' fill='%2378a5d7' fill-opacity='0.75'%3E%E2%9D%84%EF%B8%8E%3C/text%3E%3C/svg%3E";
 
   var OPT_ICONS = {
     icon1: '',
@@ -125,9 +127,9 @@
               '</div>' +
               // 第 2 位：主图2 (雪花 ❆)
               '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
-                '<div class="pwa-icon-preview">' +
+                '<div class="pwa-icon-preview" style="background:#ffffff;">' +
                   '<div class="pwa-snowflake-container">' +
-                    '<div class="pwa-snowflake-main">❆</div>' +
+                    '<div class="pwa-snowflake-main">&#10052;&#65038;</div>' +
                   '</div>' +
                 '</div>' +
                 '<span class="pwa-icon-name">主图2</span>' +
@@ -428,10 +430,8 @@
       });
       return;
     } else if (type === 'icon2') {
-      convertImgToPngBase64(RAW_ICON_PATH_2, function(pngBase64) {
-        OPT_ICONS.icon2 = pngBase64;
-        setManifestAndAppleIcons(pngBase64);
-      });
+      // 👈 点击主图2：直接使用纯白底初雪蓝雪花 ❆ 的纯净图标，绝对不再读取旧照片！
+      setManifestAndAppleIcons(SNOWFLAKE_ICON_URL);
       return;
     } else if (type === 'custom') {
       var cUrl = customUrl || beautifyData.customPwaIconUrl || DEFAULT_HEART_URL;
