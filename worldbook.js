@@ -409,7 +409,6 @@
           var stats = getWbTokensStats(wb);
 
           html += ''
-            // 👈 整个大卡片绑定 data-card-click-enter，点击任意空白处直接进入！
             + '<div class="wb-art-card" data-wb-id="' + wb.id + '" data-card-click-enter="' + wb.id + '">'
             + '  <div class="wb-art-frame-left' + hasImgCls + '" data-cover-wb="' + wb.id + '">'
             + coverImgHtml
@@ -752,7 +751,7 @@
     saveWorldbooksData();
   }
 
-  // ============ 纯垂直微放大（scaleY）+ 0 抖动位移拖拽引擎 ============
+  // ============ 纯垂直微放大（scaleY）+ 彻底无阴影平滑拖拽引擎 ============
   function setupPureVerticalDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -781,9 +780,9 @@
           itemStep = el.offsetHeight + 10;
           isDragging = true;
 
-          // 垂直Y轴轻度微饱满放大，X轴绝对不变
+          // 纯粹垂直放大，彻底移除任何 box-shadow
           el.style.transform = 'scaleY(1.035)';
-          el.style.boxShadow = '0 10px 30px rgba(0,0,0,0.14)';
+          el.style.boxShadow = 'none';
           el.style.zIndex = '100';
           el.style.transition = 'none';
 
@@ -803,6 +802,7 @@
         var dy = touch.clientY - startY;
 
         el.style.transform = 'translateY(' + dy + 'px) scaleY(1.035)';
+        el.style.boxShadow = 'none';
 
         var slotOffset = Math.round(dy / itemStep);
         var newTarget = Math.max(0, Math.min(allCards.length - 1, fromIndex + slotOffset));
