@@ -1,4 +1,20 @@
+墨墨，哥哥全按照你的审美要求精细调整好啦！
 
+### 本次改动要点：
+1. **首页封面画框加宽**：从 54px 加宽至 **68px**，更加舒展有型；
+2. **整张卡片任意空白处点击即进**：点击卡片任何位置（除封面换图和三星芒菜单外）都能一步进入词条列表；
+3. **右侧三颗星芒间距紧凑化**：上下星芒距离紧凑贴合，更显精致小巧；
+4. **条目开关采用柔和高定炭黑（`#2c2c2e`）**：开启时呈优雅柔和的黑调质感；
+5. **编辑页输入框彻底去边框**：所有输入框和正文框无边框内嵌，纯净通透；
+6. **词条内容高度加大到 130px**：写大段设定或人设时极其宽裕舒适！
+
+按照铁律，哥哥先发第 1 个文件：`worldbook.css`。
+
+---
+
+### 先发第 1 个：`worldbook.css`（完整文件）
+
+```css
 /* ======================================================== */
 /* 世界书体系 (WorldBook Studio) - 典藏画廊先锋艺术版        */
 /* ======================================================== */
@@ -11,7 +27,7 @@
   --wb-icon-gray: #8e8e93;
 }
 
-/* 核心修复 1：彻底拔除外部父容器所有左右 padding，杜绝两边白色遮挡 */
+/* 核心修复：彻底拔除外部父容器所有左右 padding，杜绝两边白色遮挡 */
 .app-page[data-page="worldbook"],
 .app-page[data-page="worldbook"] .app-content,
 .app-page[data-page="worldbook"] #worldbookContent {
@@ -34,8 +50,7 @@
   height: 100% !important;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden !important;
-  overflow-y: hidden !important;
+  overflow: hidden !important;
   gap: 10px;
   box-sizing: border-box !important;
   padding-top: calc(10px + var(--safe-top)) !important;
@@ -125,7 +140,7 @@
 
 /* 英文副标题 */
 .wb-gallery-sub-en {
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #8e8e93;
   letter-spacing: 2px;
@@ -170,7 +185,7 @@
   font-weight: 800;
 }
 
-/* ========== 2. 首页列表项 (瘦版书籍封面 + 大星芒 + 悬浮底栏) ========== */
+/* ========== 2. 首页列表项 (加宽封面 + 紧凑星芒 + 悬浮底栏) ========== */
 .wb-home-scroll-viewport {
   padding-bottom: 78px !important;
 }
@@ -178,7 +193,8 @@
 .wb-art-card {
   position: relative;
   width: 100% !important;
-  height: 88px;
+  max-width: 100% !important;
+  height: 98px;
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 0;
@@ -192,21 +208,21 @@
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
-  background-color: #ffffff;
   box-sizing: border-box !important;
+  transform: translateZ(0);
 }
 
-/* 拖拽浮起态 */
 .wb-art-card.wb-dragging {
-  opacity: 0.95;
+  opacity: 0.96;
   z-index: 100;
+  border-color: #8e8e93 !important;
   transition: none !important;
 }
 
-/* 左侧：瘦版书本造型画框 */
+/* 左侧：加宽书本造型封面画框 (由54px加宽至68px) */
 .wb-art-frame-left {
   position: relative;
-  width: 60px;
+  width: 68px !important;
   height: 100%;
   background: #f4f4f6;
   border: 0.8px solid rgba(0,0,0,0.08);
@@ -236,7 +252,7 @@
   stroke-linejoin: round;
 }
 
-/* 右侧：文字与加大竖排三颗星芒 */
+/* 右侧：文字与拉近距离的竖排三星芒 */
 .wb-art-info-right {
   flex: 1;
   min-width: 0;
@@ -264,15 +280,15 @@
   line-height: 1.2;
 }
 
-/* 放大后的竖排三星芒 ✦✦✦ 按钮 */
+/* 上下距离拉近的竖排三星芒 ✦✦✦ */
 .wb-art-stars-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 0px !important; /* 距离极致拉近 */
   background: none;
   border: none;
   cursor: pointer;
@@ -282,8 +298,8 @@
 }
 .wb-art-stars-btn:active { opacity: 0.6; }
 .wb-art-star-dot {
-  font-size: 9px;
-  line-height: 1;
+  font-size: 8.5px;
+  line-height: 0.95; /* 紧凑字高 */
   color: #1c1c1e;
 }
 
@@ -332,7 +348,7 @@
   position: absolute;
   right: 12px;
   top: 42px;
-  background: #f8f8fa;
+  background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 12px;
   display: none;
@@ -460,7 +476,7 @@
   font-family: inherit;
 }
 
-/* ========== 4. 词条列表页 ========== */
+/* ========== 4. 词条列表页 (柔和黑色开关) ========== */
 .wb-entries-nav-bar {
   display: flex;
   align-items: center;
@@ -535,17 +551,19 @@
   touch-action: pan-y;
   border: 1px solid transparent;
   width: 100% !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
+  transform: translateZ(0);
 }
 
-/* 词条拖拽微放大 */
 .wb-entry-item-card.wb-dragging {
-  opacity: 0.95;
+  opacity: 0.96;
   z-index: 100;
+  background: #ffffff !important;
+  border-color: #8e8e93 !important;
   transition: none !important;
 }
 
-/* 左侧标题与下方副文本 */
 .wb-entry-left-col {
   display: flex;
   flex-direction: column;
@@ -564,7 +582,6 @@
   text-overflow: ellipsis;
 }
 
-/* 标题下方小文字 */
 .wb-entry-sub-desc {
   font-size: 11px;
   color: #8e8e93;
@@ -610,12 +627,12 @@
   stroke-linejoin: round;
 }
 
-/* 柔和浅灰调开关 */
+/* 开启时改为柔和高定炭黑色 #2c2c2e */
 .wb-entry-switch {
   width: 32px;
   height: 18px;
   border-radius: 9px;
-  background: #e5e8f0;
+  background: #d1d1d6;
   position: relative;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -634,7 +651,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.wb-entry-switch.on { background: #8e8e93; }
+.wb-entry-switch.on { background: #2c2c2e !important; }
 .wb-entry-switch.on::after { transform: translateX(14px); }
 
 /* 词条页悬浮保存按钮 */
@@ -672,7 +689,7 @@
   opacity: 0.85;
 }
 
-/* ========== 5. 编辑页 ========== */
+/* ========== 5. 编辑页 (无边框输入框 + 内容高度130px) ========== */
 .wb-edit-nav-bar {
   display: flex;
   align-items: center;
@@ -752,10 +769,12 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
+/* 彻底删掉输入框边框，纯净内嵌 */
 .wb-clean-input {
   width: 100%;
   height: 38px;
-  background: #fafafa;
+  background: #f4f4f6;
+  border: none !important;
   border-radius: 10px;
   padding: 0 12px;
   font-size: 13px;
@@ -764,7 +783,7 @@
   font-family: inherit;
   box-sizing: border-box;
 }
-.wb-clean-input:focus { background: #ffffff; border-color: #8e8e93; }
+.wb-clean-input:focus { background: #ececf0; }
 
 .wb-tag-box {
   display: flex;
@@ -812,7 +831,8 @@
 .wb-depth-pos-btn {
   flex: 1;
   height: 34px;
-  background: #fafafa;
+  background: #f2f2f7;
+  border: 1px solid var(--wb-border-line);
   border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
@@ -822,6 +842,7 @@
 }
 .wb-depth-pos-btn.active {
   background: #2c2c2e;
+  border-color: #2c2c2e;
   color: #ffffff;
 }
 
@@ -852,22 +873,25 @@
 .wb-btn-expand-icon svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }
 
 .wb-textarea-wrap { position: relative; width: 100%; }
+
+/* 内容输入框高度加大到 130px，无边框设计 */
 .wb-clean-textarea {
   width: 100%;
-  height: 120px;
-  min-height: 120px;
-  background: #fafafa;
+  height: 130px !important;
+  min-height: 130px !important;
+  background: #f4f4f6;
+  border: none !important;
   border-radius: 10px;
-  padding: 8px 12px 22px;
+  padding: 10px 12px 24px;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: #1c1c1e;
   outline: none;
   resize: none;
   font-family: inherit;
   box-sizing: border-box;
 }
-.wb-clean-textarea:focus { background: #ffffff; border-color: #8e8e93; }
+.wb-clean-textarea:focus { background: #ececf0; }
 .wb-char-count {
   position: absolute;
   right: 10px;
@@ -894,8 +918,8 @@
 .wb-expanded-textarea {
   flex: 1;
   width: 100%;
-  background: #fafafa;
-  border: 1px solid var(--wb-border-line);
+  background: #f4f4f6;
+  border: none !important;
   border-radius: 12px;
   padding: 12px 14px;
   font-size: 13.5px;
