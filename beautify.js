@@ -25,51 +25,9 @@
   var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
 
   var OPT_ICONS = {
-    icon1: '', 
-    icon2: ''  
+    icon1: '',
+    icon2: ''
   };
-
-  // 核心：纯同步像素直绘“蓝里透白”经典初雪雪花 ❆ (100% 纯白底色，彻底杜绝黑屏)
-  function getSnowflakePngBase64() {
-    if (OPT_ICONS.icon1) return OPT_ICONS.icon1;
-    try {
-      var canvas = document.createElement('canvas');
-      canvas.width = 192;
-      canvas.height = 192;
-      var ctx = canvas.getContext('2d');
-
-      // 1. 纯白实色背景 (苹果PWA标准，彻底杜绝黑屏)
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 192, 192);
-
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = '124px -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI Symbol", sans-serif';
-
-      // 2. 底层柔雾初雪蓝光晕
-      ctx.shadowColor = 'rgba(136, 171, 218, 0.7)';
-      ctx.shadowBlur = 18;
-      ctx.fillStyle = '#88abda';
-      ctx.fillText('❆', 96, 102);
-
-      // 3. 核心层“蓝里透白”径向渐变
-      ctx.shadowBlur = 0;
-      var grad = ctx.createRadialGradient(96, 102, 12, 96, 102, 65);
-      grad.addColorStop(0, '#ffffff');      // 中心白玉高光
-      grad.addColorStop(0.45, '#d4e6f8');   // 中层透亮淡蓝
-      grad.addColorStop(0.85, '#88abda');   // 外层初雪冰蓝
-      grad.addColorStop(1, '#7097cb');      // 边缘立体轮廓
-      ctx.fillStyle = grad;
-      ctx.fillText('❆', 96, 102);
-      ctx.restore();
-
-      OPT_ICONS.icon1 = canvas.toDataURL('image/png');
-      return OPT_ICONS.icon1;
-    } catch(e) {
-      return DEFAULT_HEART_URL;
-    }
-  }
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
@@ -165,20 +123,20 @@
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
 
-              // 纯白底·经典蓝里透白初雪雪花 ❆
-              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
+              // 复原原装主图1
+              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="主图1">' +
                 '<div class="pwa-icon-preview">' +
-                  '<div style="width:100%;height:100%;background:#ffffff;display:flex;align-items:center;justify-content:center;font-size:44px;line-height:1;color:#88abda;filter:drop-shadow(0 0 6px rgba(136,171,218,0.5));user-select:none;">❆</div>' +
+                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图1" loading="eager">' +
                 '</div>' +
-                '<span class="pwa-icon-name">初雪</span>' +
+                '<span class="pwa-icon-name">主图1</span>' +
               '</div>' +
 
-              // 原主图1
-              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图">' +
+              // 复原原装主图2
+              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图" loading="eager">' +
+                  '<img src="' + RAW_ICON_PATH_2 + '" alt="主图2" loading="eager">' +
                 '</div>' +
-                '<span class="pwa-icon-name">主图</span>' +
+                '<span class="pwa-icon-name">主图2</span>' +
               '</div>' +
 
               // 自定义项
@@ -464,11 +422,13 @@
 
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      var snowPng = getSnowflakePngBase64();
-      setManifestAndAppleIcons(snowPng);
+      convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
+        OPT_ICONS.icon1 = pngBase64;
+        setManifestAndAppleIcons(pngBase64);
+      });
       return;
     } else if (type === 'icon2') {
-      convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
+      convertImgToPngBase64(RAW_ICON_PATH_2, function(pngBase64) {
         OPT_ICONS.icon2 = pngBase64;
         setManifestAndAppleIcons(pngBase64);
       });
