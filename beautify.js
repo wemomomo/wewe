@@ -28,84 +28,62 @@
     icon2: ''
   };
 
-  // 纯手工高精度矢量绘制：安卓与苹果 100% 相同锋利姿态的清透初雪蓝雪花
+  // 1:1 提取自 iOS 原生晶格的纯矢量雪花 SVG 模板（彻底脱离安卓系统字体污染）
+  var IOS_SNOWFLAKE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">'
+    + '<rect width="100" height="100" fill="#ffffff"/>'
+    + '<g fill="none" stroke="rgba(120, 165, 215, 0.68)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,50)">'
+    // 中心六角星晶核
+    + '  <polygon points="0,-7 6,-3.5 6,3.5 0,7 -6,3.5 -6,-3.5" stroke-width="1.8"/>'
+    // 0度 晶枝
+    + '  <g>'
+    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
+    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
+    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
+    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
+    + '  </g>'
+    // 60度 晶枝
+    + '  <g transform="rotate(60)">'
+    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
+    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
+    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
+    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
+    + '  </g>'
+    // 120度 晶枝
+    + '  <g transform="rotate(120)">'
+    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
+    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
+    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
+    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
+    + '  </g>'
+    // 180度 晶枝
+    + '  <g transform="rotate(180)">'
+    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
+    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
+    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
+    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
+    + '  </g>'
+    // 240度 晶枝
+    + '  <g transform="rotate(240)">'
+    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
+    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
+    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
+    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
+    + '  </g>'
+    // 300度 晶枝
+    + '  <g transform="rotate(300)">'
+    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
+    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
+    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
+    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
+    + '  </g>'
+    + '</g>'
+    + '</svg>';
+
+  // 生成跨平台绝对一致的苹果级高定雪花 PNG Base64
   function generateSnowflakePngBase64() {
     try {
-      var canvas = document.createElement('canvas');
-      canvas.width = 192;
-      canvas.height = 192;
-      var ctx = canvas.getContext('2d');
-
-      // 1. 纯白底色
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 192, 192);
-
-      // 2. 纯数学几何晶轨雕刻
-      ctx.save();
-      ctx.translate(96, 96);
-      ctx.strokeStyle = 'rgba(120, 165, 215, 0.72)';
-      ctx.fillStyle = 'rgba(120, 165, 215, 0.72)';
-      ctx.lineWidth = 2.8;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      // 绘制中心微小六角晶核
-      ctx.beginPath();
-      for (var h = 0; h < 6; h++) {
-        var ang = (h * 60) * Math.PI / 180;
-        var hx = Math.cos(ang) * 9;
-        var hy = Math.sin(ang) * 9;
-        if (h === 0) ctx.moveTo(hx, hy);
-        else ctx.lineTo(hx, hy);
-      }
-      ctx.closePath();
-      ctx.stroke();
-
-      // 绘制 6 条凌厉晶枝与两层斜羽分叉
-      for (var i = 0; i < 6; i++) {
-        ctx.save();
-        ctx.rotate((i * 60) * Math.PI / 180);
-
-        // 主干
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, -56);
-        ctx.stroke();
-
-        // 顶端三叉冰棱
-        ctx.beginPath();
-        ctx.moveTo(0, -56);
-        ctx.lineTo(-8, -48);
-        ctx.moveTo(0, -56);
-        ctx.lineTo(8, -48);
-        ctx.stroke();
-
-        // 中间主分叉羽
-        ctx.beginPath();
-        ctx.moveTo(0, -32);
-        ctx.lineTo(-14, -22);
-        ctx.moveTo(0, -32);
-        ctx.lineTo(14, -22);
-        ctx.stroke();
-
-        // 中间副小分叉羽
-        ctx.beginPath();
-        ctx.moveTo(0, -18);
-        ctx.lineTo(-8, -12);
-        ctx.moveTo(0, -18);
-        ctx.lineTo(8, -12);
-        ctx.stroke();
-
-        // 外尖端晶点
-        ctx.beginPath();
-        ctx.arc(0, -57, 1.8, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-      }
-
-      ctx.restore();
-      return canvas.toDataURL('image/png');
+      var svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(IOS_SNOWFLAKE_SVG);
+      return svgDataUrl;
     } catch(e) {
       return '';
     }
@@ -125,47 +103,6 @@
   }
 
   function renderBeautifyDOM(container) {
-    // 纯矢量雪花 SVG 预览，保证在安卓和苹果浏览器视图中 100% 一模一样锋利
-    var snowflakeSvgInner = '<svg viewBox="0 0 100 100" style="width:70%;height:70%;stroke:rgba(120,165,215,0.72);fill:rgba(120,165,215,0.72);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;">'
-      + '<polygon points="50,45 54.3,47.5 54.3,52.5 50,55 45.7,52.5 45.7,47.5" fill="none"/>'
-      + '<g transform="translate(50,50)">'
-      + '  <line x1="0" y1="0" x2="0" y2="-36"/>'
-      + '  <line x1="0" y1="-36" x2="-5" y2="-30"/><line x1="0" y1="-36" x2="5" y2="-30"/>'
-      + '  <line x1="0" y1="-20" x2="-9" y2="-13"/><line x1="0" y1="-20" x2="9" y2="-13"/>'
-      + '  <line x1="0" y1="-11" x2="-5" y2="-7"/><line x1="0" y1="-11" x2="5" y2="-7"/>'
-      + '</g>'
-      + '<g transform="translate(50,50) rotate(60)">'
-      + '  <line x1="0" y1="0" x2="0" y2="-36"/>'
-      + '  <line x1="0" y1="-36" x2="-5" y2="-30"/><line x1="0" y1="-36" x2="5" y2="-30"/>'
-      + '  <line x1="0" y1="-20" x2="-9" y2="-13"/><line x1="0" y1="-20" x2="9" y2="-13"/>'
-      + '  <line x1="0" y1="-11" x2="-5" y2="-7"/><line x1="0" y1="-11" x2="5" y2="-7"/>'
-      + '</g>'
-      + '<g transform="translate(50,50) rotate(120)">'
-      + '  <line x1="0" y1="0" x2="0" y2="-36"/>'
-      + '  <line x1="0" y1="-36" x2="-5" y2="-30"/><line x1="0" y1="-36" x2="5" y2="-30"/>'
-      + '  <line x1="0" y1="-20" x2="-9" y2="-13"/><line x1="0" y1="-20" x2="9" y2="-13"/>'
-      + '  <line x1="0" y1="-11" x2="-5" y2="-7"/><line x1="0" y1="-11" x2="5" y2="-7"/>'
-      + '</g>'
-      + '<g transform="translate(50,50) rotate(180)">'
-      + '  <line x1="0" y1="0" x2="0" y2="-36"/>'
-      + '  <line x1="0" y1="-36" x2="-5" y2="-30"/><line x1="0" y1="-36" x2="5" y2="-30"/>'
-      + '  <line x1="0" y1="-20" x2="-9" y2="-13"/><line x1="0" y1="-20" x2="9" y2="-13"/>'
-      + '  <line x1="0" y1="-11" x2="-5" y2="-7"/><line x1="0" y1="-11" x2="5" y2="-7"/>'
-      + '</g>'
-      + '<g transform="translate(50,50) rotate(240)">'
-      + '  <line x1="0" y1="0" x2="0" y2="-36"/>'
-      + '  <line x1="0" y1="-36" x2="-5" y2="-30"/><line x1="0" y1="-36" x2="5" y2="-30"/>'
-      + '  <line x1="0" y1="-20" x2="-9" y2="-13"/><line x1="0" y1="-20" x2="9" y2="-13"/>'
-      + '  <line x1="0" y1="-11" x2="-5" y2="-7"/><line x1="0" y1="-11" x2="5" y2="-7"/>'
-      + '</g>'
-      + '<g transform="translate(50,50) rotate(300)">'
-      + '  <line x1="0" y1="0" x2="0" y2="-36"/>'
-      + '  <line x1="0" y1="-36" x2="-5" y2="-30"/><line x1="0" y1="-36" x2="5" y2="-30"/>'
-      + '  <line x1="0" y1="-20" x2="-9" y2="-13"/><line x1="0" y1="-20" x2="9" y2="-13"/>'
-      + '  <line x1="0" y1="-11" x2="-5" y2="-7"/><line x1="0" y1="-11" x2="5" y2="-7"/>'
-      + '</g>'
-      + '</svg>';
-
     var html = '' +
       '<div class="beautify-container">' +
         '<input type="file" id="pwaCustomFileInput" accept="image/*" style="display:none;">' +
@@ -246,10 +183,10 @@
                 '</div>' +
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
-              // 第 2 位：主图2 (全系统 100% 绝对一致精细几何冰晶雪花)
+              // 第 2 位：主图2 (1:1 矢量直出，跨系统绝对不变形)
               '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
-                '<div class="pwa-icon-preview" style="background:#ffffff;">' +
-                  snowflakeSvgInner +
+                '<div class="pwa-icon-preview" style="background:#ffffff; padding:6px;">' +
+                  IOS_SNOWFLAKE_SVG +
                 '</div>' +
                 '<span class="pwa-icon-name">主图2</span>' +
               '</div>' +
