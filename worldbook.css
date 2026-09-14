@@ -140,8 +140,8 @@
 /* 右上角按钮外框 (扩大至 54px，让出充分距离) */
 .wb-header-circle-btn {
   position: relative;
-  width: 60px;
-  height: 60px;
+  width: 54px;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -177,8 +177,8 @@
 
 /* 核心圆芯：内部雪花 ❆ */
 .wb-circle-core {
-  width: 25px;
-  height: 25px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--wb-cur-theme);
   border: 1.5px solid #ffffff;
