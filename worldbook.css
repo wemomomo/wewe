@@ -144,7 +144,7 @@
   display: none;
   flex-direction: column;
   gap: 3px;
-  z-index: 120;
+  z-index: 50;
   min-width: 120px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
@@ -179,7 +179,7 @@
   width: 100% !important;
   max-width: 100% !important;
   height: 88px;
-  background: #ffffff;
+  background: #f9f9fb;
   border: 1px solid var(--wb-border-line);
   border-radius: 0;
   display: flex;
@@ -199,7 +199,7 @@
 /* 拖拽浮起态：彻底无阴影 */
 .wb-art-card.wb-dragging {
   opacity: 0.96;
-  z-index: 100;
+  z-index: 50;
   box-shadow: none !important; /* 彻底清除阴影 */
   border-color: #8e8e93 !important;
   transition: none !important;
@@ -208,7 +208,7 @@
 /* 左侧：书本造型封面画框  */
 .wb-art-frame-left {
   position: relative;
-  width: 60px !important;
+  width: 58px !important;
   height: 100%;
   background: #f4f4f6;
   border: 0.8px solid rgba(0,0,0,0.08);
@@ -339,7 +339,7 @@
   display: none;
   flex-direction: column;
   min-width: 96px;
-  z-index: 110;
+  z-index: 50;
   padding: 4px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
@@ -368,7 +368,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  z-index: 90;
+  z-index: 50;
   pointer-events: none;
   padding: 0 16px;
   box-sizing: border-box;
@@ -545,7 +545,7 @@
 /* 词条拖拽浮起态：彻底无阴影 */
 .wb-entry-item-card.wb-dragging {
   opacity: 0.96;
-  z-index: 100;
+  z-index: 50;
   box-shadow: none !important; /* 彻底清除阴影 */
   background: #ffffff !important;
   border-color: #8e8e93 !important;
@@ -653,7 +653,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 90;
+  z-index: 50;
   pointer-events: none;
   padding: 0 16px;
   box-sizing: border-box;
@@ -915,7 +915,7 @@
   position: absolute;
   inset: 0;
   background: #ffffff;
-  z-index: 150;
+  z-index: 60;
   display: none;
   flex-direction: column;
   padding: 10px 14px;
