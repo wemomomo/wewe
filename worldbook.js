@@ -425,7 +425,7 @@
             + '    </div>'
             + '    <div class="wb-art-dot-divider"></div>'
             + '    <div class="wb-art-meta-bottom">'
-            + '      <span class="wb-art-count">总计 ' + stats.total + ' · 发送 <span>' + stats.active + ' Tokens</span></span>'
+            + '      <span class="wb-art-count">总计 ' + stats.total + ' · 实际发送 <span>' + stats.active + ' Tokens</span></span>'
             + '      <span class="wb-art-enter">ENTER ➔</span>'
             + '    </div>'
             + '  </div>'
@@ -550,8 +550,7 @@
         
         // 严格顺序：【关键词/常驻】·【位置/深度】·【Tokens】
         var subTextDesc = '<span>' + modeName + '</span> · ' + posName + ' · <span>' + entryTokens + ' Tokens</span>';
-        }
-
+        
         html += ''
           + '<div class="wb-entry-item-card" data-entry-id="' + entry.id + '">'
           + '  <div class="wb-entry-left-col" data-open-entry="' + entry.id + '">'
