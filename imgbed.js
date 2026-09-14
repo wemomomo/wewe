@@ -1,6 +1,6 @@
 
 (function(){
-  'use strict';
+  'use strict';  
 
   var isSelectMode = false;
   var selectedUrls = [];
