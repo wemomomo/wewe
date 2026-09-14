@@ -2,16 +2,6 @@
 (function() {
   'use strict';
 
-  // 1. 彻底杜绝 iOS 双击放大网页
-  var lastTouchEnd = 0;
-  document.addEventListener('touchend', function(e) {
-    var now = Date.now();
-    if (now - lastTouchEnd <= 300) {
-      if (e.cancelable) e.preventDefault();
-    }
-    lastTouchEnd = now;
-  }, { passive: false });
-
   // ============ IndexedDB 存储引擎 ============
   var DB_NAME = 'AppDB';
   var DB_VERSION = 1;
@@ -560,7 +550,7 @@
     return { isSub: false, action: null };
   }
 
-  // ============ 全局统一导航绑定 (0 毫秒立即生效) ============
+  // ============ 全局统一导航绑定 (零延迟直接响应) ============
   function bindNavigation() {
     document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
@@ -990,7 +980,7 @@
 
   window.AppNav = { showPage: showPage, showToast: showToast };
 
-  // ============ 核心自启动：0 毫秒立即同步绑定所有界面与导航 ============
+  // ============ 启动主程序 (0 毫秒立即执行) ============
   function startCoreApp() {
     setupPhotoAction();
     setupAppDialog();
