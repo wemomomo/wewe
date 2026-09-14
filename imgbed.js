@@ -34,7 +34,7 @@
       + '<div class="imgbed-icon-circle"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>'
       + '<div class="imgbed-upload-info">'
       + '<div class="imgbed-upload-title" id="inAppUploadText">选择照片并裁剪上传</div>'
-      + '<div class="imgbed-upload-tip">超清视网膜画质 · 极速上传</div>'
+      + '<div class="imgbed-upload-tip">超清视网膜画质 · 极速直链生成</div>'
       + '</div>'
       + '<input type="file" id="inAppFileInput" accept="image/*" style="display:none">'
       + '</div>'
@@ -152,11 +152,10 @@
       this.value = '';
     });
 
-    // 1440px 视网膜超清优化引擎
     function optimizeImage(base64Str, origMime, callback) {
       var img = new Image();
       img.onload = function() {
-        var maxSide = 1440;
+        var maxSide = 1200;
         var w = img.width;
         var h = img.height;
 
@@ -180,7 +179,7 @@
 
         var isPng = (origMime && origMime.indexOf('png') !== -1) || base64Str.indexOf('data:image/png') === 0;
         var outMime = isPng ? 'image/png' : 'image/jpeg';
-        var result = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.86);
+        var result = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85);
         callback(result, outMime);
       };
       img.onerror = function() {
@@ -195,6 +194,12 @@
 
       var customName = (customNameInput.value || '').trim();
 
+      // 9秒前端强行超时保护
+      var controller = new AbortController();
+      var timer = setTimeout(function() {
+        controller.abort();
+      }, 9000);
+
       fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -203,9 +208,13 @@
           filename: originalName,
           mimeType: mimeType || 'image/jpeg',
           customName: customName
-        })
+        }),
+        signal: controller.signal
       })
-      .then(function(res){ return res.json(); })
+      .then(function(res){
+        clearTimeout(timer);
+        return res.json();
+      })
       .then(function(data){
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
@@ -216,14 +225,20 @@
           saveHistory(data.url);
           openViewer(data.url);
         } else {
-          if (window.AppNav) AppNav.showToast((data && data.message) ? data.message : '上传失败');
+          var msg = (data && data.message) ? data.message : '上传失败';
+          if (window.AppNav) AppNav.showToast(msg);
         }
       })
-      .catch(function(){
+      .catch(function(err){
+        clearTimeout(timer);
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
-        if (window.AppNav) AppNav.showToast('网络异常，请重试');
+        if (err.name === 'AbortError') {
+          if (window.AppNav) AppNav.showToast('上传超时(网络异常)');
+        } else {
+          if (window.AppNav) AppNav.showToast('网络错误: ' + (err.message || '请重试'));
+        }
       });
     }
 
