@@ -137,11 +137,11 @@
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 }
 
-/* 右上角按钮：加粗宽间距虚线 + 柔光光晕扩散 */
+/* 右上角按钮：彻底移除所有外圈线条，改用左右四芒星 */
 .wb-header-circle-btn {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,30 +153,54 @@
   outline: none;
 }
 
-/* 图标外圈：虚线加粗(1.8px)，间距拉大(5px 虚线 + 5px 留白)，颜色跟随主题 */
+/* 彻底清空 ::before 伪元素的所有外圈线条 */
 .wb-header-circle-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1.8px dashed var(--wb-cur-theme);
-  opacity: 0.85;
+  display: none !important;
 }
 
-/* 核心光晕圆芯：双层弥散光晕与柔光环 */
+/* 左侧四芒星 */
+.wb-star-left {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--wb-cur-theme);
+  font-size: 13px;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 6px var(--wb-cur-theme);
+}
+
+/* 右侧四芒星 */
+.wb-star-right {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--wb-cur-theme);
+  font-size: 13px;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 6px var(--wb-cur-theme);
+}
+
+/* 核心圆芯：内部纯白雪花 ❆ */
 .wb-circle-core {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--wb-cur-theme);
   border: 1.5px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  /* 墨墨要的光圈光晕效果：双层发光光晕 */
   box-shadow: 0 0 0 3px var(--wb-cur-theme-bg), 0 2px 10px var(--wb-cur-theme);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 15px;
+  color: #ffffff;
+  line-height: 1;
+  user-select: none;
+  padding-bottom: 2px;
 }
 .wb-header-circle-btn:active .wb-circle-core {
   transform: scale(0.92);
@@ -389,6 +413,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex: 1;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 .wb-art-title-text {
   font-size: 18px;
@@ -402,8 +429,8 @@
 }
 
 .wb-art-stars-btn {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -612,7 +639,7 @@
 
 .wb-entry-item-card {
   background: #ffffff;
-  border: 1px solid #1c1c1e;
+  border: 1px solid var(--wb-border-line) !important;
   border-radius: 12px;
   height: 64px;
   padding: 0 10px 0 14px;
@@ -706,7 +733,7 @@
   width: 32px;
   height: 18px;
   border-radius: 9px;
-  background: #f8f8fa;
+  background: #d1d1d6;
   position: relative;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -725,7 +752,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.wb-entry-switch.on { background: #d1d1d6 !important; }
+.wb-entry-switch.on { background: #1c1c1e !important; }
 .wb-entry-switch.on::after { transform: translateX(14px); }
 
 .wb-floating-save-wrapper {
