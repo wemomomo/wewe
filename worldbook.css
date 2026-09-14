@@ -124,7 +124,7 @@
 
 /* 英文副标题 */
 .wb-gallery-sub-en {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: #8e8e93;
   letter-spacing: 2px;
@@ -179,7 +179,7 @@
   width: 100% !important;
   max-width: 100% !important;
   height: 88px;
-  background: #f9f9fb;
+  background: #fff;
   border: 1px solid var(--wb-border-line);
   border-radius: 0;
   display: flex;
@@ -284,7 +284,7 @@
 }
 .wb-art-stars-btn:active { opacity: 0.6; }
 .wb-art-star-dot {
-  font-size: 10px;
+  font-size: 11px;
   line-height: 0.95;
   color: #1c1c1e;
 }
@@ -527,7 +527,7 @@
 }
 
 .wb-entry-item-card {
-  background: var(--wb-card-bg);
+  background: #f8f8fa;
   border-radius: 12px;
   height: 64px;
   padding: 0 10px 0 14px;
@@ -626,7 +626,7 @@
   width: 32px;
   height: 18px;
   border-radius: 9px;
-  background: #f8f8fa;
+  background: #1c1c1e;
   position: relative;
   cursor: pointer;
   transition: background 0.2s ease;
