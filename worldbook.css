@@ -471,7 +471,7 @@
   height: 1px;
   background: repeating-linear-gradient(to right, #d1d1d6, #d1d1d6 3px, transparent 3px, transparent 6px);
   margin: 0;
-  transform: translateY(6px); /* 👈 想往下移多少就填多少（比如 4px、6px、8px），必定立刻生效！ */
+  transform: translateY(4px); /* 👈 想往下移多少就填多少（比如 4px、6px、8px），必定立刻生效！ */
 }
 
 .wb-art-meta-bottom {
