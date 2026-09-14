@@ -419,19 +419,19 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 3px 2px 3px 0;
+  justify-content: flex-start;
+  padding: 4px 2px 4px 0;
 }
 
+/* 2. 标题区：占满上半部主要空间 */
 .wb-art-title-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   flex: 1;
-  margin-top: 0;
-  margin-bottom: 0;
 }
+
 .wb-art-title-text {
   font-size: 18px;
   font-weight: 800;
@@ -470,10 +470,11 @@
   width: 100%;
   height: 1px;
   background: repeating-linear-gradient(to right, #d1d1d6, #d1d1d6 3px, transparent 3px, transparent 6px);
-  margin-top: 10px; /* 👈 把虚线稳稳压到靠下的位置 */
-  margin-bottom: 3px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
+/* 4. 底部文本：绝不撑高，紧凑自然居中 */
 .wb-art-meta-bottom {
   display: flex;
   align-items: center;
@@ -481,8 +482,8 @@
   font-size: 10.5px;
   color: #8e8e93;
   gap: 4px;
-  height: 22px; /* 👈 给它固定撑开一个舒适区域 */
-  margin-top: 4px; /* 👈 把它从虚线下沿推下来 */
+  padding-top: 5px;
+  padding-bottom: 2px;
 }
 
 .wb-art-count {
@@ -656,7 +657,7 @@
 }
 
 .wb-entry-item-card {
-  background: #e5e5ea;
+  background: #f8f8fa;
   border: 1px solid #e5e5ea !important;
   border-radius: 12px;
   height: 64px;
