@@ -1,4 +1,3 @@
-
 import https from 'https';
 
 export const config = {
@@ -79,10 +78,8 @@ export default async function handler(req, res) {
       finalFileName = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '.' + ext;
     }
 
-    // 解析目标 Host 与 Path
     const targetUrlObj = new URL(rawUrl + '/storage/v1/object/images/' + finalFileName);
 
-    // 用 Node 底层原生 https.request 发送，彻底解决 fetch 流挂起问题
     const uploadToSupabase = () => {
       return new Promise((resolve, reject) => {
         const options = {
