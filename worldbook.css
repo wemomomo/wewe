@@ -471,10 +471,9 @@
   height: 1px;
   background: repeating-linear-gradient(to right, #d1d1d6, #d1d1d6 3px, transparent 3px, transparent 6px);
   margin: 0;
-  transform: translateY(10px); /* 👈 想往下移多少就填多少（比如 4px、6px、8px），必定立刻生效！ */
+  transform: translateY(8px); /* 👈 想往下移多少就填多少（比如 4px、6px、8px），必定立刻生效！ */
 }
 
-/* 4. 底部文本：绝不撑高，紧凑自然居中 */
 .wb-art-meta-bottom {
   display: flex;
   align-items: center;
@@ -484,7 +483,7 @@
   gap: 4px;
   padding: 0;
   margin: 0;
-  transform: translateY(10px); /* 👈 虚线移多少，这里就填多少（比如 6px、8px），文字绝对立刻跟着往下沉！ */
+  transform: translateY(6px); /* 👈 虚线移多少，这里就填多少（比如 6px、8px），文字绝对立刻跟着往下沉！ */
 }
 
 .wb-art-count {
