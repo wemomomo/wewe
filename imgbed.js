@@ -4,6 +4,7 @@
 
   var isSelectMode = false;
   var selectedUrls = [];
+  var memoryPreviewCache = {}; // 极速内存预览缓存池
 
   function initImgbedContent() {
     var page = document.querySelector('[data-page="imgbed"]');
@@ -34,7 +35,7 @@
       + '<div class="imgbed-icon-circle"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>'
       + '<div class="imgbed-upload-info">'
       + '<div class="imgbed-upload-title" id="inAppUploadText">选择照片并裁剪上传</div>'
-      + '<div class="imgbed-upload-tip">超清视网膜 PNG · 点击历史图片可放大预览</div>'
+      + '<div class="imgbed-upload-tip">自动极速轻量化 PNG · 点击历史图片可放大预览</div>'
       + '</div>'
       + '<input type="file" id="inAppFileInput" accept="image/*" style="display:none">'
       + '</div>'
@@ -96,9 +97,11 @@
     var viewerCopyBtn = document.getElementById('inAppViewerCopyBtn');
     var viewerClose = document.getElementById('inAppViewerClose');
 
-    function openViewer(url, localSrc) {
+    // 0 延迟秒开大图预览引擎
+    function openViewer(url, directImageSrc) {
       if (!url) return;
-      viewerImg.src = localSrc || url;
+      var fastSrc = directImageSrc || memoryPreviewCache[url] || url;
+      viewerImg.src = fastSrc;
       viewerInput.value = url;
       viewerModal.classList.add('show');
     }
@@ -152,11 +155,10 @@
       this.value = '';
     });
 
-    // 850px 黄金超清分辨率：相比 512px 提升近 3 倍清晰度，且体积仅 100KB 秒传
     function compressImage(base64Str, callback) {
       var img = new Image();
       img.onload = function() {
-        var maxSide = 850;
+        var maxSide = 720;
         var w = img.width;
         var h = img.height;
 
@@ -205,25 +207,22 @@
           forcePNG: true
         })
       })
-      .then(function(res){
-        return res.json();
-      })
+      .then(function(res){ return res.json(); })
       .then(function(data){
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
 
         if (data && data.success && data.url) {
+          memoryPreviewCache[data.url] = localSnapshot; // 写入内存缓存
           if (window.AppNav) AppNav.showToast('上传成功！已生成极速 PNG');
           saveHistory(data.url);
-          // 0 毫秒本地秒显，完全不转圈
-          openViewer(data.url, localSnapshot);
+          openViewer(data.url, localSnapshot); // 瞬间秒开
         } else {
-          var tip = (data && data.message) ? data.message : '上传失败';
-          if (window.AppNav) AppNav.showToast(tip);
+          if (window.AppNav) AppNav.showToast((data && data.message) ? data.message : '上传失败');
         }
       })
-      .catch(function(err){
+      .catch(function(){
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
@@ -363,7 +362,9 @@
             updateBatchBar();
             renderHistoryList();
           } else {
-            openViewer(u);
+            var thumbImg = row.querySelector('.imgbed-history-thumb');
+            var directSrc = (thumbImg && thumbImg.src) ? thumbImg.src : null;
+            openViewer(u, directSrc);
           }
         });
       });
