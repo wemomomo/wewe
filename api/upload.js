@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     let ext = 'jpg';
     let contentType = 'image/jpeg';
 
-    if (forcePNG || (mimeType && mimeType.indexOf('png') !== -1)) {
+    if (forcePNG || (mimeType && mimeType.indexOf('png') !== -1) || base64Data.indexOf('data:image/png') === 0) {
       ext = 'png';
       contentType = 'image/png';
     } else if (mimeType && mimeType.indexOf('webp') !== -1) {
@@ -57,8 +57,9 @@ export default async function handler(req, res) {
       contentType = 'image/jpeg';
     }
 
-    const base64Pure = base64Data.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Pure, 'base64');
+    // 彻底修复：万能精准提取 Base64 纯数据，绝不留任何头部污染
+    const base64Pure = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+    const buffer = Buffer.from(base64Pure.trim(), 'base64');
 
     let finalFileName = '';
     if (customName && String(customName).trim()) {
