@@ -20,41 +20,19 @@
     bgHistory: []
   };
 
+  // 1. 默认蓝色爱心 SVG
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
+  
+  // 2. 纯白底·浅淡初雪蓝雪花 SVG (与默认爱心完全同源架构，苹果深色模式绝对不反色变黑！)
+  var SNOWFLAKE_SVG_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23ffffff'/%3E%3Ctext x='50%25' y='56%25' font-size='62' font-family='-apple-system, BlinkMacSystemFont, sans-serif' text-anchor='middle' dominant-baseline='middle' fill='rgba(120, 165, 215, 0.72)'%3E%E2%9D%85%3C/text%3E%3C/svg%3E";
+
   var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
   var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
 
   var OPT_ICONS = {
-    icon1: '', // 初雪 PNG 缓存
-    icon2: ''  // 主图 PNG 缓存
+    icon1: '',
+    icon2: ''
   };
-
-  // 生成苹果 iOS 100% 完美支持的纯白底浅蓝雪花标准 PNG 图标
-  function getSnowflakePngBase64() {
-    if (OPT_ICONS.icon1) return OPT_ICONS.icon1;
-    try {
-      var canvas = document.createElement('canvas');
-      canvas.width = 192;
-      canvas.height = 192;
-      var ctx = canvas.getContext('2d');
-      
-      // 纯白背景 (苹果PWA标准)
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 192, 192);
-
-      // 精准居中绘制初雪蓝雪花 ❆
-      ctx.fillStyle = 'rgba(120, 165, 215, 0.78)';
-      ctx.font = '112px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('❆', 96, 102);
-
-      OPT_ICONS.icon1 = canvas.toDataURL('image/png');
-      return OPT_ICONS.icon1;
-    } catch(e) {
-      return DEFAULT_HEART_URL;
-    }
-  }
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
@@ -150,7 +128,7 @@
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
 
-              // 纯白底·初雪雪花
+              // 纯白底·抗反黑初雪雪花
               '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
                 '<div class="pwa-icon-preview">' +
                   '<div class="pwa-snowflake-container">' +
@@ -160,7 +138,7 @@
                 '<span class="pwa-icon-name">初雪</span>' +
               '</div>' +
 
-              // 原主图1
+              // 原主图1图片
               '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图">' +
                 '<div class="pwa-icon-preview">' +
                   '<img src="' + RAW_ICON_PATH_1 + '" alt="主图" loading="eager">' +
@@ -421,13 +399,13 @@
           {
             src: targetUrl,
             sizes: "192x192",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any"
           },
           {
             src: targetUrl,
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any maskable"
           }
         ]
@@ -451,9 +429,8 @@
 
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      // 生成 iOS 与全平台通用的雪花标准 PNG
-      var snowPng = getSnowflakePngBase64();
-      setManifestAndAppleIcons(snowPng);
+      // 纯矢量 SVG 初雪雪花，格式与默认爱心完全一样，彻底抗深色模式反黑！
+      setManifestAndAppleIcons(SNOWFLAKE_SVG_URL);
       return;
     } else if (type === 'icon2') {
       convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
