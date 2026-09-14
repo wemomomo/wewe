@@ -28,7 +28,7 @@
     icon2: ''
   };
 
-  // 生成纯白底 · 超大纯净居中浅淡初雪蓝雪花 ❆
+  // 生成纯白底 · 放大且黄金视觉绝对居中的浅淡初雪蓝雪花 ❆
   function generateSnowflakePngBase64() {
     try {
       var canvas = document.createElement('canvas');
@@ -39,11 +39,12 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, 192, 192);
 
+      // 字号放大至 142px，且 Y 轴微上提 4px 抵消字体自带沉降，实现真正的绝对居中！
       ctx.fillStyle = 'rgba(120, 165, 215, 0.65)';
-      ctx.font = '128px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = '142px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('❆', 96, 98);
+      ctx.fillText('❆', 96, 92);
 
       return canvas.toDataURL('image/png');
     } catch(e) {
@@ -138,23 +139,23 @@
               '<div class="beautify-card-desc">选择预设或点击自定义从相册裁剪上传属于你的专属App图标</div>' +
             '</div>' +
             '<div class="pwa-icons-grid">' +
-              // 第 1 位：默认 (爱心)
+              // 第 1 位：默认
               '<div class="pwa-icon-item active" data-pwa-val="heart" data-pwa-name="默认">' +
                 '<div class="pwa-icon-preview">' +
                   '<div class="pwa-svg-box">&#9825;</div>' +
                 '</div>' +
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
-              // 第 2 位：主图2 (初雪蓝雪花 ❆)
-              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
+              // 第 2 位：雪花 (放大 + 视觉上提2.5px黄金居中)
+              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="雪花">' +
                 '<div class="pwa-icon-preview">' +
-                  '<div class="pwa-snowflake-container">' +
-                    '<div class="pwa-snowflake-main">❆</div>' +
+                  '<div class="pwa-snowflake-container" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;">' +
+                    '<div class="pwa-snowflake-main" style="font-size:48px;color:rgba(120,165,215,0.65);line-height:1;transform:translateY(-2.5px);user-select:none;">❆</div>' +
                   '</div>' +
                 '</div>' +
-                '<span class="pwa-icon-name">主图2</span>' +
+                '<span class="pwa-icon-name">雪花</span>' +
               '</div>' +
-              // 第 3 位：主图 (原主图1)
+              // 第 3 位：主图
               '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="主图">' +
                 '<div class="pwa-icon-preview">' +
                   '<img src="' + RAW_ICON_PATH_1 + '" alt="主图" loading="eager">' +
