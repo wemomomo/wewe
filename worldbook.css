@@ -99,7 +99,7 @@
 .wb-header-switch-wrap:active { opacity: 0.7; }
 
 .wb-gallery-main-title {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 900;
   color: #1c1c1e;
   letter-spacing: 1px;
@@ -124,7 +124,7 @@
 
 /* 英文副标题 */
 .wb-gallery-sub-en {
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #8e8e93;
   letter-spacing: 2px;
@@ -178,7 +178,7 @@
   position: relative;
   width: 100% !important;
   max-width: 100% !important;
-  height: 98px;
+  height: 88px;
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 0;
@@ -208,7 +208,7 @@
 /* 左侧：加宽书本造型封面画框 (由54px加宽至68px) */
 .wb-art-frame-left {
   position: relative;
-  width: 68px !important;
+  width: 65px !important;
   height: 100%;
   background: #f4f4f6;
   border: 0.8px solid rgba(0,0,0,0.08);
@@ -256,7 +256,7 @@
   gap: 8px;
 }
 .wb-art-title-text {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 800;
   color: #1c1c1e;
   letter-spacing: 0.3px;
@@ -284,7 +284,7 @@
 }
 .wb-art-stars-btn:active { opacity: 0.6; }
 .wb-art-star-dot {
-  font-size: 8.5px;
+  font-size: 10px;
   line-height: 0.95;
   color: #1c1c1e;
 }
@@ -334,13 +334,12 @@
   position: absolute;
   right: 12px;
   top: 42px;
-  background: #ffffff;
-  border: 1px solid var(--wb-border-line);
+  background: #1c1c1e;
   border-radius: 12px;
   display: none;
   flex-direction: column;
   min-width: 96px;
-  z-index: 80;
+  z-index: 110;
   padding: 4px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
@@ -350,7 +349,7 @@
   padding: 8px 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #1c1c1e;
+  color: #fff;
   border-radius: 6px;
   cursor: pointer;
   text-align: center;
@@ -496,7 +495,7 @@
   text-align: center;
 }
 .wb-entries-book-title {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 800;
   color: #1c1c1e;
   white-space: nowrap;
@@ -564,7 +563,7 @@
   cursor: pointer;
 }
 .wb-entry-title-text {
-  font-size: 14.5px;
+  font-size: 15.5px;
   font-weight: 700;
   color: #1c1c1e;
   white-space: nowrap;
@@ -574,7 +573,7 @@
 
 /* 标题下方小文字 */
 .wb-entry-sub-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: #8e8e93;
   font-weight: 500;
   white-space: nowrap;
@@ -618,12 +617,12 @@
   stroke-linejoin: round;
 }
 
-/* 开启时改为柔和高定炭黑色 #2c2c2e */
+/* 开启时改为柔和高定炭黑色 */
 .wb-entry-switch {
   width: 32px;
   height: 18px;
   border-radius: 9px;
-  background: #d1d1d6;
+  background: #f8f8fa;
   position: relative;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -642,7 +641,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.wb-entry-switch.on { background: #2c2c2e !important; }
+.wb-entry-switch.on { background: #d1d1d6 !important; }
 .wb-entry-switch.on::after { transform: translateX(14px); }
 
 /* 词条页悬浮保存按钮 */
@@ -822,7 +821,7 @@
 .wb-depth-pos-btn {
   flex: 1;
   height: 34px;
-  background: #f2f2f7;
+  background: #fff;
   border: 1px solid var(--wb-border-line);
   border-radius: 8px;
   font-size: 11px;
@@ -868,8 +867,8 @@
 /* 内容输入框高度加大到 130px，无边框设计 */
 .wb-clean-textarea {
   width: 100%;
-  height: 130px !important;
-  min-height: 130px !important;
+  height: 140px !important;
+  min-height: 140px !important;
   background: #f4f4f6;
   border: none !important;
   border-radius: 10px;
