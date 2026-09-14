@@ -22,35 +22,12 @@
 
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
   var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
+  var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
 
   var OPT_ICONS = {
     icon1: '',
     icon2: ''
   };
-
-  // 生成纯白底 · 原版原生雪花 ❆ (加入 \uFE0E 文本形态锁，强制安卓使用原生矢量字形，绝不变成粗圆 Emoji)
-  function generateSnowflakePngBase64() {
-    try {
-      var canvas = document.createElement('canvas');
-      canvas.width = 192;
-      canvas.height = 192;
-      var ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 192, 192);
-
-      ctx.fillStyle = 'rgba(120, 165, 215, 0.65)';
-      ctx.font = '124px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI Symbol", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      // \u2744 是雪花 ❆，\uFE0E 强制锁定为标准矢量文本字形
-      ctx.fillText('\u2744\uFE0E', 96, 98);
-
-      return canvas.toDataURL('image/png');
-    } catch(e) {
-      return '';
-    }
-  }
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
@@ -146,11 +123,11 @@
                 '</div>' +
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
-              // 第 2 位：主图2 (最纯粹的原版雪花字符 ❆︎)
+              // 第 2 位：主图2 (雪花 ❆)
               '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
-                '<div class="pwa-icon-preview" style="background:#ffffff;">' +
+                '<div class="pwa-icon-preview">' +
                   '<div class="pwa-snowflake-container">' +
-                    '<div class="pwa-snowflake-main">&#10052;&#65038;</div>' +
+                    '<div class="pwa-snowflake-main">❆</div>' +
                   '</div>' +
                 '</div>' +
                 '<span class="pwa-icon-name">主图2</span>' +
@@ -451,9 +428,10 @@
       });
       return;
     } else if (type === 'icon2') {
-      var snowPng = generateSnowflakePngBase64();
-      OPT_ICONS.icon2 = snowPng;
-      setManifestAndAppleIcons(snowPng);
+      convertImgToPngBase64(RAW_ICON_PATH_2, function(pngBase64) {
+        OPT_ICONS.icon2 = pngBase64;
+        setManifestAndAppleIcons(pngBase64);
+      });
       return;
     } else if (type === 'custom') {
       var cUrl = customUrl || beautifyData.customPwaIconUrl || DEFAULT_HEART_URL;
