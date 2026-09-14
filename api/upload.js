@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       contentType = 'image/gif';
     }
 
-    // 纯净剥离 Base64 前缀与换行空格
+    // 纯净剥离 Base64 数据
     const commaIdx = base64Data.indexOf(',');
     const base64Pure = (commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data).replace(/\s/g, '');
     const buffer = Buffer.from(base64Pure, 'base64');
@@ -79,21 +79,39 @@ export default async function handler(req, res) {
 
     const uploadUrl = rawUrl + '/storage/v1/object/images/' + finalFileName;
 
-    const uploadRes = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        'apikey': rawKey,
-        'Authorization': 'Bearer ' + rawKey,
-        'Content-Type': contentType,
-        'cache-control': 'max-age=31536000, public',
-        'x-upsert': 'true'
-      },
-      body: buffer
-    });
+    // 核心修复：转化为 Uint8Array 彻底解决 Node 18+ 原生 fetch 发送 Buffer 时的挂起死锁问题
+    const uint8Data = new Uint8Array(buffer);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+
+    let uploadRes;
+    try {
+      uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'apikey': rawKey,
+          'Authorization': 'Bearer ' + rawKey,
+          'Content-Type': contentType,
+          'cache-control': 'max-age=31536000, public',
+          'x-upsert': 'true'
+        },
+        body: uint8Data,
+        signal: controller.signal
+      });
+    } catch (fetchErr) {
+      clearTimeout(timer);
+      if (fetchErr.name === 'AbortError') {
+        return res.status(200).json({ success: false, message: '连接 Supabase 超时' });
+      }
+      return res.status(200).json({ success: false, message: '网络异常: ' + fetchErr.message });
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!uploadRes.ok) {
       const errText = await uploadRes.text();
-      return res.status(200).json({ success: false, message: '存储桶写入失败: ' + errText });
+      return res.status(200).json({ success: false, message: '存储桶拒绝: ' + errText });
     }
 
     const shortPublicUrl = 'https://niveousmoon.top/images/' + finalFileName;
