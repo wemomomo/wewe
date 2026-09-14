@@ -1,4 +1,7 @@
-export const config {
+
+import https from 'https';
+
+export const config = {
   api: {
     bodyParser: {
       sizeLimit: '10mb'
@@ -19,15 +22,20 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(200).json({ success: false, message: '请求方法不受支持' });
+    return res.status(405).json({ success: false, message: '请求方法不受支持' });
   }
 
   try {
-    const bodyData = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    let bodyData = req.body;
+    if (typeof bodyData === 'string') {
+      try { bodyData = JSON.parse(bodyData); } catch (e) { bodyData = {}; }
+    }
+    bodyData = bodyData || {};
+
     const { base64Data, customName, forcePNG, mimeType } = bodyData;
 
-    if (!base64Data) {
-      return res.status(200).json({ success: false, message: '未收到图片数据' });
+    if (!base64Data || typeof base64Data !== 'string') {
+      return res.status(200).json({ success: false, message: '未收到有效的图片数据' });
     }
 
     let rawUrl = (process.env.SUPABASE_URL || '').trim();
@@ -40,17 +48,23 @@ export default async function handler(req, res) {
     if (!rawUrl.startsWith('http')) rawUrl = 'https://' + rawUrl;
     rawUrl = rawUrl.replace(/\/+$/, '').replace(/\/rest\/v1\/?$/, '');
 
-    let ext = 'png';
-    let contentType = 'image/png';
+    let ext = 'jpg';
+    let contentType = 'image/jpeg';
 
-    if (!forcePNG && mimeType && mimeType.indexOf('jpeg') !== -1) {
-      ext = 'jpg';
-      contentType = 'image/jpeg';
+    if (forcePNG || (mimeType && mimeType.indexOf('png') !== -1) || base64Data.indexOf('data:image/png') === 0) {
+      ext = 'png';
+      contentType = 'image/png';
+    } else if (mimeType && mimeType.indexOf('webp') !== -1) {
+      ext = 'webp';
+      contentType = 'image/webp';
+    } else if (mimeType && mimeType.indexOf('gif') !== -1) {
+      ext = 'gif';
+      contentType = 'image/gif';
     }
 
-    // 万能兼容正则剥离
-    const base64Pure = base64Data.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '').trim();
-    const buffer = Buffer.from(base64Pure, 'base64');
+    const commaIdx = base64Data.indexOf(',');
+    const base64Pure = commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data;
+    const buffer = Buffer.from(base64Pure.trim(), 'base64');
 
     if (!buffer || buffer.length === 0) {
       return res.status(200).json({ success: false, message: '图片解码失败' });
@@ -65,23 +79,61 @@ export default async function handler(req, res) {
       finalFileName = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '.' + ext;
     }
 
-    const uploadUrl = rawUrl + '/storage/v1/object/images/' + finalFileName;
+    // 解析目标 Host 与 Path
+    const targetUrlObj = new URL(rawUrl + '/storage/v1/object/images/' + finalFileName);
 
-    const uploadRes = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        'apikey': rawKey,
-        'Authorization': 'Bearer ' + rawKey,
-        'Content-Type': contentType,
-        'cache-control': 'max-age=31536000, public',
-        'x-upsert': 'true'
-      },
-      body: buffer
-    });
+    // 用 Node 底层原生 https.request 发送，彻底解决 fetch 流挂起问题
+    const uploadToSupabase = () => {
+      return new Promise((resolve, reject) => {
+        const options = {
+          hostname: targetUrlObj.hostname,
+          port: 443,
+          path: targetUrlObj.pathname,
+          method: 'POST',
+          headers: {
+            'apikey': rawKey,
+            'Authorization': 'Bearer ' + rawKey,
+            'Content-Type': contentType,
+            'Content-Length': buffer.length,
+            'cache-control': 'max-age=31536000, public',
+            'x-upsert': 'true'
+          },
+          timeout: 10000
+        };
 
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text();
-      return res.status(200).json({ success: false, message: '存储桶拒绝: ' + errText });
+        const reqClient = https.request(options, (resClient) => {
+          let resBody = '';
+          resClient.on('data', (chunk) => { resBody += chunk; });
+          resClient.on('end', () => {
+            if (resClient.statusCode >= 200 && resClient.statusCode < 300) {
+              resolve({ ok: true, data: resBody });
+            } else {
+              resolve({ ok: false, status: resClient.statusCode, error: resBody });
+            }
+          });
+        });
+
+        reqClient.on('timeout', () => {
+          reqClient.destroy();
+          reject(new Error('Supabase 存储桶握手超时(10s)'));
+        });
+
+        reqClient.on('error', (e) => {
+          reject(e);
+        });
+
+        reqClient.write(buffer);
+        reqClient.end();
+      });
+    };
+
+    const uploadResult = await uploadToSupabase();
+
+    if (!uploadResult.ok) {
+      return res.status(200).json({
+        success: false,
+        message: '存储桶返回错误(' + uploadResult.status + '): ' + uploadResult.error
+      });
     }
 
     const shortPublicUrl = 'https://niveousmoon.top/images/' + finalFileName;
