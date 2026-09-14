@@ -34,7 +34,7 @@
       + '<div class="imgbed-icon-circle"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>'
       + '<div class="imgbed-upload-info">'
       + '<div class="imgbed-upload-title" id="inAppUploadText">选择照片并裁剪上传</div>'
-      + '<div class="imgbed-upload-tip">超清视网膜优化 · 秒传秒开不卡顿</div>'
+      + '<div class="imgbed-upload-tip">超清视网膜画质 · 极速上传</div>'
       + '</div>'
       + '<input type="file" id="inAppFileInput" accept="image/*" style="display:none">'
       + '</div>'
@@ -130,7 +130,6 @@
       var file = this.files[0];
       if (!file) return;
 
-      var originalMime = file.type || 'image/jpeg';
       var reader = new FileReader();
       reader.onload = function(e) {
         var rawBase64 = e.target.result;
@@ -138,13 +137,13 @@
         if (window.AppCropper) {
           window.AppCropper.open(rawBase64, { aspectRatio: 0 }, function(croppedData) {
             rawBase64 = null;
-            optimizeHdImage(croppedData, originalMime, function(safeBase64, finalMime) {
-              uploadToServer(safeBase64, file.name, finalMime);
+            optimizeImage(croppedData, file.type, function(safeBase64, outMime) {
+              uploadToServer(safeBase64, file.name, outMime);
             });
           });
         } else {
-          optimizeHdImage(rawBase64, originalMime, function(safeBase64, finalMime) {
-            uploadToServer(safeBase64, file.name, finalMime);
+          optimizeImage(rawBase64, file.type, function(safeBase64, outMime) {
+            uploadToServer(safeBase64, file.name, outMime);
           });
           rawBase64 = null;
         }
@@ -153,11 +152,11 @@
       this.value = '';
     });
 
-    // ============ 黄金视网膜轻量高清压缩（1200px + 0.82 质量） ============
-    function optimizeHdImage(base64Str, mimeType, callback) {
+    // 1440px 视网膜超清优化引擎
+    function optimizeImage(base64Str, origMime, callback) {
       var img = new Image();
       img.onload = function() {
-        var maxSide = 1200; // 黄金尺寸：保证 2K 级别清晰度，体积严格控制在 200KB 左右
+        var maxSide = 1440;
         var w = img.width;
         var h = img.height;
 
@@ -175,21 +174,17 @@
         canvas.width = w;
         canvas.height = h;
         var ctx = canvas.getContext('2d');
-        
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, w, h);
 
-        var isPng = (mimeType && mimeType.indexOf('png') !== -1) && base64Str.indexOf('data:image/png') === 0;
-        
-        // 如果原图不是必须保留透明通道的特殊 PNG，统一输出高质小体积 JPEG
+        var isPng = (origMime && origMime.indexOf('png') !== -1) || base64Str.indexOf('data:image/png') === 0;
         var outMime = isPng ? 'image/png' : 'image/jpeg';
-        var optimized = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.82);
-        
-        callback(optimized, outMime);
+        var result = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.86);
+        callback(result, outMime);
       };
       img.onerror = function() {
-        callback(base64Str, mimeType || 'image/jpeg');
+        callback(base64Str, origMime || 'image/jpeg');
       };
       img.src = base64Str;
     }
@@ -199,17 +194,6 @@
       dropBox.style.pointerEvents = 'none';
 
       var customName = (customNameInput.value || '').trim();
-      var isDone = false;
-
-      // 15 秒超时保护
-      var timer = setTimeout(function() {
-        if (!isDone) {
-          isDone = true;
-          dropBox.style.pointerEvents = 'auto';
-          uploadText.textContent = '选择照片并裁剪上传';
-          if (window.AppNav) AppNav.showToast('上传超时，请检查网络后重试');
-        }
-      }, 15000);
 
       fetch('/api/upload', {
         method: 'POST',
@@ -218,38 +202,28 @@
           base64Data: safeBase64,
           filename: originalName,
           mimeType: mimeType || 'image/jpeg',
-          customName: customName,
-          forcePNG: false
+          customName: customName
         })
       })
-      .then(function(res){
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
+      .then(function(res){ return res.json(); })
       .then(function(data){
-        if (isDone) return;
-        isDone = true;
-        clearTimeout(timer);
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
 
-        if (data.success && data.url) {
+        if (data && data.success && data.url) {
           if (window.AppNav) AppNav.showToast('上传成功！');
           saveHistory(data.url);
           openViewer(data.url);
         } else {
-          if (window.AppNav) AppNav.showToast(data.message || '上传失败');
+          if (window.AppNav) AppNav.showToast((data && data.message) ? data.message : '上传失败');
         }
       })
-      .catch(function(err){
-        if (isDone) return;
-        isDone = true;
-        clearTimeout(timer);
+      .catch(function(){
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
-        if (window.AppNav) AppNav.showToast('上传失败，请重试');
+        if (window.AppNav) AppNav.showToast('网络异常，请重试');
       });
     }
 
