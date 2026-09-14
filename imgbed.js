@@ -155,7 +155,7 @@
     function optimizeImage(base64Str, origMime, callback) {
       var img = new Image();
       img.onload = function() {
-        var maxSide = 1080;
+        var maxSide = 800; // 800px 超清视网膜标准：画质细腻，秒级传输
         var w = img.width;
         var h = img.height;
 
@@ -179,7 +179,7 @@
 
         var isPng = (origMime && origMime.indexOf('png') !== -1) || base64Str.indexOf('data:image/png') === 0;
         var outMime = isPng ? 'image/png' : 'image/jpeg';
-        var result = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.82);
+        var result = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.80);
         callback(result, outMime);
       };
       img.onerror = function() {
@@ -206,20 +206,12 @@
         })
       })
       .then(function(res){
-        return res.text();
+        return res.json();
       })
-      .then(function(rawText){
+      .then(function(data){
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
-
-        var data;
-        try {
-          data = JSON.parse(rawText);
-        } catch(e) {
-          if (window.AppNav) AppNav.showToast('服务端返回异常: ' + rawText.substring(0, 30));
-          return;
-        }
 
         if (data && data.success && data.url) {
           if (window.AppNav) AppNav.showToast('上传成功！');
@@ -234,7 +226,7 @@
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
-        if (window.AppNav) AppNav.showToast('网络请求失败: ' + (err.message || '请重试'));
+        if (window.AppNav) AppNav.showToast('网络异常: ' + (err.message || '请重试'));
       });
     }
 
