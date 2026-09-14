@@ -23,18 +23,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const bodyData = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-    const { base64Data, filename, mimeType, customName, forcePNG } = bodyData;
+    let bodyData = req.body;
+    if (typeof bodyData === 'string') {
+      try { bodyData = JSON.parse(bodyData); } catch (e) { bodyData = {}; }
+    }
+    bodyData = bodyData || {};
 
-    if (!base64Data) {
-      return res.status(200).json({ success: false, message: '未收到图片数据' });
+    const { base64Data, customName, forcePNG, mimeType } = bodyData;
+
+    if (!base64Data || typeof base64Data !== 'string') {
+      return res.status(200).json({ success: false, message: '未收到有效的图片数据' });
     }
 
     let rawUrl = (process.env.SUPABASE_URL || '').trim();
     const rawKey = (process.env.SUPABASE_KEY || '').trim();
 
     if (!rawUrl || !rawKey) {
-      return res.status(200).json({ success: false, message: '服务端环境变量未配置' });
+      return res.status(200).json({ success: false, message: '服务端环境变量 SUPABASE_URL / KEY 未配置' });
     }
 
     if (!rawUrl.startsWith('http')) rawUrl = 'https://' + rawUrl;
@@ -52,14 +57,16 @@ export default async function handler(req, res) {
     } else if (mimeType && mimeType.indexOf('gif') !== -1) {
       ext = 'gif';
       contentType = 'image/gif';
-    } else {
-      ext = 'jpg';
-      contentType = 'image/jpeg';
     }
 
-    // 彻底修复：万能精准提取 Base64 纯数据，绝不留任何头部污染
-    const base64Pure = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+    // 提取纯粹 base64 内容
+    const commaIdx = base64Data.indexOf(',');
+    const base64Pure = commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data;
     const buffer = Buffer.from(base64Pure.trim(), 'base64');
+
+    if (!buffer || buffer.length === 0) {
+      return res.status(200).json({ success: false, message: '图片解码失败' });
+    }
 
     let finalFileName = '';
     if (customName && String(customName).trim()) {
@@ -72,21 +79,37 @@ export default async function handler(req, res) {
 
     const uploadUrl = rawUrl + '/storage/v1/object/images/' + finalFileName;
 
-    const uploadRes = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        'apikey': rawKey,
-        'Authorization': 'Bearer ' + rawKey,
-        'Content-Type': contentType,
-        'cache-control': 'max-age=31536000, public',
-        'x-upsert': 'true'
-      },
-      body: buffer
-    });
+    // 增加 8 秒强行超时中断，绝不无限挂起
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    let uploadRes;
+    try {
+      uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'apikey': rawKey,
+          'Authorization': 'Bearer ' + rawKey,
+          'Content-Type': contentType,
+          'cache-control': 'max-age=31536000, public',
+          'x-upsert': 'true'
+        },
+        body: buffer,
+        signal: controller.signal
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError') {
+        return res.status(200).json({ success: false, message: 'Supabase存储桶连接超时' });
+      }
+      return res.status(200).json({ success: false, message: '连接存储桶失败: ' + fetchErr.message });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!uploadRes.ok) {
       const errText = await uploadRes.text();
-      return res.status(200).json({ success: false, message: '上传存储桶失败: ' + errText });
+      return res.status(200).json({ success: false, message: '存储桶拒绝: ' + errText });
     }
 
     const shortPublicUrl = 'https://niveousmoon.top/images/' + finalFileName;
