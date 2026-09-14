@@ -102,7 +102,9 @@
     if (window.AppDB) window.AppDB.save('app_wb_themes', sectionThemes);
   }
 
+  // 核心改色引擎：立刻更新 CSS 变量，确保主题秒变
   function updateThemeVariables(theme) {
+    if (!theme) return;
     document.documentElement.style.setProperty('--wb-cur-theme', theme.color);
     document.documentElement.style.setProperty('--wb-cur-theme-bg', theme.bg);
   }
@@ -329,7 +331,6 @@
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
-        // 1. 顶栏：左标题 + 右上角虚线圆圈三横线按钮
         + '  <div class="wb-gallery-header-row" id="wbGalleryHeaderRow">'
         + '    <div class="wb-header-left-col">'
         + '      <div class="wb-header-switch-wrap" id="wbHeaderSwitchWrap">'
@@ -343,13 +344,11 @@
         + '        <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>'
         + '      </div>'
         + '    </button>'
-        // 左侧下拉菜单浮层
         + '    <div class="wb-header-dropdown-menu" id="wbHeaderDropdownMenu">'
         + '      <div class="wb-pop-item active" data-switch-to="wb">世界书</div>'
         + '      <div class="wb-pop-item" data-switch-to="preset">预设</div>'
         + '      <div class="wb-pop-item" data-switch-to="regex">正则</div>'
         + '    </div>'
-        // 右上角三横线展开面板浮层
         + '    <div class="wb-right-menu-popover" id="wbRightMenuPopover">'
         + '      <button class="wb-action-card-btn" id="wbPopBtnNew" type="button">'
         + '        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'
@@ -360,8 +359,8 @@
         + '        <span>导入世界书</span>'
         + '      </button>'
         + '      <div class="wb-menu-color-row">'
-        + '        <div class="wb-swatch-dot" style="background:#88abda;" data-color="#88abda" data-bg="rgba(136,171,218,0.18)" title="经典冰蓝"></div>'
-        + '        <div class="wb-swatch-dot" style="background:#8e8e93;" data-color="#8e8e93" data-bg="rgba(142,142,147,0.18)" title="高级浅灰"></div>'
+        + '        <div class="wb-swatch-dot" style="background:#88abda;" data-color="#88abda" data-bg="rgba(136,171,218,0.22)" title="经典冰蓝"></div>'
+        + '        <div class="wb-swatch-dot" style="background:#8e8e93;" data-color="#8e8e93" data-bg="rgba(142,142,147,0.22)" title="高级浅灰"></div>'
         + '        <div class="wb-custom-color-item" title="自定义取色">'
         + '          <input type="color" class="wb-custom-color-input" id="wbCustomColorInput" value="#88abda">'
         + '        </div>'
@@ -369,15 +368,11 @@
         + '    </div>'
         + '  </div>'
 
-        // 2. 主视口画卷（首页列表）
         + '  <div class="wb-viewport-box wb-home-scroll-viewport" id="wbHomeView"></div>'
-
-        // 3. 子页面挂载点
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbBookMetaView"></div>'
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEntriesView"></div>'
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEditView"></div>'
 
-        // 4. 全屏沉浸式正文编辑弹层
         + '  <div class="wb-expanded-modal" id="wbExpandedModal">'
         + '    <div class="wb-entries-nav-bar">'
         + '      <span style="font-size:16px; font-weight:800; color:#1c1c1e;">沉浸编辑</span>'
@@ -773,7 +768,7 @@
     saveWorldbooksData();
   }
 
-  // ============ 纯垂直微放大 + 彻底无阴影平滑拖拽引擎 ============
+  // ============ 纯垂直微放大平滑拖拽引擎 ============
   function setupPureVerticalDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -921,9 +916,10 @@
         var countEl = document.getElementById('wbCharCount');
         if (countEl) countEl.innerText = e.target.value.length + ' 字';
       }
+      // 核心改色：自定义取色器实时真联动！
       if (e.target && e.target.id === 'wbCustomColorInput') {
         var chosenColor = e.target.value;
-        var customBg = 'rgba(' + hexToRgb(chosenColor) + ', 0.18)';
+        var customBg = 'rgba(' + hexToRgb(chosenColor) + ', 0.22)';
         sectionThemes[state.currentSection] = { color: chosenColor, bg: customBg };
         updateThemeVariables(sectionThemes[state.currentSection]);
         saveThemesData();
@@ -994,6 +990,7 @@
         if (dMenu) dMenu.classList.remove('show');
         if (dArrow) dArrow.classList.remove('open');
 
+        updateThemeVariables(sectionThemes[targetSec]);
         renderHomeView();
         return;
       }
@@ -1037,7 +1034,7 @@
         return;
       }
 
-      // 5. 浮层内：色块点击
+      // 5. 核心改色：点击色块实时真改色并持久化保存
       var swatch = e.target.closest('.wb-swatch-dot');
       if (swatch) {
         e.stopPropagation();
@@ -1048,6 +1045,7 @@
         saveThemesData();
         var pR = document.getElementById('wbRightMenuPopover');
         if (pR) pR.classList.remove('show');
+        if (window.AppNav) window.AppNav.showToast('色彩主题已切换');
         return;
       }
 
