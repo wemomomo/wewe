@@ -222,10 +222,9 @@
   height: 3.5px;
   border-radius: 50%;
   background: var(--wb-cur-theme);
-  right: 3px;
-  top: 10px;
-  z-index: 4;
-  box-shadow: 0 0 5px var(--wb-cur-theme);
+  right: 1px;
+  top: 6px;
+  z-index: 50;
 }
 
 /* 下拉菜单浮层 (左侧板块切换) */
