@@ -1,6 +1,3 @@
-
-import https from 'https';
-
 export const config = {
   api: {
     bodyParser: {
@@ -62,9 +59,10 @@ export default async function handler(req, res) {
       contentType = 'image/gif';
     }
 
+    // 纯净剥离 Base64 前缀与换行空格
     const commaIdx = base64Data.indexOf(',');
-    const base64Pure = commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data;
-    const buffer = Buffer.from(base64Pure.trim(), 'base64');
+    const base64Pure = (commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data).replace(/\s/g, '');
+    const buffer = Buffer.from(base64Pure, 'base64');
 
     if (!buffer || buffer.length === 0) {
       return res.status(200).json({ success: false, message: '图片解码失败' });
@@ -79,61 +77,23 @@ export default async function handler(req, res) {
       finalFileName = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '.' + ext;
     }
 
-    // 解析目标 Host 与 Path
-    const targetUrlObj = new URL(rawUrl + '/storage/v1/object/images/' + finalFileName);
+    const uploadUrl = rawUrl + '/storage/v1/object/images/' + finalFileName;
 
-    // 用 Node 底层原生 https.request 发送，彻底解决 fetch 流挂起问题
-    const uploadToSupabase = () => {
-      return new Promise((resolve, reject) => {
-        const options = {
-          hostname: targetUrlObj.hostname,
-          port: 443,
-          path: targetUrlObj.pathname,
-          method: 'POST',
-          headers: {
-            'apikey': rawKey,
-            'Authorization': 'Bearer ' + rawKey,
-            'Content-Type': contentType,
-            'Content-Length': buffer.length,
-            'cache-control': 'max-age=31536000, public',
-            'x-upsert': 'true'
-          },
-          timeout: 10000
-        };
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': rawKey,
+        'Authorization': 'Bearer ' + rawKey,
+        'Content-Type': contentType,
+        'cache-control': 'max-age=31536000, public',
+        'x-upsert': 'true'
+      },
+      body: buffer
+    });
 
-        const reqClient = https.request(options, (resClient) => {
-          let resBody = '';
-          resClient.on('data', (chunk) => { resBody += chunk; });
-          resClient.on('end', () => {
-            if (resClient.statusCode >= 200 && resClient.statusCode < 300) {
-              resolve({ ok: true, data: resBody });
-            } else {
-              resolve({ ok: false, status: resClient.statusCode, error: resBody });
-            }
-          });
-        });
-
-        reqClient.on('timeout', () => {
-          reqClient.destroy();
-          reject(new Error('Supabase 存储桶握手超时(10s)'));
-        });
-
-        reqClient.on('error', (e) => {
-          reject(e);
-        });
-
-        reqClient.write(buffer);
-        reqClient.end();
-      });
-    };
-
-    const uploadResult = await uploadToSupabase();
-
-    if (!uploadResult.ok) {
-      return res.status(200).json({
-        success: false,
-        message: '存储桶返回错误(' + uploadResult.status + '): ' + uploadResult.error
-      });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      return res.status(200).json({ success: false, message: '存储桶写入失败: ' + errText });
     }
 
     const shortPublicUrl = 'https://niveousmoon.top/images/' + finalFileName;
