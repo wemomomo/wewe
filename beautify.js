@@ -25,9 +25,41 @@
   var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
 
   var OPT_ICONS = {
-    icon1: '',
-    icon2: ''
+    icon1: '', // 初雪雪花 PNG
+    icon2: ''  // 主图 PNG
   };
+
+  // 生成苹果 iOS 完美兼容的蓝白初雪雪花 PNG 图标
+  function getSnowflakePngBase64() {
+    if (OPT_ICONS.icon1) return OPT_ICONS.icon1;
+    try {
+      var canvas = document.createElement('canvas');
+      canvas.width = 192;
+      canvas.height = 192;
+      var ctx = canvas.getContext('2d');
+
+      // 纯白实色背景 (防止苹果暗色模式下透明变黑)
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 192, 192);
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '118px -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI Symbol", sans-serif';
+
+      // 柔和初雪浅蓝微光
+      ctx.shadowColor = 'rgba(136, 171, 218, 0.55)';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#88abda';
+      ctx.fillText('❆', 96, 100);
+      ctx.restore();
+
+      OPT_ICONS.icon1 = canvas.toDataURL('image/png');
+      return OPT_ICONS.icon1;
+    } catch(e) {
+      return DEFAULT_HEART_URL;
+    }
+  }
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
@@ -116,6 +148,7 @@
               '<div class="beautify-card-desc">选择预设或点击自定义从相册裁剪上传属于你的专属App图标</div>' +
             '</div>' +
             '<div class="pwa-icons-grid">' +
+              // 1. 默认 ♡
               '<div class="pwa-icon-item active" data-pwa-val="heart" data-pwa-name="默认">' +
                 '<div class="pwa-icon-preview">' +
                   '<div class="pwa-svg-box">&#9825;</div>' +
@@ -123,23 +156,23 @@
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
 
-              // 复原原装主图1
-              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="主图1">' +
+              // 2. 初雪雪花 ❆
+              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图1" loading="eager">' +
+                  '<div style="width:100%;height:100%;background:#ffffff;display:flex;align-items:center;justify-content:center;font-size:36px;line-height:1;color:#88abda;filter:drop-shadow(0 0 6px rgba(136,171,218,0.55));user-select:none;">❆</div>' +
                 '</div>' +
-                '<span class="pwa-icon-name">主图1</span>' +
+                '<span class="pwa-icon-name">初雪</span>' +
               '</div>' +
 
-              // 复原原装主图2
-              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
+              // 3. 原装主图
+              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + RAW_ICON_PATH_2 + '" alt="主图2" loading="eager">' +
+                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图" loading="eager">' +
                 '</div>' +
-                '<span class="pwa-icon-name">主图2</span>' +
+                '<span class="pwa-icon-name">主图</span>' +
               '</div>' +
 
-              // 自定义项
+              // 4. 自定义
               '<div class="pwa-icon-item pwa-custom-item" id="pwaCustomItem" data-pwa-val="custom" data-pwa-name="自定义">' +
                 '<div class="pwa-icon-preview" id="pwaCustomPreview">' +
                   '<div class="pwa-custom-placeholder" id="pwaCustomPlaceholder">' +
@@ -422,13 +455,11 @@
 
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
-        OPT_ICONS.icon1 = pngBase64;
-        setManifestAndAppleIcons(pngBase64);
-      });
+      var snowPng = getSnowflakePngBase64();
+      setManifestAndAppleIcons(snowPng);
       return;
     } else if (type === 'icon2') {
-      convertImgToPngBase64(RAW_ICON_PATH_2, function(pngBase64) {
+      convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
         OPT_ICONS.icon2 = pngBase64;
         setManifestAndAppleIcons(pngBase64);
       });
