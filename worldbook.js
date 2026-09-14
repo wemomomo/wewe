@@ -107,6 +107,13 @@
     document.documentElement.style.setProperty('--wb-cur-theme-bg', theme.bg);
   }
 
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
+    var num = parseInt(hex, 16);
+    return [(num >> 16) & 255, (num >> 8) & 255, num & 255].join(',');
+  }
+
   // ============ 封面图片剪裁 ============
   function handleCoverClick(wbId) {
     var wb = state.worldbooks.find(function (w) { return w.id === wbId; });
@@ -322,30 +329,55 @@
     if (!container.querySelector('#wbMainContainer')) {
       container.innerHTML = ''
         + '<div class="wb-container" id="wbMainContainer">'
+        // 1. 顶栏：左标题 + 右上角虚线圆圈三横线按钮
         + '  <div class="wb-gallery-header-row" id="wbGalleryHeaderRow">'
-        + '    <div class="wb-header-switch-wrap" id="wbHeaderSwitchWrap">'
-        + '      <span class="wb-gallery-main-title" id="wbGalleryMainTitle">世界书</span>'
-        + '      <svg class="wb-header-arrow-down" id="wbHeaderArrowDown" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'
+        + '    <div class="wb-header-left-col">'
+        + '      <div class="wb-header-switch-wrap" id="wbHeaderSwitchWrap">'
+        + '        <span class="wb-gallery-main-title" id="wbGalleryMainTitle">世界书</span>'
+        + '        <svg class="wb-header-arrow-down" id="wbHeaderArrowDown" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'
+        + '      </div>'
+        + '      <span class="wb-gallery-sub-en" id="wbGallerySubEn">WORLD BOOK</span>'
         + '    </div>'
-        + '    <span class="wb-gallery-sub-en" id="wbGallerySubEn">WORLD BOOK</span>'
+        + '    <button class="wb-header-circle-btn" id="wbBtnRightAction" type="button" title="功能与改色">'
+        + '      <div class="wb-circle-core">'
+        + '        <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>'
+        + '      </div>'
+        + '    </button>'
+        // 左侧下拉菜单浮层
         + '    <div class="wb-header-dropdown-menu" id="wbHeaderDropdownMenu">'
         + '      <div class="wb-pop-item active" data-switch-to="wb">世界书</div>'
         + '      <div class="wb-pop-item" data-switch-to="preset">预设</div>'
         + '      <div class="wb-pop-item" data-switch-to="regex">正则</div>'
         + '    </div>'
+        // 右上角三横线展开面板浮层
+        + '    <div class="wb-right-menu-popover" id="wbRightMenuPopover">'
+        + '      <button class="wb-action-card-btn" id="wbPopBtnNew" type="button">'
+        + '        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'
+        + '        <span>新建独立世界书</span>'
+        + '      </button>'
+        + '      <button class="wb-action-card-btn" id="wbPopBtnImport" type="button">'
+        + '        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>'
+        + '        <span>导入世界书</span>'
+        + '      </button>'
+        + '      <div class="wb-menu-color-row">'
+        + '        <div class="wb-swatch-dot" style="background:#88abda;" data-color="#88abda" data-bg="rgba(136,171,218,0.18)" title="经典冰蓝"></div>'
+        + '        <div class="wb-swatch-dot" style="background:#8e8e93;" data-color="#8e8e93" data-bg="rgba(142,142,147,0.18)" title="高级浅灰"></div>'
+        + '        <div class="wb-custom-color-item" title="自定义取色">'
+        + '          <input type="color" class="wb-custom-color-input" id="wbCustomColorInput" value="#88abda">'
+        + '        </div>'
+        + '      </div>'
+        + '    </div>'
         + '  </div>'
 
+        // 2. 主视口画卷（首页列表）
         + '  <div class="wb-viewport-box wb-home-scroll-viewport" id="wbHomeView"></div>'
 
-        + '  <div class="wb-home-floating-wrapper" id="wbHomeBottomBar">'
-        + '    <button class="wb-btn-floating-new" id="wbPopBtnNew" type="button">+ 编撰新世界书</button>'
-        + '    <button class="wb-btn-floating-import" id="wbPopBtnImport" type="button">导入</button>'
-        + '  </div>'
-
+        // 3. 子页面挂载点
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbBookMetaView"></div>'
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEntriesView"></div>'
         + '  <div class="wb-viewport-box wb-view-hidden" id="wbEditView"></div>'
 
+        // 4. 全屏沉浸式正文编辑弹层
         + '  <div class="wb-expanded-modal" id="wbExpandedModal">'
         + '    <div class="wb-entries-nav-bar">'
         + '      <span style="font-size:16px; font-weight:800; color:#1c1c1e;">沉浸编辑</span>'
@@ -361,16 +393,13 @@
     return container;
   }
 
-  // ============ 1. 渲染首页 (全卡片点击进入) ============
+  // ============ 1. 渲染首页 ============
   function renderHomeView() {
     state.currentLevel = 'home';
     state.isCreatingNewWb = false;
 
     var headerRow = document.getElementById('wbGalleryHeaderRow');
     if (headerRow) headerRow.style.display = 'flex';
-
-    var homeBottomBar = document.getElementById('wbHomeBottomBar');
-    if (homeBottomBar) homeBottomBar.style.display = 'flex';
 
     var homeBox = document.getElementById('wbHomeView');
     if (!homeBox) return;
@@ -400,7 +429,7 @@
 
     if (state.currentSection === 'wb') {
       if (!state.worldbooks || state.worldbooks.length === 0) {
-        html = '<div class="wb-empty-tip">✦ 暂无世界书，请点击下方「+ 编撰新世界书」 ✦</div>';
+        html = '<div class="wb-empty-tip">✦ 暂无世界书，请点击右上角菜单新建 ✦</div>';
       } else {
         state.worldbooks.forEach(function (wb) {
           var coverImgHtml = wb.cover ? '<img src="' + wb.cover + '" alt="封面">' : '<img src="" alt="封面">';
@@ -459,9 +488,6 @@
     var headerRow = document.getElementById('wbGalleryHeaderRow');
     if (headerRow) headerRow.style.display = 'none';
 
-    var homeBottomBar = document.getElementById('wbHomeBottomBar');
-    if (homeBottomBar) homeBottomBar.style.display = 'none';
-
     var homeView = document.getElementById('wbHomeView');
     if (homeView) homeView.classList.add('wb-view-hidden');
 
@@ -505,9 +531,6 @@
     var headerRow = document.getElementById('wbGalleryHeaderRow');
     if (headerRow) headerRow.style.display = 'none';
 
-    var homeBottomBar = document.getElementById('wbHomeBottomBar');
-    if (homeBottomBar) homeBottomBar.style.display = 'none';
-
     var homeView = document.getElementById('wbHomeView');
     if (homeView) homeView.classList.add('wb-view-hidden');
 
@@ -548,7 +571,6 @@
         var modeName = entry.mode === 'const' ? '常驻全局' : '关键词';
         var posName = entry.pos === 'before' ? '角色定义前' : (entry.pos === 'after' ? '角色定义后' : ('深度 ' + (entry.depthVal !== undefined ? entry.depthVal : 2)));
         
-        // 严格顺序：【关键词/常驻】·【位置/深度】·【Tokens】
         var subTextDesc = '<span>' + modeName + '</span> · ' + posName + ' · <span>' + entryTokens + ' Tokens</span>';
         
         html += ''
@@ -597,9 +619,6 @@
 
     var headerRow = document.getElementById('wbGalleryHeaderRow');
     if (headerRow) headerRow.style.display = 'none';
-
-    var homeBottomBar = document.getElementById('wbHomeBottomBar');
-    if (homeBottomBar) homeBottomBar.style.display = 'none';
 
     var homeView = document.getElementById('wbHomeView');
     if (homeView) homeView.classList.add('wb-view-hidden');
@@ -689,7 +708,7 @@
     renderTags();
   }
 
-      function renderTags() {
+  function renderTags() {
     var box = document.getElementById('wbTagBox');
     if (!box) return;
     box.innerHTML = '';
@@ -701,7 +720,7 @@
     state.editTempTags.forEach(function (t, idx) {
       var tag = document.createElement('span');
       tag.className = 'wb-kw-tag';
-      tag.dataset.delTag = idx; // 绑定到整个标签上
+      tag.dataset.delTag = idx;
       tag.innerHTML = t + ' <span class="wb-kw-tag-del" data-del-tag="' + idx + '">×</span>';
       box.appendChild(tag);
     });
@@ -754,7 +773,7 @@
     saveWorldbooksData();
   }
 
-  // ============ 纯垂直微放大（scaleY）+ 彻底无阴影平滑拖拽引擎 ============
+  // ============ 纯垂直微放大 + 彻底无阴影平滑拖拽引擎 ============
   function setupPureVerticalDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -783,7 +802,6 @@
           itemStep = el.offsetHeight + 10;
           isDragging = true;
 
-          // 纯粹垂直放大，彻底移除任何 box-shadow
           el.style.transform = 'scaleY(1.035)';
           el.style.boxShadow = 'none';
           el.style.zIndex = '100';
@@ -903,12 +921,18 @@
         var countEl = document.getElementById('wbCharCount');
         if (countEl) countEl.innerText = e.target.value.length + ' 字';
       }
+      if (e.target && e.target.id === 'wbCustomColorInput') {
+        var chosenColor = e.target.value;
+        var customBg = 'rgba(' + hexToRgb(chosenColor) + ', 0.18)';
+        sectionThemes[state.currentSection] = { color: chosenColor, bg: customBg };
+        updateThemeVariables(sectionThemes[state.currentSection]);
+        saveThemesData();
+      }
     });
 
-        function addKeyTagFromInput(inputEl) {
+    function addKeyTagFromInput(inputEl) {
       if (!inputEl) return;
       var raw = inputEl.value || '';
-      // 支持空格、中英文逗号一次性切分多个词
       var words = raw.split(/[,，\s]+/);
       words.forEach(function (w) {
         var clean = w.trim();
@@ -920,7 +944,6 @@
       inputEl.value = '';
     }
 
-    // 1. 监听回车键与软键盘换行
     container.addEventListener('keydown', function (e) {
       if (e.target && e.target.id === 'wbIptKeyInput') {
         if (e.key === 'Enter' || e.keyCode === 13) {
@@ -930,7 +953,6 @@
       }
     });
 
-    // 2. 监听输入逗号或空格即时转成标签
     container.addEventListener('input', function (e) {
       if (e.target && e.target.id === 'wbIptKeyInput') {
         var v = e.target.value;
@@ -940,7 +962,6 @@
       }
     });
 
-    // 3. 手机软键盘收起（失去焦点）时，自动把框里打好的字变成标签！
     container.addEventListener('blur', function (e) {
       if (e.target && e.target.id === 'wbIptKeyInput') {
         addKeyTagFromInput(e.target);
@@ -955,6 +976,8 @@
         var arrow = document.getElementById('wbHeaderArrowDown');
         if (menu) menu.classList.toggle('show');
         if (arrow) arrow.classList.toggle('open');
+        var pRight = document.getElementById('wbRightMenuPopover');
+        if (pRight) pRight.classList.remove('show');
         return;
       }
 
@@ -975,9 +998,23 @@
         return;
       }
 
-      // 2. 首页新建与导入
+      // 2. 右上角三横线圆圈按钮展开浮层
+      if (e.target.closest('#wbBtnRightAction')) {
+        e.stopPropagation();
+        var popRight = document.getElementById('wbRightMenuPopover');
+        if (popRight) popRight.classList.toggle('show');
+        var dMenu2 = document.getElementById('wbHeaderDropdownMenu');
+        var dArrow2 = document.getElementById('wbHeaderArrowDown');
+        if (dMenu2) dMenu2.classList.remove('show');
+        if (dArrow2) dArrow2.classList.remove('open');
+        return;
+      }
+
+      // 3. 浮层内：新建世界书
       if (e.target.closest('#wbPopBtnNew')) {
         e.stopPropagation();
+        var popR = document.getElementById('wbRightMenuPopover');
+        if (popR) popR.classList.remove('show');
         var tempId = 'wb_' + Date.now();
         state.worldbooks.push({
           id: tempId,
@@ -991,13 +1028,30 @@
         return;
       }
 
+      // 4. 浮层内：导入世界书
       if (e.target.closest('#wbPopBtnImport')) {
         e.stopPropagation();
+        var popR2 = document.getElementById('wbRightMenuPopover');
+        if (popR2) popR2.classList.remove('show');
         importWorldbookDocx();
         return;
       }
 
-      // 3. 新建名称页返回与确定
+      // 5. 浮层内：色块点击
+      var swatch = e.target.closest('.wb-swatch-dot');
+      if (swatch) {
+        e.stopPropagation();
+        var color = swatch.dataset.color;
+        var bg = swatch.dataset.bg;
+        sectionThemes[state.currentSection] = { color: color, bg: bg };
+        updateThemeVariables(sectionThemes[state.currentSection]);
+        saveThemesData();
+        var pR = document.getElementById('wbRightMenuPopover');
+        if (pR) pR.classList.remove('show');
+        return;
+      }
+
+      // 6. 新建名称页返回与确定
       if (e.target.closest('#wbBtnMetaBack')) {
         if (state.isCreatingNewWb) {
           state.worldbooks = state.worldbooks.filter(function (w) { return w.id !== state.currentWbId; });
@@ -1007,14 +1061,13 @@
         return;
       }
 
-           if (e.target.closest('#wbBtnSaveBookMeta')) {
+      if (e.target.closest('#wbBtnSaveBookMeta')) {
         var bookTitleIpt = document.getElementById('wbIptBookTitle');
         var currentBook = state.worldbooks.find(function (w) { return w.id === state.currentWbId; });
         if (currentBook && bookTitleIpt) {
           currentBook.title = (bookTitleIpt.value || '').trim() || '未命名世界书';
           saveWorldbooksData();
           
-          // 👈 核心区分：如果是新建世界书，去新建词条页；如果是重命名，直接退回条目列表页！
           if (state.isCreatingNewWb) {
             renderEditView(null);
           } else {
@@ -1029,7 +1082,7 @@
         return;
       }
 
-      // 4. 词条列表返回与保存
+      // 7. 词条列表返回与保存
       if (e.target.closest('#wbBtnEntriesBack')) {
         renderHomeView();
         return;
@@ -1042,32 +1095,34 @@
         return;
       }
 
-      // 5. 编辑页返回
+      // 8. 编辑页返回
       if (e.target.closest('#wbBtnEditBack')) {
         saveCurrentEditEntry();
         renderEntriesView(state.currentWbId);
         return;
       }
 
-      // 关闭下拉菜单
+      // 点击空白处关闭下拉菜单与右侧面板
       if (!e.target.closest('#wbHeaderSwitchWrap') && !e.target.closest('#wbHeaderDropdownMenu')) {
         var hMenu = document.getElementById('wbHeaderDropdownMenu');
         var hArr = document.getElementById('wbHeaderArrowDown');
         if (hMenu) hMenu.classList.remove('show');
         if (hArr) hArr.classList.remove('open');
       }
+      if (!e.target.closest('#wbBtnRightAction') && !e.target.closest('#wbRightMenuPopover')) {
+        var popRgt = document.getElementById('wbRightMenuPopover');
+        if (popRgt) popRgt.classList.remove('show');
+      }
 
-      // 6. 三星芒按钮菜单 (自动提升父级卡片层级，杜绝下方遮挡)
+      // 9. 三星芒按钮菜单
       var moreBtn = e.target.closest('[data-wb-more]');
       if (moreBtn) {
         e.stopPropagation();
         var wbId = moreBtn.dataset.wbMore;
         var mMenu = document.getElementById('wbMenu_' + wbId);
         var currentCard = moreBtn.closest('.wb-art-card');
-        
         var isOpen = mMenu && mMenu.classList.contains('show');
 
-        // 先清理所有其他卡片的高层级与菜单
         container.querySelectorAll('.wb-art-card').forEach(function(c) { c.classList.remove('menu-active'); });
         container.querySelectorAll('.wb-dropdown-menu').forEach(function(m) { m.classList.remove('show'); });
 
@@ -1078,7 +1133,6 @@
         return;
       }
 
-      // 点击任何菜单项或空白处时，还原卡片层级
       var menuItem = e.target.closest('[data-menu-act]');
       if (menuItem) {
         e.stopPropagation();
@@ -1119,7 +1173,7 @@
       container.querySelectorAll('.wb-art-card').forEach(function(c) { c.classList.remove('menu-active'); });
       container.querySelectorAll('.wb-dropdown-menu').forEach(function(m) { m.classList.remove('show'); });
 
-      // 7. 点击封面换图 (必须优先拦截，防止触发卡片进入)
+      // 10. 点击封面换图
       var coverWrap = e.target.closest('[data-cover-wb]');
       if (coverWrap) {
         e.stopPropagation();
@@ -1127,27 +1181,27 @@
         return;
       }
 
-      // 8. 全卡片任意空白区域点击直接进入！
+      // 11. 全卡片点击直接进入
       var enterCard = e.target.closest('[data-card-click-enter]');
       if (enterCard) {
         renderEntriesView(enterCard.dataset.cardClickEnter);
         return;
       }
 
-      // 9. 新建条目
+      // 12. 新建条目
       if (e.target.closest('#wbNavBtnNewEntry')) {
         renderEditView(null);
         return;
       }
 
-      // 10. 打开已有条目
+      // 13. 打开已有条目
       var openEntryItem = e.target.closest('[data-open-entry]');
       if (openEntryItem) {
         renderEditView(openEntryItem.dataset.openEntry);
         return;
       }
 
-      // 11. 条目列表内操作 (编辑 / 复制 / 删除 / 开关)
+      // 14. 条目列表内操作 (编辑 / 复制 / 删除 / 开关)
       var actBtn = e.target.closest('[data-entry-act]');
       if (actBtn) {
         e.stopPropagation();
@@ -1196,7 +1250,7 @@
         return;
       }
 
-      // 12. 模式与注入位置切换
+      // 15. 模式与注入位置切换
       var modePill = e.target.closest('.wb-mode-pill');
       if (modePill) {
         container.querySelectorAll('.wb-mode-pill').forEach(function (p) { p.classList.remove('active'); });
@@ -1226,7 +1280,7 @@
         return;
       }
 
-      // 13. 标签删除（点击整个标签或点 × 均可秒删，并阻止事件冒泡防止触发输入框）
+      // 16. 标签删除
       var delTagBtn = e.target.closest('[data-del-tag]');
       if (delTagBtn) {
         e.stopPropagation();
@@ -1237,7 +1291,7 @@
         return;
       }
 
-      // 14. 沉浸编辑扩大与收起
+      // 17. 沉浸编辑扩大与收起
       if (e.target.closest('#wbBtnExpand')) {
         var normalIpt = document.getElementById('wbIptContent');
         var expModal = document.getElementById('wbExpandedModal');
