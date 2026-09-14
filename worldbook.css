@@ -152,6 +152,7 @@
   padding: 0;
   outline: none;
   margin-right: -4px; /* 微调右侧贴边距离 */
+  margin-top: -8px; 
 }
 
 /* 彻底移除外圈线条 */
@@ -166,7 +167,6 @@
   font-size: 11px;
   line-height: 1;
   pointer-events: none;
-  text-shadow: 0 0 5px var(--wb-cur-theme);
 }
 
 /* 核心：用负坐标彻底拉开距离，与圆圈形成明显留白 */
