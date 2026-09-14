@@ -20,46 +20,19 @@
     bgHistory: []
   };
 
+  // 1. 默认蓝色爱心图标 (纯净 SVG)
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
+  
+  // 2. 墨墨指定的初雪雪花图标 (完全按照蓝色图标同源架构：白底 + 浅蓝初雪雪花)
+  var SNOW_ICON_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23ffffff'/%3E%3Ctext x='50%25' y='56%25' font-size='50' text-anchor='middle' dominant-baseline='middle' fill='%2388abda'%3E%E2%9D%85%3C/text%3E%3C/svg%3E";
+
   var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
   var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
 
   var OPT_ICONS = {
-    icon1: '', // 初雪雪花 PNG
-    icon2: ''  // 主图 PNG
+    icon1: '',
+    icon2: ''
   };
-
-  // 生成苹果 iOS 完美兼容的蓝白初雪雪花 PNG 图标
-  function getSnowflakePngBase64() {
-    if (OPT_ICONS.icon1) return OPT_ICONS.icon1;
-    try {
-      var canvas = document.createElement('canvas');
-      canvas.width = 192;
-      canvas.height = 192;
-      var ctx = canvas.getContext('2d');
-
-      // 纯白实色背景 (防止苹果暗色模式下透明变黑)
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 192, 192);
-
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = '118px -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI Symbol", sans-serif';
-
-      // 柔和初雪浅蓝微光
-      ctx.shadowColor = 'rgba(136, 171, 218, 0.55)';
-      ctx.shadowBlur = 14;
-      ctx.fillStyle = '#88abda';
-      ctx.fillText('❆', 96, 100);
-      ctx.restore();
-
-      OPT_ICONS.icon1 = canvas.toDataURL('image/png');
-      return OPT_ICONS.icon1;
-    } catch(e) {
-      return DEFAULT_HEART_URL;
-    }
-  }
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
@@ -148,7 +121,7 @@
               '<div class="beautify-card-desc">选择预设或点击自定义从相册裁剪上传属于你的专属App图标</div>' +
             '</div>' +
             '<div class="pwa-icons-grid">' +
-              // 1. 默认 ♡
+              // 1. 默认蓝底爱心
               '<div class="pwa-icon-item active" data-pwa-val="heart" data-pwa-name="默认">' +
                 '<div class="pwa-icon-preview">' +
                   '<div class="pwa-svg-box">&#9825;</div>' +
@@ -156,10 +129,10 @@
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
 
-              // 2. 初雪雪花 ❆
+              // 2. 初雪 (白底 + 浅蓝雪花，完全按照蓝色图标的方式呈现)
               '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
                 '<div class="pwa-icon-preview">' +
-                  '<div style="width:100%;height:100%;background:#ffffff;display:flex;align-items:center;justify-content:center;font-size:36px;line-height:1;color:#88abda;filter:drop-shadow(0 0 6px rgba(136,171,218,0.55));user-select:none;">❆</div>' +
+                  '<div class="pwa-svg-box" style="background:#ffffff; color:#88abda; font-size:32px;">&#10053;</div>' +
                 '</div>' +
                 '<span class="pwa-icon-name">初雪</span>' +
               '</div>' +
@@ -174,8 +147,8 @@
 
               // 4. 自定义
               '<div class="pwa-icon-item pwa-custom-item" id="pwaCustomItem" data-pwa-val="custom" data-pwa-name="自定义">' +
-                '<div class="pwa-icon-preview" id="pwaCustomPreview">' +
-                  '<div class="pwa-custom-placeholder" id="pwaCustomPlaceholder">' +
+                '<div class="pwa-icon-preview" id="pwaCustomPlaceholder">' +
+                  '<div class="pwa-custom-placeholder">' +
                     '<svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
                   '</div>' +
                   '<img id="pwaCustomImg" style="display:none;" alt="自定义" loading="eager">' +
@@ -425,13 +398,13 @@
           {
             src: targetUrl,
             sizes: "192x192",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any"
           },
           {
             src: targetUrl,
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any maskable"
           }
         ]
@@ -455,8 +428,8 @@
 
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      var snowPng = getSnowflakePngBase64();
-      setManifestAndAppleIcons(snowPng);
+      // 纯净 SVG 初雪图标，与默认爱心完全同源
+      setManifestAndAppleIcons(SNOW_ICON_URL);
       return;
     } else if (type === 'icon2') {
       convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
