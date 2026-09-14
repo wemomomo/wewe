@@ -344,6 +344,10 @@
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 .wb-dropdown-menu.show { display: flex; animation: wbDropIn 0.15s ease; }
+/* 当卡片弹出菜单时，瞬间将卡片自身的层级提升到最顶层，彻底杜绝被下方遮挡 */
+.wb-art-card.menu-active {
+  z-index: 55 !important;
+}
 
 .wb-menu-item {
   padding: 8px 10px;
