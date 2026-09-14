@@ -152,7 +152,7 @@
   padding: 0;
   outline: none;
   margin-right: -4px; /* 微调右侧贴边距离 */
-  margin-top: -1px;
+  margin-top: -10px;
 }
 
 /* 彻底移除外圈线条 */
@@ -177,15 +177,14 @@
 
 /* 核心圆芯：内部雪花 ❆ */
 .wb-circle-core {
-  width: 32px;
-  height: 32px;
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
   background: var(--wb-cur-theme);
   border: 1.5px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 3px var(--wb-cur-theme-bg), 0 2px 8px var(--wb-cur-theme);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   font-size: 14px;
   color: #ffffff;
