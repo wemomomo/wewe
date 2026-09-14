@@ -1051,23 +1051,35 @@
         if (hArr) hArr.classList.remove('open');
       }
 
-      // 6. 三星芒按钮菜单 (必须优先拦截，防止触发卡片进入)
+      // 6. 三星芒按钮菜单 (自动提升父级卡片层级，杜绝下方遮挡)
       var moreBtn = e.target.closest('[data-wb-more]');
       if (moreBtn) {
         e.stopPropagation();
         var wbId = moreBtn.dataset.wbMore;
         var mMenu = document.getElementById('wbMenu_' + wbId);
-        container.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { if (m !== mMenu) m.classList.remove('show'); });
-        if (mMenu) mMenu.classList.toggle('show');
+        var currentCard = moreBtn.closest('.wb-art-card');
+        
+        var isOpen = mMenu && mMenu.classList.contains('show');
+
+        // 先清理所有其他卡片的高层级与菜单
+        container.querySelectorAll('.wb-art-card').forEach(function(c) { c.classList.remove('menu-active'); });
+        container.querySelectorAll('.wb-dropdown-menu').forEach(function(m) { m.classList.remove('show'); });
+
+        if (!isOpen && mMenu) {
+          mMenu.classList.add('show');
+          if (currentCard) currentCard.classList.add('menu-active');
+        }
         return;
       }
 
+      // 点击任何菜单项或空白处时，还原卡片层级
       var menuItem = e.target.closest('[data-menu-act]');
       if (menuItem) {
         e.stopPropagation();
         var act = menuItem.dataset.menuAct;
         var mId = menuItem.dataset.id;
-        container.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
+        container.querySelectorAll('.wb-art-card').forEach(function(c) { c.classList.remove('menu-active'); });
+        container.querySelectorAll('.wb-dropdown-menu').forEach(function(m) { m.classList.remove('show'); });
 
         if (act === 'copy') {
           var targetWb = state.worldbooks.find(function (w) { return w.id === mId; });
@@ -1098,7 +1110,8 @@
         }
         return;
       }
-      container.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
+      container.querySelectorAll('.wb-art-card').forEach(function(c) { c.classList.remove('menu-active'); });
+      container.querySelectorAll('.wb-dropdown-menu').forEach(function(m) { m.classList.remove('show'); });
 
       // 7. 点击封面换图 (必须优先拦截，防止触发卡片进入)
       var coverWrap = e.target.closest('[data-cover-wb]');
