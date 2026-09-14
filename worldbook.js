@@ -34,12 +34,12 @@
     if (!text || typeof text !== 'string') return 0;
     var str = text.trim();
     if (!str) return 0;
-    
+
     var chineseCount = (str.match(/[\u4e00-\u9fa5\u3000-\u303f\uff01-\uff5e]/g) || []).length;
     var otherStr = str.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff01-\uff5e]/g, '');
     var englishWords = otherStr.trim().split(/\s+/).filter(Boolean).length;
     var otherChars = otherStr.length;
-    
+
     var tokenEstimate = Math.ceil(chineseCount * 1.3 + englishWords * 1.3 + (otherChars - englishWords) * 0.3);
     return Math.max(1, tokenEstimate);
   }
@@ -56,7 +56,7 @@
     }
     var totalTokens = 0;
     var activeTokens = 0;
-    
+
     wb.entries.forEach(function (en) {
       var t = getEntryTokens(en);
       totalTokens += t;
@@ -124,7 +124,7 @@
             var reader = new FileReader();
             reader.onload = function (evt) {
               if (window.AppCropper) {
-                window.AppCropper.open(evt.target.result, { aspectRatio: 54 / 80 }, function (croppedData) {
+                window.AppCropper.open(evt.target.result, { aspectRatio: 68 / 98 }, function (croppedData) {
                   wb.cover = croppedData;
                   saveWorldbooksData();
                   renderHomeView();
@@ -194,7 +194,7 @@
 
             saveWorldbooksData();
             renderHomeView();
-            if (window.AppNav) window.AppNav.showToast('✦ 成功导入：《' + wbTitle + '》 ✦');
+            if (window.AppNav) window.AppNav.showToast('成功导入：《' + wbTitle + '》');
           } catch (err) {
             if (window.AppNav) window.AppNav.showToast('文件损坏，导入失败');
           }
@@ -231,7 +231,7 @@
             state.worldbooks.push(newWb);
             saveWorldbooksData();
             renderHomeView();
-            if (window.AppNav) window.AppNav.showToast('✦ 成功导入文档：《' + fileName + '》 ✦');
+            if (window.AppNav) window.AppNav.showToast('成功导入文档：《' + fileName + '》');
           } catch (err) {
             if (window.AppNav) window.AppNav.showToast('文档解析失败，请确保为标准 .docx 格式');
           }
@@ -361,7 +361,7 @@
     return container;
   }
 
-  // ============ 1. 渲染首页 ============
+  // ============ 1. 渲染首页 (全卡片点击进入) ============
   function renderHomeView() {
     state.currentLevel = 'home';
     state.isCreatingNewWb = false;
@@ -405,18 +405,19 @@
         state.worldbooks.forEach(function (wb) {
           var coverImgHtml = wb.cover ? '<img src="' + wb.cover + '" alt="封面">' : '<img src="" alt="封面">';
           var hasImgCls = wb.cover ? ' has-img' : '';
-          
+
           var stats = getWbTokensStats(wb);
 
           html += ''
-            + '<div class="wb-art-card" data-wb-id="' + wb.id + '">'
+            // 👈 整个大卡片绑定 data-card-click-enter，点击任意空白处直接进入！
+            + '<div class="wb-art-card" data-wb-id="' + wb.id + '" data-card-click-enter="' + wb.id + '">'
             + '  <div class="wb-art-frame-left' + hasImgCls + '" data-cover-wb="' + wb.id + '">'
             + coverImgHtml
             + '    <svg class="wb-art-cam-icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>'
             + '  </div>'
             + '  <div class="wb-art-info-right">'
             + '    <div class="wb-art-title-line">'
-            + '      <span class="wb-art-title-text" data-enter-wb="' + wb.id + '">' + (wb.title || '未命名世界书') + '</span>'
+            + '      <span class="wb-art-title-text">' + (wb.title || '未命名世界书') + '</span>'
             + '      <button class="wb-art-stars-btn" type="button" data-wb-more="' + wb.id + '">'
             + '        <span class="wb-art-star-dot">✦</span>'
             + '        <span class="wb-art-star-dot">✦</span>'
@@ -424,7 +425,7 @@
             + '      </button>'
             + '    </div>'
             + '    <div class="wb-art-dot-divider"></div>'
-            + '    <div class="wb-art-meta-bottom" data-enter-wb="' + wb.id + '">'
+            + '    <div class="wb-art-meta-bottom">'
             + '      <span class="wb-art-count">' + stats.count + ' 条 · 总计 ' + stats.total + ' Tokens · 发送 <span>' + stats.active + ' Tokens</span></span>'
             + '      <span class="wb-art-enter">ENTER ➔</span>'
             + '    </div>'
@@ -693,7 +694,7 @@
   }
 
   function renderTags() {
-    var box = document.getElementById('wbTagBox');
+    var box = document.getElementById('tagBox');
     if (!box) return;
     box.innerHTML = '';
     state.editTempTags.forEach(function (t, idx) {
@@ -751,7 +752,7 @@
     saveWorldbooksData();
   }
 
-  // ============ 纯垂直方向微放大（scaleY）+ 优雅虚让位拖拽引擎 ============
+  // ============ 纯垂直微放大（scaleY）+ 0 抖动位移拖拽引擎 ============
   function setupPureVerticalDragSort(container, itemSelector, onReorderCallback) {
     var items = container.querySelectorAll(itemSelector);
     if (!items || items.length < 2) return;
@@ -767,7 +768,7 @@
 
       function onTouchStart(e) {
         if (e.target.closest('button') || e.target.closest('.wb-art-frame-left') || e.target.closest('.wb-dropdown-menu') || e.target.closest('.wb-entry-switch') || e.target.closest('.wb-entry-icons-row')) return;
-        
+
         var touch = e.touches[0];
         startY = touch.clientY;
 
@@ -780,7 +781,7 @@
           itemStep = el.offsetHeight + 10;
           isDragging = true;
 
-          // 👈 墨墨的神仙思路：X轴严格为1，只在垂直Y轴微饱满放大 scaleY(1.035)！
+          // 垂直Y轴轻度微饱满放大，X轴绝对不变
           el.style.transform = 'scaleY(1.035)';
           el.style.boxShadow = '0 10px 30px rgba(0,0,0,0.14)';
           el.style.zIndex = '100';
@@ -801,7 +802,6 @@
         var touch = e.touches[0];
         var dy = touch.clientY - startY;
 
-        // 垂直移动 + 纯垂直微放大，左右宽度 0 改变！
         el.style.transform = 'translateY(' + dy + 'px) scaleY(1.035)';
 
         var slotOffset = Math.round(dy / itemStep);
@@ -837,7 +837,7 @@
         clearTimeout(dragTimer);
         if (!isDragging) return;
         isDragging = false;
-        
+
         allCards.forEach(function (c) {
           c.style.transform = '';
           c.style.boxShadow = '';
@@ -934,12 +934,12 @@
         state.currentSection = targetSec;
         container.querySelectorAll('.wb-pop-item').forEach(function (it) { it.classList.remove('active'); });
         switchItem.classList.add('active');
-        
+
         var dMenu = document.getElementById('wbHeaderDropdownMenu');
         var dArrow = document.getElementById('wbHeaderArrowDown');
         if (dMenu) dMenu.classList.remove('show');
         if (dArrow) dArrow.classList.remove('open');
-        
+
         renderHomeView();
         return;
       }
@@ -1020,7 +1020,7 @@
         if (hArr) hArr.classList.remove('open');
       }
 
-      // 6. 三星芒按钮菜单
+      // 6. 三星芒按钮菜单 (必须优先拦截，防止触发卡片进入)
       var moreBtn = e.target.closest('[data-wb-more]');
       if (moreBtn) {
         e.stopPropagation();
@@ -1069,7 +1069,7 @@
       }
       container.querySelectorAll('.wb-dropdown-menu').forEach(function (m) { m.classList.remove('show'); });
 
-      // 7. 点击封面换图
+      // 7. 点击封面换图 (必须优先拦截，防止触发卡片进入)
       var coverWrap = e.target.closest('[data-cover-wb]');
       if (coverWrap) {
         e.stopPropagation();
@@ -1077,10 +1077,10 @@
         return;
       }
 
-      // 8. 进入世界书列表
-      var enterWbBtn = e.target.closest('[data-enter-wb]');
-      if (enterWbBtn) {
-        renderEntriesView(enterWbBtn.dataset.enterWb);
+      // 8. 全卡片任意空白区域点击直接进入！
+      var enterCard = e.target.closest('[data-card-click-enter]');
+      if (enterCard) {
+        renderEntriesView(enterCard.dataset.cardClickEnter);
         return;
       }
 
@@ -1139,7 +1139,7 @@
             saveWorldbooksData();
             if (enToggle.enabled) actBtn.classList.add('on');
             else actBtn.classList.remove('on');
-            
+
             renderEntriesView(state.currentWbId);
           }
         }
