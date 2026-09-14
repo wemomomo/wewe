@@ -74,7 +74,7 @@
   padding: 0 !important;
 }
 
-/* ========== 1. 首页顶栏：左标题 + 右上角浅黑虚线三横线圆钮 ========== */
+/* ========== 1. 首页顶栏：左标题 + 右上角柔和黑色虚线三横线圆钮 ========== */
 .wb-gallery-header-row {
   display: flex;
   align-items: center;
@@ -137,7 +137,7 @@
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 }
 
-/* 右上角虚线圆圈三横线按钮 (浅黑 + 宽间距虚线) */
+/* 右上角虚线圆圈三横线按钮 (高定柔和黑) */
 .wb-header-circle-btn {
   position: relative;
   width: 38px;
@@ -153,37 +153,38 @@
   outline: none;
 }
 
-/* 宽间距浅黑外虚线环 */
+/* 宽间距柔和黑外虚线环 */
 .wb-header-circle-btn::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1.3px dashed rgba(99, 99, 102, 0.45);
+  border: 1.3px dashed rgba(28, 28, 30, 0.45);
 }
 
+/* 柔和黑圆芯 + 白三横线 */
 .wb-circle-core {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #f4f4f6;
+  background: #1c1c1e;
   border: 1.5px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #3a3a3c;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   transition: all 0.2s ease;
 }
 .wb-header-circle-btn:active .wb-circle-core {
   transform: scale(0.92);
-  background: #e5e5ea;
+  opacity: 0.85;
 }
 
 .wb-circle-core svg {
   width: 14px;
   height: 14px;
-  stroke: currentColor;
+  stroke: #ffffff;
   stroke-width: 2.2;
   fill: none;
   stroke-linecap: round;
@@ -307,7 +308,7 @@
 
 /* ========== 2. 首页列表项 ========== */
 .wb-home-scroll-viewport {
-  padding-bottom: 20px !important; /* 移除底部按钮后恢复正常舒适下边距 */
+  padding-bottom: 20px !important;
 }
 
 .wb-art-card {
