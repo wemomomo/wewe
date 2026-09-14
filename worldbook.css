@@ -188,7 +188,7 @@
   gap: 12px;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  box-shadow: none !important; /* 彻底清除阴影 */
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
@@ -196,9 +196,11 @@
   transform: translateZ(0);
 }
 
+/* 拖拽浮起态：彻底无阴影 */
 .wb-art-card.wb-dragging {
   opacity: 0.96;
   z-index: 100;
+  box-shadow: none !important; /* 彻底清除阴影 */
   border-color: #8e8e93 !important;
   transition: none !important;
 }
@@ -272,7 +274,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0px !important; /* 距离极致拉近 */
+  gap: 0px !important;
   background: none;
   border: none;
   cursor: pointer;
@@ -283,7 +285,7 @@
 .wb-art-stars-btn:active { opacity: 0.6; }
 .wb-art-star-dot {
   font-size: 8.5px;
-  line-height: 0.95; /* 紧凑字高 */
+  line-height: 0.95;
   color: #1c1c1e;
 }
 
@@ -537,17 +539,21 @@
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
+  box-shadow: none !important; /* 彻底清除阴影 */
   transform: translateZ(0);
 }
 
+/* 词条拖拽浮起态：彻底无阴影 */
 .wb-entry-item-card.wb-dragging {
   opacity: 0.96;
   z-index: 100;
+  box-shadow: none !important; /* 彻底清除阴影 */
   background: #ffffff !important;
   border-color: #8e8e93 !important;
   transition: none !important;
 }
 
+/* 左侧标题与下方副文本 */
 .wb-entry-left-col {
   display: flex;
   flex-direction: column;
@@ -566,6 +572,7 @@
   text-overflow: ellipsis;
 }
 
+/* 标题下方小文字 */
 .wb-entry-sub-desc {
   font-size: 11px;
   color: #8e8e93;
