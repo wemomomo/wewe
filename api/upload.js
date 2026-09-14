@@ -1,4 +1,4 @@
-export const config = {
+export const config {
   api: {
     bodyParser: {
       sizeLimit: '10mb'
@@ -19,57 +19,41 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(200).json({ success: false, message: '请求方式错误(仅支持POST)' });
+    return res.status(200).json({ success: false, message: '请求方法不受支持' });
   }
 
   try {
-    let bodyData = req.body;
-    if (typeof bodyData === 'string') {
-      try { bodyData = JSON.parse(bodyData); } catch (e) {
-        return res.status(200).json({ success: false, message: 'JSON解析错误: ' + e.message });
-      }
-    }
-    bodyData = bodyData || {};
-
-    const { base64Data, filename, customName, forcePNG, mimeType } = bodyData;
+    const bodyData = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const { base64Data, customName, forcePNG, mimeType } = bodyData;
 
     if (!base64Data) {
-      return res.status(200).json({ success: false, message: '未接收到图片base64数据' });
+      return res.status(200).json({ success: false, message: '未收到图片数据' });
     }
 
-    const rawUrl = (process.env.SUPABASE_URL || '').trim();
+    let rawUrl = (process.env.SUPABASE_URL || '').trim();
     const rawKey = (process.env.SUPABASE_KEY || '').trim();
 
     if (!rawUrl || !rawKey) {
-      return res.status(200).json({
-        success: false,
-        message: '环境变量未配置: URL(' + (rawUrl ? '已配' : '缺失') + ') KEY(' + (rawKey ? '已配' : '缺失') + ')'
-      });
+      return res.status(200).json({ success: false, message: '服务端环境变量未配置' });
     }
 
-    let baseUrl = rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl;
-    baseUrl = baseUrl.replace(/\/+$/, '').replace(/\/rest\/v1\/?$/, '');
+    if (!rawUrl.startsWith('http')) rawUrl = 'https://' + rawUrl;
+    rawUrl = rawUrl.replace(/\/+$/, '').replace(/\/rest\/v1\/?$/, '');
 
-    let ext = 'jpg';
-    let contentType = 'image/jpeg';
+    let ext = 'png';
+    let contentType = 'image/png';
 
-    if (forcePNG || (mimeType && mimeType.indexOf('png') !== -1) || base64Data.indexOf('data:image/png') === 0) {
-      ext = 'png';
-      contentType = 'image/png';
-    } else if (mimeType && mimeType.indexOf('webp') !== -1) {
-      ext = 'webp';
-      contentType = 'image/webp';
-    } else if (mimeType && mimeType.indexOf('gif') !== -1) {
-      ext = 'gif';
-      contentType = 'image/gif';
+    if (!forcePNG && mimeType && mimeType.indexOf('jpeg') !== -1) {
+      ext = 'jpg';
+      contentType = 'image/jpeg';
     }
 
-    const commaIdx = base64Data.indexOf(',');
-    const base64Pure = (commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data).replace(/\s/g, '');
+    // 万能兼容正则剥离
+    const base64Pure = base64Data.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '').trim();
     const buffer = Buffer.from(base64Pure, 'base64');
 
     if (!buffer || buffer.length === 0) {
-      return res.status(200).json({ success: false, message: '图片解码为二进制失败' });
+      return res.status(200).json({ success: false, message: '图片解码失败' });
     }
 
     let finalFileName = '';
@@ -81,7 +65,7 @@ export default async function handler(req, res) {
       finalFileName = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '.' + ext;
     }
 
-    const uploadUrl = baseUrl + '/storage/v1/object/images/' + finalFileName;
+    const uploadUrl = rawUrl + '/storage/v1/object/images/' + finalFileName;
 
     const uploadRes = await fetch(uploadUrl, {
       method: 'POST',
@@ -95,13 +79,9 @@ export default async function handler(req, res) {
       body: buffer
     });
 
-    const resText = await uploadRes.text();
-
     if (!uploadRes.ok) {
-      return res.status(200).json({
-        success: false,
-        message: 'Supabase存储桶错误[' + uploadRes.status + ']: ' + resText
-      });
+      const errText = await uploadRes.text();
+      return res.status(200).json({ success: false, message: '存储桶拒绝: ' + errText });
     }
 
     const shortPublicUrl = 'https://niveousmoon.top/images/' + finalFileName;
@@ -114,6 +94,6 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    return res.status(200).json({ success: false, message: '服务端异常: ' + err.message });
+    return res.status(200).json({ success: false, message: '服务异常: ' + err.message });
   }
 }
