@@ -166,7 +166,6 @@
   font-size: 14px;
   line-height: 1;
   pointer-events: none;
-  text-shadow: 0 0 5px var(--wb-cur-theme);
 }
 
 /* 核心：用负坐标彻底拉开距离，与圆圈形成明显留白 */
