@@ -21,40 +21,6 @@
   };
 
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
-  
-  // 高定“蓝里透白”纯矢量六角冰晶雪花 SVG 模板
-  var SNOWFLAKE_PURE_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'>"
-    + "<defs>"
-    + "<radialGradient id='snowGlow' cx='50%' cy='50%' r='50%'>"
-    + "<stop offset='0%' stop-color='%23ffffff' stop-opacity='1'/>"
-    + "<stop offset='45%' stop-color='%23cbe0f5' stop-opacity='0.95'/>"
-    + "<stop offset='85%' stop-color='%2388abda' stop-opacity='0.9'/>"
-    + "<stop offset='100%' stop-color='%236a94cb' stop-opacity='0.85'/>"
-    + "</radialGradient>"
-    + "<filter id='frostBlur' x='-20%' y='-20%' width='140%' height='140%'>"
-    + "<feDropShadow dx='0' dy='0' stdDeviation='1.5' flood-color='%2388abda' flood-opacity='0.4'/>"
-    + "</filter>"
-    + "</defs>"
-    + "<rect width='100' height='100' rx='22' fill='%23ffffff'/>"
-    + "<g transform='translate(50,50)' filter='url(%23frostBlur)' stroke='url(%23snowGlow)' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' fill='none'>"
-    // 6 根对称主轴与晶芒分支
-    + "<g id='axis'>"
-    + "<line x1='0' y1='-34' x2='0' y2='34'/>"
-    + "<path d='M-7,-22 L0,-15 L7,-22'/>"
-    + "<path d='M-5,-10 L0,-5 L5,-10'/>"
-    + "<path d='M-7,22 L0,15 L7,22'/>"
-    + "<path d='M-5,10 L0,5 L5,10'/>"
-    + "<circle cx='0' cy='-34' r='1.5' fill='url(%23snowGlow)' stroke='none'/>"
-    + "<circle cx='0' cy='34' r='1.5' fill='url(%23snowGlow)' stroke='none'/>"
-    + "</g>"
-    + "<use href='%23axis' transform='rotate(60)'/>"
-    + "<use href='%23axis' transform='rotate(120)'/>"
-    // 中心冰晶微核
-    + "<polygon points='0,-7 6,0 0,7 -6,0' fill='url(%23snowGlow)' stroke='%23ffffff' stroke-width='0.8'/>"
-    + "<circle cx='0' cy='0' r='2' fill='%23ffffff' stroke='none'/>"
-    + "</g>"
-    + "</svg>";
-
   var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
   var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
 
@@ -63,32 +29,45 @@
     icon2: ''  
   };
 
-  // 生成苹果 iOS 完美兼容的高清蓝里透白 PNG 图标
-  function getSnowflakePngBase64(callback) {
-    if (OPT_ICONS.icon1) {
-      if (callback) callback(OPT_ICONS.icon1);
-      return;
-    }
+  // 核心：纯同步像素直绘“蓝里透白”经典初雪雪花 ❆ (100% 纯白底色，彻底杜绝黑屏)
+  function getSnowflakePngBase64() {
+    if (OPT_ICONS.icon1) return OPT_ICONS.icon1;
     try {
-      var svgDataUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(SNOWFLAKE_PURE_SVG);
-      var img = new Image();
-      img.onload = function() {
-        var canvas = document.createElement('canvas');
-        canvas.width = 192;
-        canvas.height = 192;
-        var ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 192, 192);
-        ctx.drawImage(img, 0, 0, 192, 192);
-        OPT_ICONS.icon1 = canvas.toDataURL('image/png');
-        if (callback) callback(OPT_ICONS.icon1);
-      };
-      img.onerror = function() {
-        if (callback) callback(svgDataUrl);
-      };
-      img.src = svgDataUrl;
+      var canvas = document.createElement('canvas');
+      canvas.width = 192;
+      canvas.height = 192;
+      var ctx = canvas.getContext('2d');
+
+      // 1. 纯白实色背景 (苹果PWA标准，彻底杜绝黑屏)
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 192, 192);
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '124px -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI Symbol", sans-serif';
+
+      // 2. 底层柔雾初雪蓝光晕
+      ctx.shadowColor = 'rgba(136, 171, 218, 0.7)';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#88abda';
+      ctx.fillText('❆', 96, 102);
+
+      // 3. 核心层“蓝里透白”径向渐变
+      ctx.shadowBlur = 0;
+      var grad = ctx.createRadialGradient(96, 102, 12, 96, 102, 65);
+      grad.addColorStop(0, '#ffffff');      // 中心白玉高光
+      grad.addColorStop(0.45, '#d4e6f8');   // 中层透亮淡蓝
+      grad.addColorStop(0.85, '#88abda');   // 外层初雪冰蓝
+      grad.addColorStop(1, '#7097cb');      // 边缘立体轮廓
+      ctx.fillStyle = grad;
+      ctx.fillText('❆', 96, 102);
+      ctx.restore();
+
+      OPT_ICONS.icon1 = canvas.toDataURL('image/png');
+      return OPT_ICONS.icon1;
     } catch(e) {
-      if (callback) callback(DEFAULT_HEART_URL);
+      return DEFAULT_HEART_URL;
     }
   }
 
@@ -186,39 +165,10 @@
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
 
-              // 纯白底·高定精密六角蓝里透白初雪图标
+              // 纯白底·经典蓝里透白初雪雪花 ❆
               '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
                 '<div class="pwa-icon-preview">' +
-                  '<div class="pwa-snowflake-container">' +
-                    '<svg class="pwa-snowflake-svg" viewBox="0 0 100 100">' +
-                      '<defs>' +
-                        '<radialGradient id="previewGlow" cx="50%" cy="50%" r="50%">' +
-                          '<stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>' +
-                          '<stop offset="45%" stop-color="#cbe0f5" stop-opacity="0.95"/>' +
-                          '<stop offset="85%" stop-color="#88abda" stop-opacity="0.9"/>' +
-                          '<stop offset="100%" stop-color="#6a94cb" stop-opacity="0.85"/>' +
-                        '</radialGradient>' +
-                        '<filter id="previewFilter" x="-20%" y="-20%" width="140%" height="140%">' +
-                          '<feDropShadow dx="0" dy="0" stdDeviation="1" flood-color="#88abda" flood-opacity="0.35"/>' +
-                        '</filter>' +
-                      '</defs>' +
-                      '<g transform="translate(50,50)" filter="url(#previewFilter)" stroke="url(#previewGlow)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none">' +
-                        '<g id="prevAxis">' +
-                          '<line x1="0" y1="-34" x2="0" y2="34"/>' +
-                          '<path d="M-7,-22 L0,-15 L7,-22"/>' +
-                          '<path d="M-5,-10 L0,-5 L5,-10"/>' +
-                          '<path d="M-7,22 L0,15 L7,22"/>' +
-                          '<path d="M-5,10 L0,5 L5,10"/>' +
-                          '<circle cx="0" cy="-34" r="1.5" fill="url(#previewGlow)" stroke="none"/>' +
-                          '<circle cx="0" cy="34" r="1.5" fill="url(#previewGlow)" stroke="none"/>' +
-                        '</g>' +
-                        '<use href="#prevAxis" transform="rotate(60)"/>' +
-                        '<use href="#prevAxis" transform="rotate(120)"/>' +
-                        '<polygon points="0,-7 6,0 0,7 -6,0" fill="url(#previewGlow)" stroke="#ffffff" stroke-width="0.8"/>' +
-                        '<circle cx="0" cy="0" r="2" fill="#ffffff" stroke="none"/>' +
-                      '</g>' +
-                    '</svg>' +
-                  '</div>' +
+                  '<div style="width:100%;height:100%;background:#ffffff;display:flex;align-items:center;justify-content:center;font-size:44px;line-height:1;color:#88abda;filter:drop-shadow(0 0 6px rgba(136,171,218,0.5));user-select:none;">❆</div>' +
                 '</div>' +
                 '<span class="pwa-icon-name">初雪</span>' +
               '</div>' +
@@ -514,9 +464,8 @@
 
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      getSnowflakePngBase64(function(pngUrl) {
-        setManifestAndAppleIcons(pngUrl);
-      });
+      var snowPng = getSnowflakePngBase64();
+      setManifestAndAppleIcons(snowPng);
       return;
     } else if (type === 'icon2') {
       convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
