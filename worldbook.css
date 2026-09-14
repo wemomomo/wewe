@@ -482,8 +482,9 @@
   font-size: 10.5px;
   color: #8e8e93;
   gap: 4px;
-  padding-top: 10px;
-  padding-bottom: 0;
+  padding: 0;
+  margin: 0;
+  transform: translateY(10px); /* 👈 虚线移多少，这里就填多少（比如 6px、8px），文字绝对立刻跟着往下沉！ */
 }
 
 .wb-art-count {
