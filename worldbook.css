@@ -137,73 +137,95 @@
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 }
 
-/* 右上角按钮外框 (扩大至 54px，让出充分距离) */
-.wb-header-circle-btn {
+/* ========== 右上角立体行星光环按钮 ========== */
+.wb-header-circle-btn.saturn-btn {
   position: relative;
-  width: 54px;
-  height: 54px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   cursor: pointer;
   background: none;
   border: none;
   padding: 0;
   outline: none;
-  margin-right: -4px; /* 微调右侧贴边距离 */
-  margin-top: -8px; 
 }
 
-/* 彻底移除外圈线条 */
-.wb-header-circle-btn::before {
-  display: none !important;
-}
-
-/* 四颗四芒星通用样式 */
-.wb-star-node {
+/* 1. 后半段星轨 (身后) */
+.ring-back {
   position: absolute;
-  color: var(--wb-cur-theme);
-  font-size: 11px;
-  line-height: 1;
+  width: 46px;
+  height: 20px;
+  border-radius: 50%;
+  border-top: 1.4px solid var(--wb-cur-theme);
+  border-left: 1.4px solid var(--wb-cur-theme);
+  border-bottom: transparent;
+  border-right: transparent;
+  transform: rotate(-24deg);
+  opacity: 0.55;
+  z-index: 1;
   pointer-events: none;
 }
 
-/* 核心：用负坐标彻底拉开距离，与圆圈形成明显留白 */
-.wb-star-top { top: -1px; left: 50%; transform: translateX(-50%); }
-.wb-star-bottom { bottom: -1px; left: 50%; transform: translateX(-50%); }
-.wb-star-left { left: -1px; top: 50%; transform: translateY(-50%); }
-.wb-star-right { right: -1px; top: 50%; transform: translateY(-50%); }
-
-/* 核心圆芯：内部雪花 ❆ */
-.wb-circle-core {
-  width: 28px;
-  height: 28px;
+/* 2. 行星核心 (中间雪花星球) */
+.saturn-planet-core {
+  position: relative;
+  z-index: 2;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   background: var(--wb-cur-theme);
   border: 1.5px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 3px var(--wb-cur-theme-bg), 0 2px 8px var(--wb-cur-theme);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  font-size: 14px;
-  color: #ffffff;
-  line-height: 1;
-  user-select: none;
-  padding-bottom: 2px;
+  box-shadow: 0 0 0 3px var(--wb-cur-theme-bg), 0 2px 10px var(--wb-cur-theme);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.wb-header-circle-btn:active .wb-circle-core {
+.wb-header-circle-btn:active .saturn-planet-core {
   transform: scale(0.92);
 }
 
-.wb-circle-core svg {
-  width: 13px;
-  height: 13px;
-  stroke: #ffffff;
-  stroke-width: 2.2;
-  fill: none;
-  stroke-linecap: round;
+.core-snowflake {
+  font-size: 15px;
+  color: #ffffff;
+  line-height: 1;
+  user-select: none;
+  transform: translateY(-1px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 3. 前半段星轨 (身前环抱，不挡雪花) */
+.ring-front {
+  position: absolute;
+  width: 46px;
+  height: 20px;
+  border-radius: 50%;
+  border-bottom: 1.4px solid var(--wb-cur-theme);
+  border-right: 1.4px solid var(--wb-cur-theme);
+  border-top: transparent;
+  border-left: transparent;
+  transform: rotate(-24deg);
+  opacity: 0.95;
+  z-index: 3;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px var(--wb-cur-theme-bg));
+}
+
+/* 4. 伴星小点点 (精准定位在右上角) */
+.ring-star-dot {
+  position: absolute;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: var(--wb-cur-theme);
+  right: 3px;
+  top: 10px;
+  z-index: 4;
+  box-shadow: 0 0 5px var(--wb-cur-theme);
 }
 
 /* 下拉菜单浮层 (左侧板块切换) */
