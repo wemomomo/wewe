@@ -545,13 +545,11 @@
         var switchCls = entry.enabled !== false ? 'on' : '';
         var entryTokens = getEntryTokens(entry);
 
-        var subTextDesc = '';
-        if (entry.mode === 'const') {
-          subTextDesc = '常驻全局 · <span>' + entryTokens + ' Tokens</span>';
-        } else {
-          var posName = entry.pos === 'before' ? '定义前' : (entry.pos === 'after' ? '定义后' : ('深度 ' + (entry.depthVal !== undefined ? entry.depthVal : 2)));
-          var keysStr = (entry.keys && entry.keys.length > 0) ? entry.keys.join(', ') : '无触发词';
-          subTextDesc = '<span>' + posName + '</span> · ' + keysStr + ' · <span>' + entryTokens + ' Tokens</span>';
+        var modeName = entry.mode === 'const' ? '常驻全局' : '关键词';
+        var posName = entry.pos === 'before' ? '角色定义前' : (entry.pos === 'after' ? '角色定义后' : ('深度 ' + (entry.depthVal !== undefined ? entry.depthVal : 2)));
+        
+        // 严格顺序：【关键词/常驻】·【位置/深度】·【Tokens】
+        var subTextDesc = '<span>' + modeName + '</span> · ' + posName + ' · <span>' + entryTokens + ' Tokens</span>';
         }
 
         html += ''
