@@ -125,7 +125,7 @@
 
 /* 英文副标题 */
 .wb-gallery-sub-en {
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #8e8e93;
   letter-spacing: 2px;
@@ -178,7 +178,7 @@
 .wb-art-card {
   position: relative;
   width: 100% !important;
-  height: 98px;
+  height: 88px;
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
   border-radius: 0;
@@ -200,14 +200,13 @@
 .wb-art-card.wb-dragging {
   opacity: 0.95;
   z-index: 100;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
   transition: none !important;
 }
 
 /* 左侧：瘦版书本造型画框 */
 .wb-art-frame-left {
   position: relative;
-  width: 54px;
+  width: 60px;
   height: 100%;
   background: #f4f4f6;
   border: 0.8px solid rgba(0,0,0,0.08);
@@ -273,7 +272,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.5px;
+  gap: 1px;
   background: none;
   border: none;
   cursor: pointer;
@@ -333,7 +332,7 @@
   position: absolute;
   right: 12px;
   top: 42px;
-  background: #ffffff;
+  background: #f8f8fa;
   border: 1px solid var(--wb-border-line);
   border-radius: 12px;
   display: none;
@@ -543,7 +542,6 @@
 .wb-entry-item-card.wb-dragging {
   opacity: 0.95;
   z-index: 100;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   transition: none !important;
 }
 
@@ -617,7 +615,7 @@
   width: 32px;
   height: 18px;
   border-radius: 9px;
-  background: #d1d1d6;
+  background: #e5e8f0;
   position: relative;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -758,7 +756,6 @@
   width: 100%;
   height: 38px;
   background: #fafafa;
-  border: 1px solid var(--wb-border-line);
   border-radius: 10px;
   padding: 0 12px;
   font-size: 13px;
@@ -815,8 +812,7 @@
 .wb-depth-pos-btn {
   flex: 1;
   height: 34px;
-  background: #f2f2f7;
-  border: 1px solid var(--wb-border-line);
+  background: #fafafa;
   border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
@@ -826,7 +822,6 @@
 }
 .wb-depth-pos-btn.active {
   background: #2c2c2e;
-  border-color: #2c2c2e;
   color: #ffffff;
 }
 
@@ -859,10 +854,9 @@
 .wb-textarea-wrap { position: relative; width: 100%; }
 .wb-clean-textarea {
   width: 100%;
-  height: 95px;
-  min-height: 95px;
+  height: 120px;
+  min-height: 120px;
   background: #fafafa;
-  border: 1px solid var(--wb-border-line);
   border-radius: 10px;
   padding: 8px 12px 22px;
   font-size: 13px;
