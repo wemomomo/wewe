@@ -425,7 +425,7 @@
             + '    </div>'
             + '    <div class="wb-art-dot-divider"></div>'
             + '    <div class="wb-art-meta-bottom">'
-            + '      <span class="wb-art-count">' + stats.count + ' 条 · 总计 ' + stats.total + ' Tokens · 发送 <span>' + stats.active + ' Tokens</span></span>'
+            + '      <span class="wb-art-count">总计 ' + stats.total + ' · 发送 <span>' + stats.active + ' Tokens</span></span>'
             + '      <span class="wb-art-enter">ENTER ➔</span>'
             + '    </div>'
             + '  </div>'
@@ -902,16 +902,28 @@
       }
     });
 
+        function addKeyTagFromInput(inputEl) {
+      var val = (inputEl.value || '').trim().replace(/[,，]/g, '');
+      if (val && state.editTempTags.indexOf(val) === -1) {
+        state.editTempTags.push(val);
+        renderTags();
+      }
+      inputEl.value = '';
+    }
+
     container.addEventListener('keydown', function (e) {
       if (e.target && e.target.id === 'wbIptKeyInput') {
-        if (e.key === 'Enter' || e.key === ',') {
+        if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',' || e.key === '，') {
           e.preventDefault();
-          var val = (e.target.value || '').trim().replace(',', '');
-          if (val && state.editTempTags.indexOf(val) === -1) {
-            state.editTempTags.push(val);
-            renderTags();
-          }
-          e.target.value = '';
+          addKeyTagFromInput(e.target);
+        }
+      }
+    });
+
+    container.addEventListener('keyup', function (e) {
+      if (e.target && e.target.id === 'wbIptKeyInput') {
+        if (e.keyCode === 13 || e.target.value.indexOf(',') !== -1 || e.target.value.indexOf('，') !== -1) {
+          addKeyTagFromInput(e.target);
         }
       }
     });
