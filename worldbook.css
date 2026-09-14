@@ -479,6 +479,9 @@
   font-size: 10.5px;
   color: #8e8e93;
   gap: 4px;
+  flex: 1;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 .wb-art-count {
   color: #636366;
