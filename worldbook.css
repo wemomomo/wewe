@@ -137,12 +137,11 @@
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 }
 
-/* 右上角按钮：彻底移除所有外圈线条，改用左右四芒星 */
-/* 右上角按钮外框 (扩大至 46px 为四周星芒留出呼吸空间) */
+/* 右上角按钮外框 (扩大至 54px，让出充分距离) */
 .wb-header-circle-btn {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: 54px;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -152,6 +151,7 @@
   border: none;
   padding: 0;
   outline: none;
+  margin-right: -4px; /* 微调右侧贴边距离 */
 }
 
 /* 彻底移除外圈线条 */
@@ -169,11 +169,11 @@
   text-shadow: 0 0 5px var(--wb-cur-theme);
 }
 
-/* 上下左右精准拉开距离 */
-.wb-star-top { top: 0px; left: 50%; transform: translateX(-50%); }
-.wb-star-bottom { bottom: 0px; left: 50%; transform: translateX(-50%); }
-.wb-star-left { left: 0px; top: 50%; transform: translateY(-50%); }
-.wb-star-right { right: 0px; top: 50%; transform: translateY(-50%); }
+/* 核心：用负坐标彻底拉开距离，与圆圈形成明显留白 */
+.wb-star-top { top: -2px; left: 50%; transform: translateX(-50%); }
+.wb-star-bottom { bottom: -2px; left: 50%; transform: translateX(-50%); }
+.wb-star-left { left: -2px; top: 50%; transform: translateY(-50%); }
+.wb-star-right { right: -2px; top: 50%; transform: translateY(-50%); }
 
 /* 核心圆芯：内部雪花 ❆ */
 .wb-circle-core {
