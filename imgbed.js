@@ -3,7 +3,7 @@
   'use strict';
 
   var isSelectMode = false;
-  var selectedUrls = [];
+  var selectedUrls = [];  
   var localPreviewCache = {}; // 内存高清预览缓存
 
   function initImgbedContent() {
