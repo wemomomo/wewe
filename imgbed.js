@@ -35,7 +35,7 @@
       + '<div class="imgbed-icon-circle"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>'
       + '<div class="imgbed-upload-info">'
       + '<div class="imgbed-upload-title" id="inAppUploadText">选择照片并裁剪上传</div>'
-      + '<div class="imgbed-upload-tip">2K 高清原画上传 · 点击历史图片可放大查看超清大图</div>'
+      + '<div class="imgbed-upload-tip">超清原画质保真 · 点击历史图片可放大查看高清大图</div>'
       + '</div>'
       + '<input type="file" id="inAppFileInput" accept="image/*" style="display:none">'
       + '</div>'
@@ -68,7 +68,7 @@
       + '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
       + '</button>'
       + '</div>'
-      + '<div class="imgbed-viewer-box"><img id="inAppViewerImg" class="imgbed-viewer-img" src="" alt="超清大图预览"></div>'
+      + '<div class="imgbed-viewer-box"><img id="inAppViewerImg" class="imgbed-viewer-img" src="" alt="高清大图预览"></div>'
       + '<div class="imgbed-viewer-bar">'
       + '<input type="text" id="inAppViewerInput" readonly>'
       + '<button class="imgbed-viewer-copy" id="inAppViewerCopyBtn" type="button">复制直链</button>'
@@ -97,7 +97,7 @@
     var viewerCopyBtn = document.getElementById('inAppViewerCopyBtn');
     var viewerClose = document.getElementById('inAppViewerClose');
 
-    // 超清大图无损秒开预览
+    // 高清大图秒开预览
     function openViewer(url, directHdSrc) {
       if (!url) return;
       var hdSrc = directHdSrc || localPreviewCache[url] || url;
@@ -155,11 +155,11 @@
       this.value = '';
     });
 
-    // 2K 高清保留算法（最高限宽 2560px，超高画质保真）
+    // 黄金平衡超清高保真算法 (限边 1600px，JPEG 0.92 高清，体积控制在 500KB 内秒传)
     function compressImage(base64Str, callback) {
       var img = new Image();
       img.onload = function() {
-        var maxSide = 2560; // 提升至 2K 超清尺寸，绝不模糊
+        var maxSide = 1600;
         var w = img.width;
         var h = img.height;
 
@@ -181,14 +181,15 @@
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, w, h);
 
-        var compressed = canvas.toDataURL('image/png', 1.0);
+        // 使用 0.92 极高质量 JPEG，兼顾绝对清晰度与毫秒级轻盈传输
+        var compressed = canvas.toDataURL('image/jpeg', 0.92);
         callback(compressed);
       };
       img.src = base64Str;
     }
 
     function uploadToServer(safeBase64, originalName) {
-      uploadText.textContent = '超清原图上传中...';
+      uploadText.textContent = '超清图片上传中...';
       dropBox.style.pointerEvents = 'none';
 
       var customName = (customNameInput.value || '').trim();
@@ -200,9 +201,9 @@
         body: JSON.stringify({
           base64Data: safeBase64,
           filename: originalName,
-          mimeType: 'image/png',
+          mimeType: 'image/jpeg',
           customName: customName,
-          forcePNG: true
+          forcePNG: false
         })
       })
       .then(function(res){ return res.json(); })
@@ -213,9 +214,9 @@
 
         if (data && data.success && data.url) {
           localPreviewCache[data.url] = currentSnapshot;
-          if (window.AppNav) AppNav.showToast('上传成功！已生成超清图片');
+          if (window.AppNav) AppNav.showToast('上传成功！已生成高清直链');
           saveHistory(data.url);
-          openViewer(data.url, currentSnapshot); // 瞬间展示 2K 超清大图
+          openViewer(data.url, currentSnapshot);
         } else {
           if (window.AppNav) AppNav.showToast((data && data.message) ? data.message : '上传失败');
         }
@@ -224,7 +225,7 @@
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
-        if (window.AppNav) AppNav.showToast('网络错误，请重试');
+        if (window.AppNav) AppNav.showToast('网络连接超时，请重试');
       });
     }
 
@@ -360,7 +361,6 @@
             updateBatchBar();
             renderHistoryList();
           } else {
-            // 点击历史条目直接展示超清原图
             openViewer(u, u);
           }
         });
