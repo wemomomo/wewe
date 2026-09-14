@@ -20,21 +20,38 @@
     bgHistory: []
   };
 
-  // 1. 默认蓝底爱心图标
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
-  
-  // 2. 墨墨心心念念的精美六角冰晶分形雪花 (纯白底 + 细腻通透冰蓝晶柱与分叉)
-  var INTRICATE_SNOW_SVG = "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23ffffff'/%3E%3Cdefs%3E%3Cg id='arm'%3E%3Cline x1='50' y1='50' x2='50' y2='16' stroke='%2388abda' stroke-width='2.2' stroke-linecap='round'/%3E%3Cpath d='M50 36 L43 29 M50 36 L57 29' stroke='%2388abda' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M50 25 L44 19 M50 25 L56 19' stroke='%2388abda' stroke-width='1.8' stroke-linecap='round' fill='none'/%3E%3Cpath d='M50 16 L46 12 M50 16 L54 12' stroke='%2388abda' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='50' cy='15' r='1.2' fill='%2388abda'/%3E%3C/g%3E%3C/defs%3E%3Cg%3E%3Cuse href='%23arm'/%3E%3Cuse href='%23arm' transform='rotate(60 50 50)'/%3E%3Cuse href='%23arm' transform='rotate(120 50 50)'/%3E%3Cuse href='%23arm' transform='rotate(180 50 50)'/%3E%3Cuse href='%23arm' transform='rotate(240 50 50)'/%3E%3Cuse href='%23arm' transform='rotate(300 50 50)'/%3E%3Cpolygon points='50,44 55.2,47 55.2,53 50,56 44.8,53 44.8,47' fill='none' stroke='%2388abda' stroke-width='1.6'/%3E%3Ccircle cx='50' cy='50' r='2.2' fill='%2388abda'/%3E%3C/g%3E%3C/svg%3E";
-  
-  var RAW_SNOW_ICON_URL = "data:image/svg+xml," + INTRICATE_SNOW_SVG;
-
   var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
-  var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
 
   var OPT_ICONS = {
     icon1: '',
     icon2: ''
   };
+
+  // 生成纯白底 · 超大纯净居中浅淡初雪蓝雪花 ❆ (无任何多余落雪杂质)
+  function generateSnowflakePngBase64() {
+    try {
+      var canvas = document.createElement('canvas');
+      canvas.width = 192;
+      canvas.height = 192;
+      var ctx = canvas.getContext('2d');
+
+      // 1. 纯白底色
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 192, 192);
+
+      // 2. 超大居中浅淡初雪蓝雪花 (字号加大至 128px)
+      ctx.fillStyle = 'rgba(120, 165, 215, 0.65)';
+      ctx.font = '128px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('❆', 96, 98); // 精确对齐 192x192 几何中心
+
+      return canvas.toDataURL('image/png');
+    } catch(e) {
+      return '';
+    }
+  }
 
   function initBeautifyApp() {
     var contentEl = document.getElementById('beautifyContent');
@@ -123,34 +140,29 @@
               '<div class="beautify-card-desc">选择预设或点击自定义从相册裁剪上传属于你的专属App图标</div>' +
             '</div>' +
             '<div class="pwa-icons-grid">' +
-              // 1. 默认蓝底爱心
               '<div class="pwa-icon-item active" data-pwa-val="heart" data-pwa-name="默认">' +
                 '<div class="pwa-icon-preview">' +
                   '<div class="pwa-svg-box">&#9825;</div>' +
                 '</div>' +
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
-
-              // 2. 初雪 (精雕六角冰晶分形雪花)
-              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
+              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="主图1">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + RAW_SNOW_ICON_URL + '" alt="初雪" loading="eager">' +
+                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图1" loading="eager">' +
                 '</div>' +
-                '<span class="pwa-icon-name">初雪</span>' +
+                '<span class="pwa-icon-name">主图1</span>' +
               '</div>' +
-
-              // 3. 原装主图
-              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图">' +
+              '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
                 '<div class="pwa-icon-preview">' +
-                  '<img src="' + RAW_ICON_PATH_1 + '" alt="主图" loading="eager">' +
+                  '<div class="pwa-snowflake-container">' +
+                    '<div class="pwa-snowflake-main">❆</div>' +
+                  '</div>' +
                 '</div>' +
-                '<span class="pwa-icon-name">主图</span>' +
+                '<span class="pwa-icon-name">主图2</span>' +
               '</div>' +
-
-              // 4. 自定义
               '<div class="pwa-icon-item pwa-custom-item" id="pwaCustomItem" data-pwa-val="custom" data-pwa-name="自定义">' +
-                '<div class="pwa-icon-preview" id="pwaCustomPlaceholder">' +
-                  '<div class="pwa-custom-placeholder">' +
+                '<div class="pwa-icon-preview" id="pwaCustomPreview">' +
+                  '<div class="pwa-custom-placeholder" id="pwaCustomPlaceholder">' +
                     '<svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' +
                   '</div>' +
                   '<img id="pwaCustomImg" style="display:none;" alt="自定义" loading="eager">' +
@@ -400,13 +412,13 @@
           {
             src: targetUrl,
             sizes: "192x192",
-            type: "image/svg+xml",
+            type: "image/png",
             purpose: "any"
           },
           {
             src: targetUrl,
             sizes: "512x512",
-            type: "image/svg+xml",
+            type: "image/png",
             purpose: "any maskable"
           }
         ]
@@ -430,13 +442,16 @@
 
   function applyPwaIcon(type, customUrl) {
     if (type === 'icon1') {
-      setManifestAndAppleIcons(RAW_SNOW_ICON_URL);
-      return;
-    } else if (type === 'icon2') {
       convertImgToPngBase64(RAW_ICON_PATH_1, function(pngBase64) {
-        OPT_ICONS.icon2 = pngBase64;
+        OPT_ICONS.icon1 = pngBase64;
         setManifestAndAppleIcons(pngBase64);
       });
+      return;
+    } else if (type === 'icon2') {
+      // 纯白底 · 超大居中浅淡初雪蓝雪花 ❆ (无落雪杂质)
+      var snowPng = generateSnowflakePngBase64();
+      OPT_ICONS.icon2 = snowPng;
+      setManifestAndAppleIcons(snowPng);
       return;
     } else if (type === 'custom') {
       var cUrl = customUrl || beautifyData.customPwaIconUrl || DEFAULT_HEART_URL;
@@ -1055,7 +1070,8 @@
 
     var themeBoxes = document.querySelectorAll('.theme-box-card');
     for (var m = 0; m < themeBoxes.length; m++) {
-      themeBoxes[m].getAttribute('data-tmode') === beautifyData.themeMode ? themeBoxes[m].classList.add('active') : themeBoxes[m].classList.remove('active');
+      if (themeBoxes[m].getAttribute('data-tmode') === beautifyData.themeMode) themeBoxes[m].classList.add('active');
+      else themeBoxes[m].classList.remove('active');
     }
     applyThemeMode(beautifyData.themeMode);
 
@@ -1072,6 +1088,7 @@
     updateLivePreviewAndHistory();
   }
 
+  // 严格只在点击进入美化中心时按需初始化，0 额外开销
   window.addEventListener('pageChange', function(e) {
     if (e.detail && e.detail.page === 'beautify') {
       initBeautifyApp();
