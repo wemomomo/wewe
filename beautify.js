@@ -28,62 +28,25 @@
     icon2: ''
   };
 
-  // 1:1 提取自 iOS 原生晶格的纯矢量雪花 SVG 模板（彻底脱离安卓系统字体污染）
-  var IOS_SNOWFLAKE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">'
-    + '<rect width="100" height="100" fill="#ffffff"/>'
-    + '<g fill="none" stroke="rgba(120, 165, 215, 0.68)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,50)">'
-    // 中心六角星晶核
-    + '  <polygon points="0,-7 6,-3.5 6,3.5 0,7 -6,3.5 -6,-3.5" stroke-width="1.8"/>'
-    // 0度 晶枝
-    + '  <g>'
-    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
-    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
-    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
-    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
-    + '  </g>'
-    // 60度 晶枝
-    + '  <g transform="rotate(60)">'
-    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
-    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
-    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
-    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
-    + '  </g>'
-    // 120度 晶枝
-    + '  <g transform="rotate(120)">'
-    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
-    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
-    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
-    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
-    + '  </g>'
-    // 180度 晶枝
-    + '  <g transform="rotate(180)">'
-    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
-    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
-    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
-    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
-    + '  </g>'
-    // 240度 晶枝
-    + '  <g transform="rotate(240)">'
-    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
-    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
-    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
-    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
-    + '  </g>'
-    // 300度 晶枝
-    + '  <g transform="rotate(300)">'
-    + '    <line x1="0" y1="-7" x2="0" y2="-36"/>'
-    + '    <line x1="0" y1="-36" x2="-6" y2="-30"/><line x1="0" y1="-36" x2="6" y2="-30"/>'
-    + '    <line x1="0" y1="-23" x2="-10" y2="-15"/><line x1="0" y1="-23" x2="10" y2="-15"/>'
-    + '    <line x1="0" y1="-14" x2="-6" y2="-8"/><line x1="0" y1="-14" x2="6" y2="-8"/>'
-    + '  </g>'
-    + '</g>'
-    + '</svg>';
-
-  // 生成跨平台绝对一致的苹果级高定雪花 PNG Base64
+  // 生成纯白底 · 原版原生雪花 ❆ (加入 \uFE0E 文本形态锁，强制安卓使用原生矢量字形，绝不变成粗圆 Emoji)
   function generateSnowflakePngBase64() {
     try {
-      var svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(IOS_SNOWFLAKE_SVG);
-      return svgDataUrl;
+      var canvas = document.createElement('canvas');
+      canvas.width = 192;
+      canvas.height = 192;
+      var ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 192, 192);
+
+      ctx.fillStyle = 'rgba(120, 165, 215, 0.65)';
+      ctx.font = '124px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI Symbol", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // \u2744 是雪花 ❆，\uFE0E 强制锁定为标准矢量文本字形
+      ctx.fillText('\u2744\uFE0E', 96, 98);
+
+      return canvas.toDataURL('image/png');
     } catch(e) {
       return '';
     }
@@ -183,10 +146,12 @@
                 '</div>' +
                 '<span class="pwa-icon-name">默认</span>' +
               '</div>' +
-              // 第 2 位：主图2 (1:1 矢量直出，跨系统绝对不变形)
+              // 第 2 位：主图2 (最纯粹的原版雪花字符 ❆︎)
               '<div class="pwa-icon-item" data-pwa-val="icon2" data-pwa-name="主图2">' +
-                '<div class="pwa-icon-preview" style="background:#ffffff; padding:6px;">' +
-                  IOS_SNOWFLAKE_SVG +
+                '<div class="pwa-icon-preview" style="background:#ffffff;">' +
+                  '<div class="pwa-snowflake-container">' +
+                    '<div class="pwa-snowflake-main">&#10052;&#65038;</div>' +
+                  '</div>' +
                 '</div>' +
                 '<span class="pwa-icon-name">主图2</span>' +
               '</div>' +
