@@ -96,7 +96,6 @@
     var viewerCopyBtn = document.getElementById('inAppViewerCopyBtn');
     var viewerClose = document.getElementById('inAppViewerClose');
 
-    // 0 秒秒开预览：支持优先使用本地缓存图片秒显，同时展示远程正式链接
     function openViewer(url, localPreviewSrc) {
       if (!url) return;
       viewerImg.src = localPreviewSrc || url;
@@ -156,7 +155,7 @@
     function optimizeImage(base64Str, origMime, callback) {
       var img = new Image();
       img.onload = function() {
-        var maxSide = 1200;
+        var maxSide = 1080; // 1080px 极致清晰度，体积轻盈
         var w = img.width;
         var h = img.height;
 
@@ -180,7 +179,7 @@
 
         var isPng = (origMime && origMime.indexOf('png') !== -1) || base64Str.indexOf('data:image/png') === 0;
         var outMime = isPng ? 'image/png' : 'image/jpeg';
-        var result = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85);
+        var result = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.80);
         callback(result, outMime);
       };
       img.onerror = function() {
@@ -194,12 +193,7 @@
       dropBox.style.pointerEvents = 'none';
 
       var customName = (customNameInput.value || '').trim();
-      var localSnapshot = safeBase64; // 保留本地瞬显数据
-
-      var controller = new AbortController();
-      var timer = setTimeout(function() {
-        controller.abort();
-      }, 9000);
+      var localSnapshot = safeBase64;
 
       fetch('/api/upload', {
         method: 'POST',
@@ -209,11 +203,9 @@
           filename: originalName,
           mimeType: mimeType || 'image/jpeg',
           customName: customName
-        }),
-        signal: controller.signal
+        })
       })
       .then(function(res){
-        clearTimeout(timer);
         return res.json();
       })
       .then(function(data){
@@ -224,7 +216,6 @@
         if (data && data.success && data.url) {
           if (window.AppNav) AppNav.showToast('上传成功！');
           saveHistory(data.url);
-          // 0 秒本地秒开，无需等待远程网络加载
           openViewer(data.url, localSnapshot);
         } else {
           var msg = (data && data.message) ? data.message : '上传失败';
@@ -232,15 +223,10 @@
         }
       })
       .catch(function(err){
-        clearTimeout(timer);
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
-        if (err.name === 'AbortError') {
-          if (window.AppNav) AppNav.showToast('上传超时(网络异常)');
-        } else {
-          if (window.AppNav) AppNav.showToast('网络错误: ' + (err.message || '请重试'));
-        }
+        if (window.AppNav) AppNav.showToast('网络异常: ' + (err.message || '请重试'));
       });
     }
 
