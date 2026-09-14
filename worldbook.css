@@ -11,18 +11,33 @@
   --wb-icon-gray: #8e8e93;
 }
 
-/* ========== 主容器与视口 (彻底锁死X轴溢出，消除白色侧边) ========== */
+/* 核心修复 1：彻底拔除外部父容器所有左右 padding，杜绝两边白色遮挡 */
+.app-page[data-page="worldbook"],
+.app-page[data-page="worldbook"] .app-content,
+.app-page[data-page="worldbook"] #worldbookContent {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  background: #ffffff !important;
+}
+
+/* ========== 主容器与视口 ========== */
 .wb-container {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
   display: flex;
   flex-direction: column;
   overflow-x: hidden !important;
   overflow-y: hidden !important;
   gap: 10px;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
   padding-top: calc(10px + var(--safe-top)) !important;
   padding-bottom: calc(14px + var(--safe-bottom)) !important;
   padding-left: 14px !important;
@@ -32,17 +47,18 @@
 
 .wb-viewport-box {
   flex: 1;
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
   overflow-x: hidden !important;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-right: 0px;
+  padding: 0 !important;
+  margin: 0 !important;
   position: relative;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 .wb-viewport-box::-webkit-scrollbar {
   display: none !important;
@@ -161,8 +177,7 @@
 
 .wb-art-card {
   position: relative;
-  width: 100%;
-  max-width: 100%;
+  width: 100% !important;
   height: 98px;
   background: #ffffff;
   border: 1px solid var(--wb-border-line);
@@ -178,10 +193,10 @@
   -webkit-user-select: none;
   touch-action: pan-y;
   background-color: #ffffff;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 
-/* 拖拽浮起态：微放大并锁定在框内 */
+/* 拖拽浮起态 */
 .wb-art-card.wb-dragging {
   opacity: 0.95;
   z-index: 100;
@@ -446,7 +461,7 @@
   font-family: inherit;
 }
 
-/* ========== 4. 词条列表页 (小副文字 Tokens + 柔灰图标与开关 + 悬浮保存) ========== */
+/* ========== 4. 词条列表页 ========== */
 .wb-entries-nav-bar {
   display: flex;
   align-items: center;
@@ -520,9 +535,8 @@
   -webkit-user-select: none;
   touch-action: pan-y;
   border: 1px solid transparent;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* 词条拖拽微放大 */
@@ -660,7 +674,7 @@
   opacity: 0.85;
 }
 
-/* ========== 5. 编辑页 (对齐美化中心高定浅灰卡片 #e5e5ea) ========== */
+/* ========== 5. 编辑页 ========== */
 .wb-edit-nav-bar {
   display: flex;
   align-items: center;
@@ -691,7 +705,7 @@
   gap: 8px;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 
 .wb-field-head-row {
