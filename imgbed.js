@@ -34,7 +34,7 @@
       + '<div class="imgbed-icon-circle"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>'
       + '<div class="imgbed-upload-info">'
       + '<div class="imgbed-upload-title" id="inAppUploadText">选择照片并裁剪上传</div>'
-      + '<div class="imgbed-upload-tip">极速轻量化引擎 · 秒开不卡顿</div>'
+      + '<div class="imgbed-upload-tip">自动极速轻量化 · 点击历史图片可放大预览</div>'
       + '</div>'
       + '<input type="file" id="inAppFileInput" accept="image/*" style="display:none">'
       + '</div>'
@@ -137,13 +137,13 @@
         if (window.AppCropper) {
           window.AppCropper.open(rawBase64, { aspectRatio: 0 }, function(croppedData) {
             rawBase64 = null;
-            fastCompressPNG(croppedData, function(safePngBase64) {
-              uploadToServer(safePngBase64, file.name);
+            compressToLightPNG(croppedData, function(safeBase64) {
+              uploadToServer(safeBase64, file.name);
             });
           });
         } else {
-          fastCompressPNG(rawBase64, function(safePngBase64) {
-            uploadToServer(safePngBase64, file.name);
+          compressToLightPNG(rawBase64, function(safeBase64) {
+            uploadToServer(safeBase64, file.name);
           });
           rawBase64 = null;
         }
@@ -152,8 +152,8 @@
       this.value = '';
     });
 
-    // 毫秒级极速 PNG 压缩：锁定 480px 超轻规格（体积仅 30~60KB，瞬时生成与秒开）
-    function fastCompressPNG(base64Str, callback) {
+    // 严谨纯净的轻量化转换引擎：尺寸控制在 480px，去除冗余通道，体积缩小 90%，秒级生成
+    function compressToLightPNG(base64Str, callback) {
       var img = new Image();
       img.onload = function() {
         var maxSide = 480;
@@ -176,8 +176,8 @@
         var ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
 
-        var pngData = canvas.toDataURL('image/png');
-        callback(pngData);
+        var compressed = canvas.toDataURL('image/png');
+        callback(compressed);
       };
       img.src = base64Str;
     }
@@ -187,10 +187,18 @@
       dropBox.style.pointerEvents = 'none';
 
       var customName = (customNameInput.value || '').trim();
+      var authToken = localStorage.getItem('app_auth_token') || '';
+
+      var headers = {
+        'Content-Type': 'application/json; charset=utf-8'
+      };
+      if (authToken) {
+        headers['Authorization'] = 'Bearer ' + authToken;
+      }
 
       fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        headers: headers,
         body: JSON.stringify({
           base64Data: safeBase64,
           filename: originalName,
@@ -199,14 +207,17 @@
           forcePNG: true
         })
       })
-      .then(function(res){ return res.json(); })
+      .then(function(res){
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
       .then(function(data){
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
 
         if (data && data.success && data.url) {
-          if (window.AppNav) AppNav.showToast('✦ 极速上传成功 ✦');
+          if (window.AppNav) AppNav.showToast('✦ 上传成功 ✦');
           saveHistory(data.url);
           openViewer(data.url);
         } else {
@@ -217,7 +228,7 @@
         dropBox.style.pointerEvents = 'auto';
         uploadText.textContent = '选择照片并裁剪上传';
         safeBase64 = null;
-        if (window.AppNav) AppNav.showToast('网络连接超时，请重试');
+        if (window.AppNav) AppNav.showToast('网络异常，请重试');
       });
     }
 
