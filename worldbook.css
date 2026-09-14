@@ -150,6 +150,7 @@
   border: none;
   padding: 0;
   outline: none;
+  margin-top: -10px;
 }
 
 /* 1. 后半段星轨 (身后) */
@@ -654,7 +655,7 @@
 
 .wb-entry-item-card {
   background: #ffffff;
-  border: 1px solid var(--wb-border-line) !important;
+  border: 1px solid var(--wb-cur-theme) !important;
   border-radius: 12px;
   height: 64px;
   padding: 0 10px 0 14px;
@@ -745,8 +746,8 @@
 }
 
 .wb-entry-switch {
-  width: 32px;
-  height: 18px;
+  width: 30px;
+  height: 15px;
   border-radius: 9px;
   background: #d1d1d6;
   position: relative;
@@ -760,14 +761,14 @@
   position: absolute;
   left: 2px;
   top: 2px;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.wb-entry-switch.on { background: #1c1c1e !important; }
+.wb-entry-switch.on { background: var(--wb-cur-theme) !important; }
 .wb-entry-switch.on::after { transform: translateX(14px); }
 
 .wb-floating-save-wrapper {
@@ -827,7 +828,7 @@
 
 .wb-field-card {
   background: rgba(255, 255, 255, 0.96);
-  border: 1px solid var(--wb-border-line) !important;
+  border: 1px solid var(--wb-cur-theme) !important;
   border-radius: 16px;
   padding: 12px 14px;
   display: flex;
@@ -855,7 +856,7 @@
   content: '';
   width: 3.5px;
   height: 12px;
-  background: #636366;
+  background: var(--wb-cur-theme) !important;
   border-radius: 2px;
 }
 
