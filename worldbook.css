@@ -138,10 +138,11 @@
 }
 
 /* 右上角按钮：彻底移除所有外圈线条，改用左右四芒星 */
+/* 右上角按钮外框 (扩大至 46px 为四周星芒留出呼吸空间) */
 .wb-header-circle-btn {
   position: relative;
   width: 46px;
-  height: 38px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,50 +154,40 @@
   outline: none;
 }
 
-/* 彻底清空 ::before 伪元素的所有外圈线条 */
+/* 彻底移除外圈线条 */
 .wb-header-circle-btn::before {
   display: none !important;
 }
 
-/* 左侧四芒星 */
-.wb-star-left {
+/* 四颗四芒星通用样式 */
+.wb-star-node {
   position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
   color: var(--wb-cur-theme);
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1;
   pointer-events: none;
-  text-shadow: 0 0 6px var(--wb-cur-theme);
+  text-shadow: 0 0 5px var(--wb-cur-theme);
 }
 
-/* 右侧四芒星 */
-.wb-star-right {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--wb-cur-theme);
-  font-size: 13px;
-  line-height: 1;
-  pointer-events: none;
-  text-shadow: 0 0 6px var(--wb-cur-theme);
-}
+/* 上下左右精准拉开距离 */
+.wb-star-top { top: 0px; left: 50%; transform: translateX(-50%); }
+.wb-star-bottom { bottom: 0px; left: 50%; transform: translateX(-50%); }
+.wb-star-left { left: 0px; top: 50%; transform: translateY(-50%); }
+.wb-star-right { right: 0px; top: 50%; transform: translateY(-50%); }
 
-/* 核心圆芯：内部纯白雪花 ❆ */
+/* 核心圆芯：内部雪花 ❆ */
 .wb-circle-core {
-  width: 26px;
-  height: 26px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   background: var(--wb-cur-theme);
   border: 1.5px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 3px var(--wb-cur-theme-bg), 0 2px 10px var(--wb-cur-theme);
+  box-shadow: 0 0 0 3px var(--wb-cur-theme-bg), 0 2px 8px var(--wb-cur-theme);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  font-size: 15px;
+  font-size: 14px;
   color: #ffffff;
   line-height: 1;
   user-select: none;
