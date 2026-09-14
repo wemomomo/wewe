@@ -962,7 +962,7 @@
   flex: 1;
   height: 34px;
   background: #ffffff;
-  border: 1px solid var(--wb-cur-theme) !important;
+  border: 1px solid var(--wb-cur-theme);
   border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
@@ -972,7 +972,7 @@
 }
 .wb-depth-pos-btn.active {
   background: #2c2c2e;
-  border-color: #2c2c2e;
+  border-color: #2c2c2e !important;
   color: #ffffff;
 }
 
