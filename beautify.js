@@ -24,7 +24,7 @@
   var DEFAULT_HEART_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2388abda'/%3E%3Ctext x='50%25' y='55%25' font-size='45' text-anchor='middle' dominant-baseline='middle' fill='white'%3E%E2%99%A1%3C/text%3E%3C/svg%3E";
   
   // 2. 纯白底·浅淡初雪蓝雪花 SVG (与默认爱心完全同源架构，苹果深色模式绝对不反色变黑！)
-  var SNOWFLAKE_SVG_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23ffffff'/%3E%3Ctext x='50%25' y='56%25' font-size='62' font-family='-apple-system, BlinkMacSystemFont, sans-serif' text-anchor='middle' dominant-baseline='middle' fill='rgba(120, 165, 215, 0.72)'%3E%E2%9D%85%3C/text%3E%3C/svg%3E";
+var SNOWFLAKE_SVG_URL = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIwIiBmaWxsPSIjZmZmZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAsNTApIiBzdHJva2U9IiM4OGFiZGEiIHN0cm9rZS13aWR0aD0iMy4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiPjxsaW5lIHgxPSIwIiB5MT0iLTMwIiB4Mj0iMCIgeTI9IjMwIi8+PGxpbmUgeDE9Ii0yNiIgeTE9Ii0xNSIgeDI9IjI2IiB5Mj0iMTUiLz48bGluZSB4MT0iLTI2IiB5MT0iMTUiIHgyPSIyNiIgeTI9Ii0xNSIvPjxwYXRoIGQ9Ik0tNiwtMjAgTDAsLTI2IEw2LC0yMCBNLTYsMjAgTDAsMjYgTDYsMjAiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNLTIwLC02IEwtMjYsMCBMLTIwLDYgTTIwLC02IEwyNiwwIEwyMCw2IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTS0xNCwtMTcgTC0xOSwtMTkgTC0xNywtMTQgTTE0LDE3IEwxOSwxOSBMMTcsMTQiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNLTE0LDE3IEwtMTksMTkgTC0xNywxNCBNMTQsLTE3IEwxOSwtMTkgTDE3LC0xNCIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjAiIGN5PSIwIiByPSIzLjUiIGZpbGw9IiM4OGFiZGEiLz48L2c+PC9zdmc+";
 
   var RAW_ICON_PATH_1 = '/97A2A7C7-37EE-4B08-A7AC-FA77A29FA6ED.jpeg';
   var RAW_ICON_PATH_2 = '/E87530F1-A12E-4235-A9E6-2E279F85656F.jpeg';
@@ -129,11 +129,9 @@
               '</div>' +
 
               // 纯白底·抗反黑初雪雪花
-              '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
+                           '<div class="pwa-icon-item" data-pwa-val="icon1" data-pwa-name="初雪">' +
                 '<div class="pwa-icon-preview">' +
-                  '<div class="pwa-snowflake-container">' +
-                    '<div class="pwa-snowflake-main">❆</div>' +
-                  '</div>' +
+                  '<svg viewBox="0 0 100 100" style="width:100%;height:100%;"><rect width="100" height="100" rx="15" fill="#ffffff"/><g transform="translate(50,50)" stroke="#88abda" stroke-width="3.2" stroke-linecap="round"><line x1="0" y1="-30" x2="0" y2="30"/><line x1="-26" y1="-15" x2="26" y2="15"/><line x1="-26" y1="15" x2="26" y2="-15"/><path d="M-6,-20 L0,-26 L6,-20 M-6,20 L0,26 L6,20" fill="none"/><path d="M-20,-6 L-26,0 L-20,6 M20,-6 L26,0 L20,6" fill="none"/><path d="M-14,-17 L-19,-19 L-17,-14 M14,17 L19,19 L17,14" fill="none"/><path d="M-14,17 L-19,19 L-17,14 M14,-17 L19,-19 L17,-14" fill="none"/><circle cx="0" cy="0" r="3.5" fill="#88abda"/></g></svg>' +
                 '</div>' +
                 '<span class="pwa-icon-name">初雪</span>' +
               '</div>' +
