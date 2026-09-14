@@ -140,8 +140,8 @@
 /* 右上角按钮外框 (扩大至 54px，让出充分距离) */
 .wb-header-circle-btn {
   position: relative;
-  width: 54px;
-  height: 54px;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -152,7 +152,7 @@
   padding: 0;
   outline: none;
   margin-right: -4px; /* 微调右侧贴边距离 */
-  margin-top: 0;
+  margin-top: -1px;
 }
 
 /* 彻底移除外圈线条 */
@@ -164,7 +164,7 @@
 .wb-star-node {
   position: absolute;
   color: var(--wb-cur-theme);
-  font-size: 18px;
+  font-size: 10px;
   line-height: 1;
   pointer-events: none;
 }
