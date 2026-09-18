@@ -693,7 +693,7 @@
     var cur = getCurrentItem() || store.defaultObj;
 
     // 角色专属扩展字段（严格顺序：微信号 -> 手机号 -> 所在地 -> 对user称呼 -> 与user关系）
-        var charExtraFieldsHtml = '';
+            var charExtraFieldsHtml = '';
     if (!isUser) {
       charExtraFieldsHtml = '<div class="ruled-item with-refresh-item">'
         + '<span class="ruled-label">微信号</span>'
@@ -713,25 +713,6 @@
         + '</button>'
         + '</div>'
         + '</div>'
-
-        // 所在地整行大卡（带现实气象与虚拟气候双模式）
-        + '<div class="ruled-item full-width-ruled char-location-full-box">'
-        + '<div class="loc-head-bar">'
-        + '<span class="ruled-label">所在地与气象法则</span>'
-        + '<div class="loc-switch-capsule">'
-        + '<button class="loc-pill-btn' + ((cur.locType || 'real') === 'real' ? ' active' : '') + '" id="locTypeRealBtn" type="button">现实定位</button>'
-        + '<button class="loc-pill-btn' + ((cur.locType || 'real') === 'virtual' ? ' active' : '') + '" id="locTypeVirtualBtn" type="button">架空/虚拟</button>'
-        + '</div>'
-        + '</div>'
-        + '<div class="loc-input-sub-row">'
-        + '<input type="text" class="ruled-input" id="fieldLocation" value="' + esc(cur.location || '') + '" placeholder="' + ((cur.locType || 'real') === 'real' ? '' : '') + '">'
-        + '</div>'
-        + '<div class="loc-sub-desc-row">'
-        + '<span class="loc-desc-tag" id="locDescTag">' + ((cur.locType || 'real') === 'real' ? '☁ 实时气象与温度联动' : '✦ 虚拟生态气候环境法则') + '</span>'
-        + '<input type="text" class="ruled-input loc-extra-input" id="fieldLocWeather" value="' + esc(cur.locWeatherSetting || '') + '" placeholder="' + ((cur.locType || 'real') === 'real' ? '细分定位备注 (自动联网获取实时天气与气温)' : '自定义气候 (如: 永夜极光/常年飘雪)') + '">'
-        + '</div>'
-        + '</div>'
-
         + '<div class="ruled-item"><span class="ruled-label">对user称呼</span><input type="text" class="ruled-input" id="fieldUserCallName" value="' + esc(cur.userCallName || '') + '" placeholder="如: 宝宝"></div>'
         + '<div class="ruled-item"><span class="ruled-label">与user关系</span><input type="text" class="ruled-input" id="fieldRelationToUser" value="' + esc(cur.relationToUser || '') + '" placeholder="如: 专属AI男友 / 恋人"></div>';
     }
@@ -980,7 +961,7 @@
 
     document.getElementById('archBackBtn').addEventListener('click', step2BackHandler);
 
-    function saveFormDataToCur(target) {
+        function saveFormDataToCur(target) {
       target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
       target.gender = document.getElementById('fieldGender').value || '';
       target.age = document.getElementById('fieldAge').value || '';
@@ -992,8 +973,6 @@
       if (elWx) target.wxid = elWx.value.trim();
       var elPhone = document.getElementById('fieldPhone');
       if (elPhone) target.phone = elPhone.value.trim();
-      var elLoc = document.getElementById('fieldLocation');
-      if (elLoc) target.location = elLoc.value.trim();
       var elCall = document.getElementById('fieldUserCallName');
       if (elCall) target.userCallName = elCall.value.trim();
       var elRel = document.getElementById('fieldRelationToUser');
