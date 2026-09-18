@@ -67,317 +67,6 @@
 
   window.AppDB = { open: openDB, save: dbSave, get: dbGet, delete: dbDelete };
 
-  function parseServerCookie(name) {
-    var nameEQ = name + "=";
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-      var c = ca[i];
-      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-      if (c.indexOf(nameEQ) === 0) {
-        try {
-          return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
-        } catch(e) {
-          return decodeURIComponent(c.substring(nameEQ.length, c.length));
-        }
-      }
-    }
-    return null;
-  }
-
-  function getGlobalSession() {
-    try {
-      var token = localStorage.getItem('app_auth_token');
-      var info = localStorage.getItem('app_user_info');
-      if (token && info) {
-        return { token: token, userInfo: JSON.parse(info) };
-      }
-    } catch(e) {}
-
-    var session = parseServerCookie('niveous_session');
-    if (session && session.token && session.username) {
-      return {
-        token: session.token,
-        userInfo: { username: session.username }
-      };
-    }
-
-    return null;
-  }
-
-  function clearAllAuth() {
-    try {
-      localStorage.removeItem('app_auth_token');
-      localStorage.removeItem('app_user_info');
-    } catch(e) {}
-    document.cookie = 'niveous_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-  }
-
-  function getStableDeviceId(callback) {
-    var cookieDev = parseServerCookie('shared_device_id');
-    if (cookieDev && typeof cookieDev === 'string') {
-      callback(cookieDev);
-      return;
-    }
-
-    try {
-      var localDev = localStorage.getItem('shared_device_id');
-      if (localDev) {
-        callback(localDev);
-        return;
-      }
-    } catch(e) {}
-
-    dbGet('app_device_fingerprint', function(savedId) {
-      if (savedId) {
-        try { localStorage.setItem('shared_device_id', savedId); } catch(e){}
-        callback(savedId);
-        return;
-      }
-
-      var w = Math.min(screen.width, screen.height);
-      var h = Math.max(screen.width, screen.height);
-      var cores = navigator.hardwareConcurrency || 4;
-      var touch = navigator.maxTouchPoints || 5;
-
-      var rawString = [w, h, cores, touch].join('::');
-      var hash = simpleHash(rawString);
-      var deviceId = 'hw_' + hash.substring(0, 12);
-
-      dbSave('app_device_fingerprint', deviceId, function() {
-        try { localStorage.setItem('shared_device_id', deviceId); } catch(e){}
-        callback(deviceId);
-      });
-    });
-  }
-
-  function simpleHash(str) {
-    var hash = 0;
-    for (var i = 0; i < str.length; i++) {
-      var char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
-  }
-
-  function getApiEndpoint(action) {
-    return '/api/' + action;
-  }
-
-  // ============ 登录门禁逻辑 ============
-  function checkActivation() {
-    var mask = document.getElementById('authGateMask');
-    var usernameInput = document.getElementById('authUsernameInput');
-    var passwordInput = document.getElementById('authPasswordInput');
-    var submitBtn = document.getElementById('authSubmitBtn');
-    if (!mask) return;
-
-    function hideMask() {
-      mask.classList.remove('show');
-    }
-
-    function showMask() {
-      mask.classList.add('show');
-    }
-
-    function onLoginVerified(token, userInfo) {
-      try {
-        localStorage.setItem('app_auth_token', token);
-        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-      } catch(e) {}
-
-      dbSave('app_auth_token', token, function() {
-        dbSave('app_user_info', userInfo, function() {
-          hideMask();
-        });
-      });
-    }
-
-    function kickOut(message) {
-      dbDelete('app_auth_token', function() {
-        dbDelete('app_user_info', function() {
-          clearAllAuth();
-          showMask();
-          if (message) showToast(message);
-        });
-      });
-    }
-
-    function realTimeVerify(userInfo) {
-      getStableDeviceId(function(deviceId) {
-        fetch(getApiEndpoint('login') + '?_t=' + Date.now(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            username: userInfo.username,
-            password: userInfo.password || '',
-            deviceId: deviceId,
-            verifyOnly: true
-          })
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          if (data && data.kickOut === true) {
-            kickOut(data.message || '账号已失效');
-          }
-        })
-        .catch(function() {});
-      });
-    }
-
-    dbGet('app_user_info', function(userInfo) {
-      dbGet('app_auth_token', function(token) {
-        if (token && userInfo && userInfo.username) {
-          hideMask();
-          realTimeVerify(userInfo);
-        } else {
-          var session = getGlobalSession();
-          if (session && session.token && session.userInfo && session.userInfo.username) {
-            onLoginVerified(session.token, session.userInfo);
-            realTimeVerify(session.userInfo);
-          } else {
-            showMask();
-          }
-        }
-      });
-    });
-
-    document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'visible') {
-        dbGet('app_user_info', function(userInfo) {
-          if (userInfo && userInfo.username) realTimeVerify(userInfo);
-        });
-      }
-    });
-
-    function doLoginRequest(username, password, forceReset) {
-      getStableDeviceId(function(deviceId) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = '进入中...';
-
-        fetch(getApiEndpoint('login') + '?_t=' + Date.now(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            username: username,
-            password: password,
-            deviceId: deviceId,
-            forceReset: !!forceReset
-          })
-        })
-        .then(function(res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        })
-        .then(function(data) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = '进入';
-
-          if (data.success && data.token) {
-            var info = { username: data.username, password: password };
-            onLoginVerified(data.token, info);
-            showToast('欢迎回来');
-            window.dispatchEvent(new CustomEvent('loginSuccess'));
-          } else if (data.canReset) {
-            if (window.AppDialog) {
-              window.AppDialog.confirm({
-                title: '设备数已达上限',
-                desc: '已达到最大设备数，是否清空历史旧设备并将当前设备绑定进入？',
-                confirmText: '立即绑定当前设备',
-                isDanger: false
-              }, function() {
-                doLoginRequest(username, password, true);
-              });
-            } else {
-              showToast(data.message || '设备超过限制');
-            }
-          } else {
-            showToast(data.message || '登录失败');
-          }
-        })
-        .catch(function() {
-          submitBtn.disabled = false;
-          submitBtn.textContent = '进入';
-          showToast('登录失败，请重试');
-        });
-      });
-    }
-
-    if (submitBtn) {
-      submitBtn.addEventListener('click', function() {
-        var username = (usernameInput.value || '').trim();
-        var password = (passwordInput.value || '').trim();
-        if (!username || !password) { showToast('请输入账号和密码'); return; }
-        doLoginRequest(username, password, false);
-      });
-    }
-
-    var loginBox = document.getElementById('authLoginBox');
-    var registerBox = document.getElementById('authRegisterBox');
-    var goRegisterBtn = document.getElementById('authGoRegister');
-    var goLoginBtn = document.getElementById('authGoLogin');
-    var registerBtn = document.getElementById('authRegisterBtn');
-
-    if (goRegisterBtn) {
-      goRegisterBtn.addEventListener('click', function() {
-        loginBox.classList.add('auth-hidden');
-        registerBox.classList.remove('auth-hidden');
-      });
-    }
-
-    if (goLoginBtn) {
-      goLoginBtn.addEventListener('click', function() {
-        registerBox.classList.add('auth-hidden');
-        loginBox.classList.remove('auth-hidden');
-      });
-    }
-
-    if (registerBtn) {
-      registerBtn.addEventListener('click', function() {
-        var inviteCode = (document.getElementById('authInviteInput').value || '').trim();
-        var regUser = (document.getElementById('authRegUserInput').value || '').trim();
-        var regPass = (document.getElementById('authRegPassInput').value || '').trim();
-
-        if (!inviteCode || !regUser || !regPass) { showToast('请填写完整信息'); return; }
-
-        getStableDeviceId(function(deviceId) {
-          registerBtn.disabled = true;
-          registerBtn.textContent = '注册中...';
-
-          fetch(getApiEndpoint('register') + '?_t=' + Date.now(), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              inviteCode: inviteCode,
-              username: regUser,
-              password: regPass,
-              deviceId: deviceId
-            })
-          })
-          .then(function(res) { return res.json(); })
-          .then(function(data) {
-            registerBtn.disabled = false;
-            registerBtn.textContent = '注册并登录';
-
-            if (data.success && data.token) {
-              var info = { username: data.username, password: regPass };
-              onLoginVerified(data.token, info);
-              showToast('注册成功，欢迎进入');
-              window.dispatchEvent(new CustomEvent('loginSuccess'));
-            } else {
-              showToast(data.message || '注册失败');
-            }
-          })
-          .catch(function() {
-            registerBtn.disabled = false;
-            registerBtn.textContent = '注册并登录';
-            showToast('网络异常，请重试');
-          });
-        });
-      });
-    }
-  }
-
   // ============ 页面外壳与导航 ============
   var dock = document.querySelector('.tab-bar');
   var dockEditBtn = document.querySelector('.tabbar-edit-btn');
@@ -493,7 +182,7 @@
     }
   }
 
-  // 严丝合缝的子页面侦测器（实时双重校验 JS 状态与 DOM 元素）
+  // 严丝合缝的子页面侦测器
   function checkSubViewStatus(page) {
     var pageName = page.dataset.page;
 
@@ -567,11 +256,10 @@
 
   // ============ 全局统一导航绑定 ============
   function bindNavigation() {
-        document.querySelectorAll('.tab-item').forEach(function(tab) {
+    document.querySelectorAll('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() { 
         var targetTab = this.dataset.tab;
         
-        // 线下与查岗保留提示，微信直接放行开启
         if (targetTab === 'offline') {
           showToast('✦ 线下功能正在精心筹备中 ✦');
           return;
@@ -581,7 +269,6 @@
           return;
         }
 
-        // 直接打开微信或设置等页面
         showPage(targetTab); 
       });
     });
@@ -624,7 +311,7 @@
       }
     });
 
-    // 核心多级滑动返回引擎 (实时校验，绝不误杀)
+    // 核心多级滑动返回引擎
     document.querySelectorAll('.app-page').forEach(function(page) {
       var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
       var subInfo = { isSub: false, action: null };
@@ -639,7 +326,6 @@
         isLocked = false;
         isHoriz = false;
 
-        // 每次手势触发瞬间，精确判定当前 App 所在的深层状态
         subInfo = checkSubViewStatus(page);
 
         if (!subInfo.isSub) {
@@ -661,7 +347,6 @@
 
         if (diffX > 0) {
           currentX = diffX;
-          // 只要处在子页面，外层 Page 绝对不作位移，防止暴露底层！
           if (!subInfo.isSub) {
             page.style.transform = 'translateX(' + currentX + 'px)'; 
           }
@@ -675,7 +360,6 @@
         }
         isDragging = false;
 
-        // 【最核心保护机制】：如果在任意 App 子页面中，100% 仅触发子页面的回退，绝不调 showPage('home')！
         if (subInfo.isSub && typeof subInfo.action === 'function') {
           if (currentX > 35) {
             subInfo.action();
@@ -683,7 +367,6 @@
           return;
         }
 
-        // 只有在 App 的第一层大首页，且手势位移充足时，才退回桌面
         if (!subInfo.isSub) {
           page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
           var backBtn = page.querySelector('[data-back]');
@@ -983,8 +666,6 @@
     initAppShells();
     setupDesktopSlider();
     bindNavigation();
-    checkActivation();
   });
 
 })();
-
