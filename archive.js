@@ -792,7 +792,7 @@
       + '<textarea class="ruled-textarea" id="fieldHobbies" rows="2" placeholder="喜欢的食物、日常兴趣爱好、喜恶偏好、特殊习惯...">' + esc(cur.hobbies) + '</textarea>'
       + '</div>'
 
-      // 05. 深度背景
+            // 05. 深度背景（包含底部签名与封存按钮）
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">05.</span><span>深度设定与故事渊源</span></div>'
@@ -804,19 +804,17 @@
       + '</div>'
       + '</div>'
       + '<textarea class="ruled-textarea" id="fieldBackground" rows="3" placeholder="身份背景、过往经历、故事渊源与深度设定...">' + esc(cur.background) + '</textarea>'
-      + '</div>'
-
       + '<div class="journal-tear-strip">'
       + '<div class="journal-sign-box"><span class="sign-handwriting">✦ Verified Official Dossier</span></div>'
       + '<div class="journal-seal-stamp"><span>NIVEOUS</span><span>OFFICIAL</span></div>'
       + '</div>'
-
       + '<button class="action-trigger-btn save-seal-btn" id="generateCardBtn" type="button">'
       + '<span> 封存 </span>'
       + '</button>'
       + '</div>'
       + '</div>'
-
+      + '</div>'
+      
       // 全屏手写板弹窗
       + '<div class="expand-modal-overlay" id="expandModalOverlay">'
       + '<div class="expand-modal-panel">'
