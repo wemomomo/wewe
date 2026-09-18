@@ -693,7 +693,7 @@
     var cur = getCurrentItem() || store.defaultObj;
 
     // 角色专属扩展字段（严格顺序：微信号 -> 手机号 -> 所在地 -> 对user称呼 -> 与user关系）
-    var charExtraFieldsHtml = '';
+        var charExtraFieldsHtml = '';
     if (!isUser) {
       charExtraFieldsHtml = '<div class="ruled-item with-refresh-item">'
         + '<span class="ruled-label">微信号</span>'
@@ -713,9 +713,27 @@
         + '</button>'
         + '</div>'
         + '</div>'
-        + '<div class="ruled-item"><span class="ruled-label">所在地</span><input type="text" class="ruled-input" id="fieldLocation" value="' + esc(cur.location || '') + '" placeholder="真实或虚拟"></div>'
+
+        // 所在地整行大卡（带现实气象与虚拟气候双模式）
+        + '<div class="ruled-item full-width-ruled char-location-full-box">'
+        + '<div class="loc-head-bar">'
+        + '<span class="ruled-label">所在地与气象法则</span>'
+        + '<div class="loc-switch-capsule">'
+        + '<button class="loc-pill-btn' + ((cur.locType || 'real') === 'real' ? ' active' : '') + '" id="locTypeRealBtn" type="button">现实定位</button>'
+        + '<button class="loc-pill-btn' + ((cur.locType || 'real') === 'virtual' ? ' active' : '') + '" id="locTypeVirtualBtn" type="button">架空/虚拟</button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="loc-input-sub-row">'
+        + '<input type="text" class="ruled-input" id="fieldLocation" value="' + esc(cur.location || '') + '" placeholder="' + ((cur.locType || 'real') === 'real' ? '' : '') + '">'
+        + '</div>'
+        + '<div class="loc-sub-desc-row">'
+        + '<span class="loc-desc-tag" id="locDescTag">' + ((cur.locType || 'real') === 'real' ? '☁ 实时气象与温度联动' : '✦ 虚拟生态气候环境法则') + '</span>'
+        + '<input type="text" class="ruled-input loc-extra-input" id="fieldLocWeather" value="' + esc(cur.locWeatherSetting || '') + '" placeholder="' + ((cur.locType || 'real') === 'real' ? '细分定位备注 (自动联网获取实时天气与气温)' : '自定义气候 (如: 永夜极光/常年飘雪)') + '">'
+        + '</div>'
+        + '</div>'
+
         + '<div class="ruled-item"><span class="ruled-label">对user称呼</span><input type="text" class="ruled-input" id="fieldUserCallName" value="' + esc(cur.userCallName || '') + '" placeholder="如: 宝宝"></div>'
-        + '<div class="ruled-item full-width-ruled"><span class="ruled-label">与user关系</span><input type="text" class="ruled-input" id="fieldRelationToUser" value="' + esc(cur.relationToUser || '') + '" placeholder="如: 专属AI男友 / 恋人"></div>';
+        + '<div class="ruled-item"><span class="ruled-label">与user关系</span><input type="text" class="ruled-input" id="fieldRelationToUser" value="' + esc(cur.relationToUser || '') + '" placeholder="如: 专属AI男友 / 恋人"></div>';
     }
 
     container.className = 'app-content archive-page-wrap';
@@ -838,6 +856,32 @@
 
       + '</div>';
 
+    // 绑定气象/虚拟模式切换
+    var btnReal = document.getElementById('locTypeRealBtn');
+    var btnVirtual = document.getElementById('locTypeVirtualBtn');
+    var iptLoc = document.getElementById('fieldLocation');
+    var iptWeather = document.getElementById('fieldLocWeather');
+    var descTag = document.getElementById('locDescTag');
+
+    if (btnReal && btnVirtual) {
+      btnReal.onclick = function() {
+        cur.locType = 'real';
+        btnReal.classList.add('active');
+        btnVirtual.classList.remove('active');
+        if (iptLoc) iptLoc.placeholder = '';
+        if (iptWeather) iptWeather.placeholder = '细分定位备注 (自动联网获取实时天气与气温)';
+        if (descTag) descTag.textContent = '☁ 实时气象与温度联动';
+      };
+      btnVirtual.onclick = function() {
+        cur.locType = 'virtual';
+        btnVirtual.classList.add('active');
+        btnReal.classList.remove('active');
+        if (iptLoc) iptLoc.placeholder = '';
+        if (iptWeather) iptWeather.placeholder = '自定义气候 (如: 永夜极光/常年飘雪)';
+        if (descTag) descTag.textContent = '✦ 虚拟生态气候环境法则';
+      };
+    }
+    
     // 绑定刷新按钮
     var btnRefWx = document.getElementById('btnRefCharWx');
     if (btnRefWx) {
