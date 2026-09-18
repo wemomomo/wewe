@@ -22,7 +22,7 @@
   var customBgs = {
     topBg: '',
     tabbarBg: '',
-    momentsCover: '' // 默认无图，纯浅灰底色
+    momentsCover: ''
   };
 
   // iOS 安全文件选择器
@@ -44,17 +44,14 @@
   }
 
   function generateRandomWxId() {
-    var prefixes = ['wxid_'];
-    var prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
     var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    var result = '';
+    var result = 'wxid_';
     for (var i = 0; i < 7; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return prefix + result;
+    return result;
   }
 
-    // 真正无限制的随机手机号：1 + 任意9位纯随机数字 + *
   function generateRandomPhone() {
     var result = '1';
     for (var i = 0; i < 9; i++) {
@@ -99,9 +96,12 @@
                 if (activeUid && wxAccountsMap[activeUid]) {
                   selectedUser = archiveUsers.find(function (u) { return u.id === activeUid; }) || null;
                   currentWxAccount = wxAccountsMap[activeUid] || null;
-                } else {
-                  selectedUser = null;
-                  currentWxAccount = null;
+                } else if (archiveUsers.length > 0) {
+                  var firstUser = archiveUsers[0];
+                  selectedUser = firstUser;
+                  if (wxAccountsMap[firstUser.id]) {
+                    currentWxAccount = wxAccountsMap[firstUser.id];
+                  }
                 }
                 if (callback) callback();
               });
@@ -139,7 +139,7 @@
     }
   }
 
-  // ============ 视图 1：选择/切换身份 (毛玻璃小卡 480px + 浅灰列表) ============
+  // ============ 视图 1：选择/切换身份 ============
   function renderUserPickerView(container) {
     selectedUser = null;
     currentWxAccount = null;
@@ -233,22 +233,22 @@
       + '          <span class="wx-reg-label">微信号</span>'
       + '          <input class="wx-reg-input" type="text" id="wxIptWxId" placeholder="设置微信号" autocomplete="off">'
       + '          <button class="wx-reg-refresh-btn" id="wxBtnRefWx" type="button" title="刷新微信号">'
-            + '            <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
-            + '          </button>'
-        + '        </div>'
-        + '        <div class="wx-reg-input-row">'
-        + '          <span class="wx-reg-label">手机号</span>'
-        + '          <input class="wx-reg-input" type="text" id="wxIptPhone" placeholder="设置手机号" autocomplete="off">'
-        + '          <button class="wx-reg-refresh-btn" id="wxBtnRefPhone" type="button" title="刷新手机号">'
-            + '            <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
-            + '          </button>'
-        + '        </div>'
-        + '      </div>'
-        + '      <button class="wx-reg-submit-btn" id="wxBtnSubmitReg" type="button">开启微信</button>'
-        + '    </div>'
-        + '  </div>'
-        + '</div>'
-        + '</div>';
+      + '            <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
+      + '          </button>'
+      + '        </div>'
+      + '        <div class="wx-reg-input-row">'
+      + '          <span class="wx-reg-label">手机号</span>'
+      + '          <input class="wx-reg-input" type="text" id="wxIptPhone" placeholder="设置手机号" autocomplete="off">'
+      + '          <button class="wx-reg-refresh-btn" id="wxBtnRefPhone" type="button" title="刷新手机号">'
+      + '            <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
+      + '          </button>'
+      + '        </div>'
+      + '      </div>'
+      + '      <button class="wx-reg-submit-btn" id="wxBtnSubmitReg" type="button">开启微信</button>'
+      + '    </div>'
+      + '  </div>'
+      + '</div>'
+      + '</div>';
 
     container.innerHTML = html;
 
@@ -303,7 +303,7 @@
     });
   }
 
-  // ============ 视图 3：原版微信主应用外壳 ============
+  // ============ 视图 3：主界面外壳 ============
   function renderMainAppShell(container) {
     var isChats = (wxCurrentTab === 'chats');
     var headerHideClass = isChats ? '' : ' hide-header';
@@ -311,7 +311,7 @@
     var hasBgClass = customBgs.topBg ? ' has-bg' : '';
 
     var html = '<div class="wx-shell">'
-      // 1. 顶栏 (Chat 28px)
+      // 1. 顶栏
       + '<div class="wx-header-wrapper">'
       + '  <div class="wx-header' + headerHideClass + curveClass + hasBgClass + '" id="wxHeader">'
       + '    <img src="' + esc(customBgs.topBg) + '" alt="" class="wx-header-bg-img" id="wxHeaderBgImg">'
@@ -345,7 +345,7 @@
       // 2. 主视口
       + '<div class="wx-body" id="wxBodyContainer"></div>'
 
-      // 3. 底栏 (高度54px，文字10.5px，虚线贯穿雪花手册)
+      // 3. 底栏
       + '<div class="wx-tabbar" id="wxTabbar">'
       + '  <div class="wx-tab-item' + (wxCurrentTab === 'chats' ? ' active' : '') + '" data-tab-name="chats">'
       + '    <svg viewBox="0 0 64 64"><path d="M32 15C21.5 15 13 22 13 31C13 36 16 40.5 20.6 43.2L18.5 50L26 46.4C27.9 46.9 29.9 47 32 47C42.5 47 51 40 51 31C51 22 42.5 15 32 15Z"/></svg>'
@@ -539,7 +539,7 @@
     else if (wxCurrentTab === 'me') renderMeTab(body);
   }
 
-  // ========== 1. 聊天 (Chats：严格只展示绑定给当前用户的角色) ==========
+  // ========== 1. 聊天 (Chats：点击角色直接打开独立聊天室) ==========
   function renderChatsTab(body) {
     var directActive = (chatSubMode === 'direct') ? ' active' : '';
     var groupsActive = (chatSubMode === 'groups') ? ' active' : '';
@@ -566,12 +566,12 @@
         return c.boundUserId && c.boundUserId === (selectedUser ? selectedUser.id : '');
       });
 
-            if (!currentBoundChars.length) {
-        listContentHtml = '<div class="wx-empty">'
-          + '<div class="wx-empty-text">✦ 暂无专属绑定角色，可在「档案」中进行绑定 ✦</div>'
+      if (!currentBoundChars.length) {
+        listContentHtml = '<div class="wx-empty" style="padding: 40px 16px; text-align: center; color: #8e8e93; font-size: 13px;">'
+          + '✦ 暂无专属绑定角色，可在「档案」中进行绑定 ✦'
           + '</div>';
       } else {
-                listContentHtml = '<div class="wx-chat-list">';
+        listContentHtml = '<div class="wx-chat-list">';
         currentBoundChars.forEach(function (c) {
           listContentHtml += '<div class="wx-chat-card-frame" data-char-id="' + esc(c.id) + '">'
             + '<div class="wx-avatar-box">'
@@ -580,10 +580,10 @@
             + '<div class="wx-chat-main-col">'
             + '  <div class="wx-chat-top-row">'
             + '    <span class="wx-chat-name">' + esc(c.name || '角色') + '</span>'
-            + '    <span class="wx-chat-time"></span>'
+            + '    <span class="wx-chat-time">刚刚</span>'
             + '  </div>'
             + '  <div class="wx-chat-bottom-row">'
-            + '    <span class="wx-chat-msg">还未开启聊天</span>'
+            + '    <span class="wx-chat-msg">点击进入专属聊天...</span>'
             + '  </div>'
             + '</div>'
             + '</div>';
@@ -591,9 +591,8 @@
         listContentHtml += '</div>';
       }
     } else {
-      // Groups 群聊空状态：也彻底去掉了大图标，只留纯净文字
-      listContentHtml = '<div class="wx-empty">'
-        + '<div class="wx-empty-text">✦ 群聊还待开发中哦 ✦</div>'
+      listContentHtml = '<div class="wx-empty" style="padding: 40px 16px; text-align: center; color: #8e8e93; font-size: 13px;">'
+        + '✦ 群聊还待开发中哦 ✦'
         + '</div>';
     }
 
@@ -608,18 +607,19 @@
       });
     });
 
+    // 核心拉起单聊页
     body.querySelectorAll('.wx-chat-card-frame').forEach(function (item) {
       item.addEventListener('click', function () {
         var cid = this.dataset.charId;
         var cObj = archiveChars.find(function (c) { return c.id === cid; });
-        if (cObj && window.AppNav) {
-          window.AppNav.showToast('与「' + (cObj.name || '角色') + '」的聊天暂时还未开通，宝宝再等等哦>_<');
+        if (cObj && window.WxChatRoom) {
+          window.WxChatRoom.open(cObj, selectedUser);
         }
       });
     });
   }
 
-  // ========== 2. 通讯录 (Contacts：严格只展示绑定给当前用户的角色) ==========
+  // ========== 2. 通讯录 (Contacts：点击角色也直接打开单聊) ==========
   function renderContactsTab(body) {
     var topHtml = '<div class="wx-contacts-top-group">'
       + '  <div class="wx-contact-pill-item" id="wxBtnNpcGen">'
@@ -669,20 +669,20 @@
       });
     }
 
+    // 核心拉起单聊页
     body.querySelectorAll('.wx-contact-user-row').forEach(function (row) {
       row.addEventListener('click', function () {
         var cid = this.dataset.charId;
         var cObj = archiveChars.find(function (c) { return c.id === cid; });
-        if (cObj && window.AppNav) {
-          window.AppNav.showToast('正在进入「' + (cObj.name || '角色') + '」的详情...');
+        if (cObj && window.WxChatRoom) {
+          window.WxChatRoom.open(cObj, selectedUser);
         }
       });
     });
   }
 
-  // ========== 3. 发现 (朋友圈：彻底清除残留图，纯灰底色) ==========
+  // ========== 3. 发现 (朋友圈) ==========
   function renderDiscoverTab(body) {
-    // 强制校验：如果不是你自己手动换的新图，绝对不加背景图样式
     var hasUserBg = customBgs.momentsCover && customBgs.momentsCover.startsWith('data:image');
     var coverStyle = hasUserBg ? ('background-image:url(\'' + customBgs.momentsCover + '\');') : 'background-image:none; background-color:#e5e5ea;';
 
@@ -690,26 +690,26 @@
     var userAvatarHtml = userAvatarSrc ? '<img src="' + esc(userAvatarSrc) + '">' : '✦';
     var userSigText = (currentWxAccount && currentWxAccount.signature) ? currentWxAccount.signature : '';
 
-      var html = '<div class="wx-moments-wrap">'
-    + '<div class="wx-moments-cover-stage" style="' + coverStyle + '" id="wxMomentsCover">'
-    + '  <button class="wx-moments-img-btn" id="wxBtnChangeMomentsBg" type="button" title="更换朋友圈封面">'
-    + '    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
-    + '  </button>'
-    + '  <div class="wx-moments-user-dock">'
-    + '    <span class="wx-moments-user-name">' + esc(currentWxAccount ? currentWxAccount.nickname : (selectedUser ? selectedUser.name : '用户')) + '</span>'
-    + '    <div class="wx-moments-avatar-col">'
-    + '      <div class="wx-moments-user-avatar">' + userAvatarHtml + '</div>'
-    + '      <span class="wx-moments-user-sig">' + esc(userSigText) + '</span>'
-    + '    </div>'
-    + '  </div>'
-    + '</div>'
-    + '<div class="wx-moments-feed-list">'
-    + '  <div class="wx-moments-post-square-btn" id="wxBtnMomentsPostSquare" title="发布朋友圈">'
-    + '    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>'
-    + '  </div>'
-    + '  <div class="wx-moments-empty">✦ 日常动态 ✦</div>'
-    + '</div>'
-    + '</div>';
+    var html = '<div class="wx-moments-wrap">'
+      + '<div class="wx-moments-cover-stage" style="' + coverStyle + '" id="wxMomentsCover">'
+      + '  <button class="wx-moments-img-btn" id="wxBtnChangeMomentsBg" type="button" title="更换朋友圈封面">'
+      + '    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+      + '  </button>'
+      + '  <div class="wx-moments-user-dock">'
+      + '    <span class="wx-moments-user-name">' + esc(currentWxAccount ? currentWxAccount.nickname : (selectedUser ? selectedUser.name : '用户')) + '</span>'
+      + '    <div class="wx-moments-avatar-col">'
+      + '      <div class="wx-moments-user-avatar">' + userAvatarHtml + '</div>'
+      + '      <span class="wx-moments-user-sig">' + esc(userSigText) + '</span>'
+      + '    </div>'
+      + '  </div>'
+      + '</div>'
+      + '<div class="wx-moments-feed-list">'
+      + '  <div class="wx-moments-post-square-btn" id="wxBtnMomentsPostSquare" title="发布朋友圈">'
+      + '    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>'
+      + '  </div>'
+      + '  <div class="wx-moments-empty" style="text-align:center; color:#8e8e93; font-size:13px; padding: 20px 0;">✦ 日常动态 ✦</div>'
+      + '</div>'
+      + '</div>';
 
     body.innerHTML = html;
 
@@ -744,7 +744,7 @@
     }
   }
 
-  // ========== 4. 「我」(Me：拍立得完整细节，纯尖角深阴影签名框) ==========
+  // ========== 4. 「我」(Me：拍立得手账) ==========
   function renderMeTab(body) {
     var polPhotoSrc = (currentWxAccount && currentWxAccount.customPolPhoto) || (selectedUser ? selectedUser.photo : '') || '';
     var hasPhoto = polPhotoSrc ? 'display:block;' : 'display:none;';
@@ -870,7 +870,7 @@
       });
     }
 
-    // 4 个微型小格 28px 独立上传/裁切
+    // 4 个微型小格上传/裁切
     body.querySelectorAll('.tiny-tile-item').forEach(function (tile) {
       tile.addEventListener('click', function () {
         var idx = parseInt(this.dataset.tileIdx, 10);
