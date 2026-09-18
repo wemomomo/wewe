@@ -105,8 +105,8 @@
     zodiac: '',
     wxid: '',
     phone: '',
-    userCallName: '',
     location: '',
+    userCallName: '',
     relationToUser: '',
     appearance: '',
     personality: '',
@@ -124,10 +124,9 @@
     serial: 'NO. 0000',
     tplIdx: 0,
     boundUserId: '',
-    boundWbIds: [] // 支持绑定多本世界书
+    boundWbIds: []
   };
 
-  // 生成随机微信号与手机号工具函数
   function generateRandomWxId() {
     var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     var res = 'wxid_';
@@ -696,34 +695,34 @@
   // ==========================================
     var step2BackHandler = null;
 
-  function renderStep2() {
+    function renderStep2() {
     var isUser = (currentTab === 'user');
     var store = getActiveStore();
     var cur = getCurrentItem() || store.defaultObj;
 
-    // 角色专属扩展字段区域
+    // 角色专属扩展字段（严格顺序：微信号 -> 手机号 -> 所在地 -> 对user称呼 -> 与user关系）
     var charExtraFieldsHtml = '';
     if (!isUser) {
-      charExtraFieldsHtml = '<div class="ruled-item with-refresh">'
+      charExtraFieldsHtml = '<div class="ruled-item with-refresh-item">'
         + '<span class="ruled-label">微信号</span>'
-        + '<div class="ruled-input-refresh-wrap">'
-        + '<input type="text" class="ruled-input" id="fieldWxId" value="' + esc(cur.wxid || '') + '" placeholder="如: wxid_xxx">'
-        + '<button class="ruled-refresh-btn" id="btnRefCharWx" type="button" title="随机生成微信号">'
+        + '<div class="ruled-refresh-control">'
+        + '<input type="text" class="ruled-input" id="fieldWxId" value="' + esc(cur.wxid || '') + '" placeholder="微信号">'
+        + '<button class="ruled-spin-btn" id="btnRefCharWx" type="button" title="刷新微信号">'
         + '<svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
         + '</button>'
         + '</div>'
         + '</div>'
-        + '<div class="ruled-item with-refresh">'
+        + '<div class="ruled-item with-refresh-item">'
         + '<span class="ruled-label">手机号</span>'
-        + '<div class="ruled-input-refresh-wrap">'
-        + '<input type="text" class="ruled-input" id="fieldPhone" value="' + esc(cur.phone || '') + '" placeholder="如: 1380000000*">'
-        + '<button class="ruled-refresh-btn" id="btnRefCharPhone" type="button" title="随机生成手机号">'
+        + '<div class="ruled-refresh-control">'
+        + '<input type="text" class="ruled-input" id="fieldPhone" value="' + esc(cur.phone || '') + '" placeholder="手机号">'
+        + '<button class="ruled-spin-btn" id="btnRefCharPhone" type="button" title="刷新手机号">'
         + '<svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
         + '</button>'
         + '</div>'
         + '</div>'
-        + '<div class="ruled-item"><span class="ruled-label">对user称呼</span><input type="text" class="ruled-input" id="fieldUserCallName" value="' + esc(cur.userCallName || '') + '" placeholder="如: 宝宝 / 墨墨"></div>'
-        + '<div class="ruled-item"><span class="ruled-label">所在地</span><input type="text" class="ruled-input" id="fieldLocation" value="' + esc(cur.location || '') + '" placeholder="真实或虚拟地点"></div>'
+        + '<div class="ruled-item"><span class="ruled-label">所在地</span><input type="text" class="ruled-input" id="fieldLocation" value="' + esc(cur.location || '') + '" placeholder="真实或虚拟"></div>'
+        + '<div class="ruled-item"><span class="ruled-label">对user称呼</span><input type="text" class="ruled-input" id="fieldUserCallName" value="' + esc(cur.userCallName || '') + '" placeholder="如: 宝宝"></div>'
         + '<div class="ruled-item full-width-ruled"><span class="ruled-label">与user关系</span><input type="text" class="ruled-input" id="fieldRelationToUser" value="' + esc(cur.relationToUser || '') + '" placeholder="如: 专属AI男友 / 恋人"></div>';
     }
 
@@ -847,18 +846,238 @@
 
       + '</div>';
 
-    // 绑定随机刷新按钮事件
+    // 绑定刷新按钮（包含旋转动画）
     var btnRefWx = document.getElementById('btnRefCharWx');
     if (btnRefWx) {
       btnRefWx.addEventListener('click', function(e) {
         e.stopPropagation();
-        btnRefWx.classList.remove('rotating');
+        btnRefWx.classList.remove('spin-active');
         void btnRefWx.offsetWidth;
-        btnRefWx.classList.add('rotating');
+        btnRefWx.classList.add('spin-active');
         var ipt = document.getElementById('fieldWxId');
         if (ipt) ipt.value = generateRandomWxId();
       });
     }
+
+    var btnRefPhone = document.getElementById('btnRefCharPhone');
+    if (btnRefPhone) {
+      btnRefPhone.addEventListener('click', function(e) {
+        e.stopPropagation();
+        btnRefPhone.classList.remove('spin-active');
+        void btnRefPhone.offsetWidth;
+        btnRefPhone.classList.add('spin-active');
+        var ipt = document.getElementById('fieldPhone');
+        if (ipt) ipt.value = generateRandomPhone();
+      });
+    }
+
+    var originalSnapshot = JSON.stringify({
+      name: cur.name || '', gender: cur.gender || '', age: cur.age || '', height: cur.height || '', birthday: cur.birthday || '', zodiac: cur.zodiac || '',
+      wxid: cur.wxid || '', phone: cur.phone || '', location: cur.location || '', userCallName: cur.userCallName || '', relationToUser: cur.relationToUser || '',
+      appearance: cur.appearance || '', personality: cur.personality || '', tags: cur.tags || '', hobbies: cur.hobbies || '', background: cur.background || ''
+    });
+
+    function exitWithoutSaving() {
+      var store = getActiveStore();
+      if (store.list.length > 0 && cur.name && cur.name !== '') {
+        renderArchiveShell();
+      } else if (store.list.length > 0) {
+        if (store.isUser) {
+          userList = userList.filter(function(u) { return u.id !== cur.id; });
+          if (userList.length) currentUserId = userList[0].id;
+        } else {
+          charList = charList.filter(function(c) { return c.id !== cur.id; });
+          if (charList.length) currentCharId = charList[0].id;
+        }
+        renderArchiveShell();
+      } else {
+        renderArchiveShell();
+      }
+    }
+
+    step2BackHandler = function() {
+      var modal = document.getElementById('expandModalOverlay');
+      if (modal && modal.classList.contains('show')) {
+        handleModalCloseAttempt();
+        return;
+      }
+
+      var currentSnapshot = JSON.stringify({
+        name: (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, ''),
+        gender: (document.getElementById('fieldGender') ? document.getElementById('fieldGender').value : ''),
+        age: (document.getElementById('fieldAge') ? document.getElementById('fieldAge').value : ''),
+        height: (document.getElementById('fieldHeight') ? document.getElementById('fieldHeight').value : ''),
+        birthday: (document.getElementById('fieldBirthday') ? document.getElementById('fieldBirthday').value : ''),
+        zodiac: (document.getElementById('fieldZodiac') ? document.getElementById('fieldZodiac').value : ''),
+        wxid: (document.getElementById('fieldWxId') ? document.getElementById('fieldWxId').value : ''),
+        phone: (document.getElementById('fieldPhone') ? document.getElementById('fieldPhone').value : ''),
+        location: (document.getElementById('fieldLocation') ? document.getElementById('fieldLocation').value : ''),
+        userCallName: (document.getElementById('fieldUserCallName') ? document.getElementById('fieldUserCallName').value : ''),
+        relationToUser: (document.getElementById('fieldRelationToUser') ? document.getElementById('fieldRelationToUser').value : ''),
+        appearance: (document.getElementById('fieldAppearance') ? document.getElementById('fieldAppearance').value : ''),
+        personality: (document.getElementById('fieldPersonality') ? document.getElementById('fieldPersonality').value : ''),
+        tags: (document.getElementById('fieldTags') ? document.getElementById('fieldTags').value : ''),
+        hobbies: (document.getElementById('fieldHobbies') ? document.getElementById('fieldHobbies').value : ''),
+        background: (document.getElementById('fieldBackground') ? document.getElementById('fieldBackground').value : '')
+      });
+
+      if (originalSnapshot !== currentSnapshot) {
+        if (window.AppDialog) {
+          AppDialog.confirm({
+            title: '提示',
+            desc: '检测到手札内容已修改，是否保存？',
+            confirmText: '保存'
+          }, function() {
+            var nameVal = (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, '');
+            if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
+            saveFormDataToCur(cur);
+            saveCurrentToDB(function() { renderArchiveShell(); });
+          }, function() {
+            exitWithoutSaving();
+          });
+          return;
+        }
+      }
+
+      exitWithoutSaving();
+    };
+
+    document.getElementById('archBackBtn').addEventListener('click', step2BackHandler);
+
+    function saveFormDataToCur(target) {
+      target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
+      target.gender = document.getElementById('fieldGender').value || '';
+      target.age = document.getElementById('fieldAge').value || '';
+      target.height = document.getElementById('fieldHeight').value || '';
+      target.birthday = document.getElementById('fieldBirthday').value || '';
+      target.zodiac = document.getElementById('fieldZodiac').value || '';
+      
+      var elWx = document.getElementById('fieldWxId');
+      if (elWx) target.wxid = elWx.value.trim();
+      var elPhone = document.getElementById('fieldPhone');
+      if (elPhone) target.phone = elPhone.value.trim();
+      var elLoc = document.getElementById('fieldLocation');
+      if (elLoc) target.location = elLoc.value.trim();
+      var elCall = document.getElementById('fieldUserCallName');
+      if (elCall) target.userCallName = elCall.value.trim();
+      var elRel = document.getElementById('fieldRelationToUser');
+      if (elRel) target.relationToUser = elRel.value.trim();
+
+      target.appearance = document.getElementById('fieldAppearance').value || '';
+      target.personality = document.getElementById('fieldPersonality').value || '';
+      target.tags = document.getElementById('fieldTags').value || '';
+      target.hobbies = document.getElementById('fieldHobbies').value || '';
+      target.background = document.getElementById('fieldBackground').value || '';
+      if (target.birthday) {
+        var cleanDigits = target.birthday.replace(/[^0-9]/g, '');
+        target.serial = 'NO. ' + (cleanDigits || target.birthday) + '-NIVEOUS';
+      }
+    }
+
+    var currentTargetFieldId = '';
+    var modalOriginalText = '';
+    var modalOverlay = document.getElementById('expandModalOverlay');
+    var modalTitle = document.getElementById('expandModalTitle');
+    var modalTextarea = document.getElementById('expandModalTextarea');
+    var modalDoneBtn = document.getElementById('expandModalDoneBtn');
+    var modalCancelBtn = document.getElementById('expandModalCancelBtn');
+    var wordCount = document.getElementById('expandWordCount');
+    var clearBtn = document.getElementById('expandClearBtn');
+
+    function updateWordCount() {
+      if (wordCount && modalTextarea) wordCount.textContent = modalTextarea.value.length + ' 字';
+    }
+
+    function openExpandModal(fieldId, titleText) {
+      currentTargetFieldId = fieldId;
+      var targetInput = document.getElementById(fieldId);
+      if (modalTitle) modalTitle.textContent = titleText || '深度手札编辑';
+      if (modalTextarea) {
+        modalTextarea.value = targetInput ? targetInput.value : '';
+        modalOriginalText = modalTextarea.value;
+        updateWordCount();
+      }
+      if (modalOverlay) modalOverlay.classList.add('show');
+      setTimeout(function() { if (modalTextarea) modalTextarea.focus(); }, 300);
+    }
+
+    function closeExpandModal() {
+      if (modalOverlay) modalOverlay.classList.remove('show');
+      currentTargetFieldId = '';
+      modalOriginalText = '';
+    }
+
+    function handleModalCloseAttempt() {
+      if (modalTextarea && modalTextarea.value !== modalOriginalText) {
+        if (window.AppDialog) {
+          AppDialog.confirm({
+            title: '提示',
+            desc: '检测到手写板内容已修改，是否保存？',
+            confirmText: '保存'
+          }, function() {
+            if (currentTargetFieldId) {
+              var targetInput = document.getElementById(currentTargetFieldId);
+              if (targetInput && modalTextarea) targetInput.value = modalTextarea.value;
+            }
+            closeExpandModal();
+          }, function() {
+            closeExpandModal();
+          });
+          return;
+        }
+      }
+      closeExpandModal();
+    }
+
+    document.querySelectorAll('.expand-edit-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openExpandModal(this.dataset.expandTarget, this.dataset.expandTitle);
+      });
+    });
+
+    if (modalTextarea) modalTextarea.addEventListener('input', updateWordCount);
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        if (!modalTextarea) return;
+        if (window.AppDialog) {
+          AppDialog.confirm({
+            title: '提示',
+            desc: '确定要清空当前输入的内容吗？',
+            confirmText: '清空',
+            isDanger: true
+          }, function() {
+            modalTextarea.value = '';
+            updateWordCount();
+            modalTextarea.focus();
+          });
+        }
+      });
+    }
+
+    if (modalDoneBtn) {
+      modalDoneBtn.addEventListener('click', function() {
+        if (currentTargetFieldId) {
+          var targetInput = document.getElementById(currentTargetFieldId);
+          if (targetInput && modalTextarea) targetInput.value = modalTextarea.value;
+        }
+        closeExpandModal();
+      });
+    }
+
+    if (modalCancelBtn) {
+      modalCancelBtn.addEventListener('click', handleModalCloseAttempt);
+    }
+
+    document.getElementById('generateCardBtn').addEventListener('click', function() {
+      var nameVal = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
+      if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
+      saveFormDataToCur(cur);
+      saveCurrentToDB(function() { renderArchiveShell(); });
+    });
+  }
+  
 
     var btnRefPhone = document.getElementById('btnRefCharPhone');
     if (btnRefPhone) {
