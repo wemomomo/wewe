@@ -940,6 +940,25 @@ function renderStep2() {
 
     document.getElementById('archBackBtn').addEventListener('click', step2BackHandler);
 
+    // 绑定随机刷新
+    var btnRefWx = document.getElementById('btnRefCharWx');
+    if (btnRefWx) {
+      btnRefWx.onclick = function(e) {
+        e.stopPropagation();
+        var ipt = document.getElementById('fieldWxId');
+        if (ipt) ipt.value = 'wxid_' + Math.random().toString(36).substring(2, 9);
+      };
+    }
+
+    var btnRefPhone = document.getElementById('btnRefCharPhone');
+    if (btnRefPhone) {
+      btnRefPhone.onclick = function(e) {
+        e.stopPropagation();
+        var ipt = document.getElementById('fieldPhone');
+        if (ipt) ipt.value = '1' + Math.floor(100000000 + Math.random() * 900000000) + '*';
+      };
+    }
+
     function saveFormDataToCur(target) {
       target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
       target.gender = document.getElementById('fieldGender').value || '';
