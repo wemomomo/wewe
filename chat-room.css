@@ -1,0 +1,530 @@
+
+/* ======================================================== */
+/* Chat 极简纯黑白灰单聊页 (Chat Room Core)                 */
+/* ======================================================== */
+
+.wx-chat-room-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #f8f8fa;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 1. 顶栏 (44px + safe-top) */
+.wx-cr-header {
+  height: calc(46px + var(--safe-top));
+  padding-top: var(--safe-top);
+  background: #ffffff;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 10px;
+  padding-right: 12px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.wx-cr-back-btn,
+.wx-cr-more-btn {
+  background: none;
+  border: none;
+  color: #1a1c22;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wx-cr-back-btn:active,
+.wx-cr-more-btn:active {
+  opacity: 0.4;
+}
+
+.wx-cr-back-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wx-cr-more-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.wx-cr-title-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.wx-cr-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1c22;
+  line-height: 1.2;
+}
+
+.wx-cr-status-sub {
+  font-size: 10.5px;
+  color: #8e8e93;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+.wx-cr-status-dot {
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: #1a1c22;
+}
+
+/* 2. 消息滚动视口 */
+.wx-cr-body {
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+}
+.wx-cr-body::-webkit-scrollbar {
+  display: none;
+}
+
+/* 时间戳与系统居中提示 */
+.wx-msg-time-pill,
+.wx-msg-system-pill {
+  align-self: center;
+  background: rgba(0, 0, 0, 0.04);
+  color: #8e8e93;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  line-height: 1.2;
+  margin: 2px 0;
+  user-select: none;
+}
+
+.wx-msg-system-pill span {
+  color: #1a1c22;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+/* 消息行容器 */
+.wx-msg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wx-msg-row.user-side {
+  flex-direction: row-reverse;
+}
+
+.wx-msg-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #8e8e93;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+.wx-msg-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 气泡列 */
+.wx-msg-bubble-col {
+  max-width: calc(100% - 100px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wx-msg-row.user-side .wx-msg-bubble-col {
+  align-items: flex-end;
+}
+
+/* 气泡样式（纯黑白灰） */
+.wx-msg-bubble {
+  position: relative;
+  padding: 10px 12px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: #1a1c22;
+  border-radius: 10px;
+  word-break: break-word;
+  background: #ffffff;
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+/* User 气泡：纯黑背景 + 纯白文字 */
+.wx-msg-row.user-side .wx-msg-bubble {
+  background: #1a1c22;
+  color: #ffffff;
+  border: none;
+}
+
+/* 引用回复卡片 */
+.wx-msg-quote-bar {
+  font-size: 11.5px;
+  color: #636366;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 4px 8px;
+  border-left: 2px solid #1a1c22;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+.wx-msg-row.user-side .wx-msg-quote-bar {
+  border-left-color: rgba(255, 255, 255, 0.6);
+  color: #9aa8b8;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 心声 (手账感虚线灰框) */
+.wx-msg-inner-voice {
+  font-size: 12px;
+  color: #636366;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* 双语翻译结果 */
+.wx-msg-trans-box {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  color: #636366;
+  line-height: 1.4;
+}
+.wx-msg-row.user-side .wx-msg-trans-box {
+  border-top-color: rgba(255, 255, 255, 0.15);
+  color: #e5e5ea;
+}
+
+/* 3. 底部主输入控制条 (纯白底色) */
+.wx-cr-footer {
+  background: #ffffff;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--safe-bottom);
+  flex-shrink: 0;
+}
+
+.wx-cr-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  min-height: 50px;
+  box-sizing: border-box;
+}
+
+.wx-cr-tool-icon-btn {
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  color: #1a1c22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+.wx-cr-tool-icon-btn:active {
+  opacity: 0.4;
+}
+.wx-cr-tool-icon-btn svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+}
+
+.wx-cr-input-wrap {
+  flex: 1;
+  min-height: 36px;
+  max-height: 100px;
+  background: #f4f4f8;
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.wx-cr-textarea {
+  width: 100%;
+  max-height: 84px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14.5px;
+  color: #1a1c22;
+  font-family: inherit;
+  resize: none;
+  line-height: 1.4;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+}
+.wx-cr-textarea::placeholder {
+  color: #9aa8b8;
+  font-size: 13.5px;
+}
+
+/* 发送按钮 (高级黑金纯黑) */
+.wx-cr-send-btn {
+  background: #1a1c22;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+}
+.wx-cr-send-btn:active {
+  background: #000000;
+  transform: scale(0.96);
+}
+
+/* 4. 底部九宫格多功能面板 */
+.wx-cr-panel-drawer {
+  display: none;
+  height: 230px;
+  background: #ffffff;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.05);
+  padding: 16px 14px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.wx-cr-panel-drawer.open {
+  display: block;
+}
+
+.wx-cr-grid-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px 10px;
+}
+
+.wx-cr-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.wx-cr-grid-item:active {
+  opacity: 0.5;
+}
+
+.wx-cr-grid-icon-box {
+  width: 52px;
+  height: 52px;
+  background: #f4f4f8;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a1c22;
+}
+.wx-cr-grid-icon-box svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+}
+
+.wx-cr-grid-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #636366;
+}
+
+/* 5. 角色专属全功能设置抽屉 */
+.wx-cr-settings-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 150;
+  display: none;
+}
+.wx-cr-settings-mask.show {
+  display: block;
+}
+
+.wx-cr-settings-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 88vw;
+  max-width: 360px;
+  background: #f8f8fa;
+  z-index: 160;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+}
+.wx-cr-settings-panel.open {
+  transform: translateX(0);
+}
+
+.wx-cr-set-header {
+  height: calc(46px + var(--safe-top));
+  padding-top: var(--safe-top);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1c22;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.wx-cr-set-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #8e8e93;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.wx-cr-set-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 12px calc(24px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wx-cr-set-group {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 4px 14px;
+  display: flex;
+  flex-direction: column;
+  border: 0.5px solid rgba(0, 0, 0, 0.03);
+}
+
+.wx-cr-set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
+}
+.wx-cr-set-row:last-child {
+  border-bottom: none;
+}
+
+.wx-cr-set-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1c22;
+}
+
+.wx-cr-set-desc {
+  font-size: 11px;
+  color: #8e8e93;
+  margin-top: 2px;
+}
+
+/* 黑白切换开关 */
+.wx-switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  background: #e5e5ea;
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background 0.25s;
+}
+.wx-switch.on {
+  background: #1a1c22;
+}
+.wx-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wx-switch.on .wx-switch-knob {
+  transform: translateX(18px);
+}
+
+.wx-cr-set-input {
+  border: none;
+  background: transparent;
+  text-align: right;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #1a1c22;
+  outline: none;
+  font-family: inherit;
+}
+.wx-cr-set-input::placeholder {
+  color: #9aa8b8;
+}
