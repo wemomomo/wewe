@@ -4,9 +4,9 @@
 /* ======================================================== */
 
 :root {
-  --wb-cur-theme: #88abda;
-  --wb-cur-theme-bg: rgba(136, 171, 218, 0.22);
-  --wb-border-line: #e5e5ea;
+  --wb-cur-theme: #A6BFE0;  /* 👈 默认蓝色改成 #A6BFE0 */
+  --wb-cur-theme-bg: rgba(166, 191, 224, 0.22);  /* 👈 配套半透明背景 */
+  --wb-border-line: #e5e5ea;  /* 👈 灰色改成 #e5e5ea */
   --wb-card-bg: #f8f8fa;
   --wb-icon-gray: #8e8e93;
 }
@@ -53,7 +53,7 @@
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   padding: 0 !important;
   margin: 0 !important;
   position: relative;
@@ -357,7 +357,7 @@
   max-width: 100% !important;
   height: 88px;
   background: #ffffff;
-  border: 1px solid var(--wb-border-line);
+  border: 1px solid #1c1c1e;  /* 👈 改成黑色 */
   border-radius: 0;
   display: flex;
   align-items: center;
@@ -386,7 +386,7 @@
   width: 58px !important;
   height: 100%;
   background: #f4f4f6;
-  border: 0.8px solid rgba(0,0,0,0.08);
+  border: 0.8px solid #1c1c1e;  /* 👈 改成黑色 */
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
@@ -433,7 +433,7 @@
 }
 
 .wb-art-title-text {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: #1c1c1e;
   letter-spacing: 0.3px;
@@ -444,8 +444,8 @@
 }
 
 .wb-art-stars-btn {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -455,6 +455,7 @@
   border: none;
   cursor: pointer;
   padding: 0;
+  margin-top: -8px;
   color: #1c1c1e;
   flex-shrink: 0;
 }
@@ -469,9 +470,9 @@
 .wb-art-dot-divider {
   width: 100%;
   height: 1px;
-  background: repeating-linear-gradient(to right, #d1d1d6, #d1d1d6 3px, transparent 3px, transparent 6px);
+  background: repeating-linear-gradient(to right, #1c1c1e, #1c1c1e 3px, transparent 3px, transparent 6px);
   margin: 0;
-  transform: translateY(1px); /* 👈 想往下移多少就填多少（比如 4px、6px、8px），必定立刻生效！ */
+  transform: translateY(-2px);  /* 👈 原来是 1px，现在改成 -3px 往上提 */
 }
 
 .wb-art-meta-bottom {
@@ -483,7 +484,7 @@
   gap: 4px;
   padding: 0;
   margin: 0;
-  transform: translateY(5px); /* 👈 虚线移多少，这里就填多少（比如 6px、8px），文字绝对立刻跟着往下沉！ */
+  transform: translateY(5px);  /* 👈 原来是 5px，现在改成 -1px 让它跟虚线贴近 */
 }
 
 .wb-art-count {
@@ -501,12 +502,21 @@
 .wb-art-enter {
   font-size: 10.5px;
   font-weight: 800;
-  color: #1c1c1e;
+  color: #ffffff;
   letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
+  background: #1c1c1e;
+  padding: 2px 6px;
+  border-radius: 1px;
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.15s ease;
+  cursor: pointer;
+}
+.wb-art-enter:active {
+  transform: scale(0.92);
+  opacity: 0.75;
 }
 
 .wb-dropdown-menu {
@@ -517,9 +527,9 @@
   border-radius: 12px;
   display: none;
   flex-direction: column;
-  min-width: 96px;
+  min-width: 110px;  /* 👈 原来是 96px，改成 120px */
   z-index: 50;
-  padding: 4px;
+  padding: 6px;  /* 👈 原来是 4px，改成 6px */
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 .wb-dropdown-menu.show { display: flex; animation: wbDropIn 0.15s ease; }
@@ -528,8 +538,8 @@
 }
 
 .wb-menu-item {
-  padding: 8px 10px;
-  font-size: 12px;
+  padding: 10px 12px;  /* 👈 原来是 8px 10px，改成 10px 12px */
+  font-size: 13px;  /* 👈 原来是 12px，改成 13px */
   font-weight: 600;
   color: #ffffff;
   border-radius: 6px;
@@ -630,7 +640,7 @@
 }
 .wb-entries-book-title {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 500;
   color: #1c1c1e;
   white-space: nowrap;
   overflow: hidden;
@@ -657,8 +667,8 @@
 }
 
 .wb-entry-item-card {
-  background: #f8f8fa;
-  border: 1px solid #e5e5ea !important;
+  background: #ffffff;  /* 👈 改成白色 */
+  border: 0.8px solid var(--wb-cur-theme) !important;  /* 👈 改成跟随主题色 */
   border-radius: 12px;
   height: 64px;
   padding: 0 10px 0 14px;
@@ -696,8 +706,8 @@
 }
 .wb-entry-title-text {
   font-size: 15.5px;
-  font-weight: 700;
-  color: #1c1c1e;
+  font-weight: 400;
+  color: #333333;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -713,7 +723,7 @@
 }
 .wb-entry-sub-desc span {
   color: #8e8e93;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .wb-entry-icons-row {
@@ -792,7 +802,7 @@
   pointer-events: auto;
   width: 160px;
   height: 40px;
-  background: #1c1c1e;
+  background: #333333;
   color: #ffffff;
   border: none;
   border-radius: 20px;
@@ -848,7 +858,7 @@
   justify-content: space-between;
 }
 .wb-field-label {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: #1c1c1e;
   display: flex;
@@ -1039,7 +1049,7 @@
   z-index: 60;
   display: none;
   flex-direction: column;
-  padding: 10px 14px;
+  padding: calc(12px + var(--safe-top)) 14px calc(14px + var(--safe-bottom)); /* 👈 改成这行 */
   gap: 8px;
   box-sizing: border-box;
 }
