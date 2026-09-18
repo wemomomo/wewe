@@ -939,7 +939,7 @@
 
     document.getElementById('archBackBtn').addEventListener('click', step2BackHandler);
 
-    function saveFormDataToCur(target) {
+        function saveFormDataToCur(target) {
       target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
       target.gender = document.getElementById('fieldGender').value || '';
       target.age = document.getElementById('fieldAge').value || '';
@@ -951,8 +951,6 @@
       if (elWx) target.wxid = elWx.value.trim();
       var elPhone = document.getElementById('fieldPhone');
       if (elPhone) target.phone = elPhone.value.trim();
-      var elLoc = document.getElementById('fieldLocation');
-      if (elLoc) target.location = elLoc.value.trim();
       var elCall = document.getElementById('fieldUserCallName');
       if (elCall) target.userCallName = elCall.value.trim();
       var elRel = document.getElementById('fieldRelationToUser');
