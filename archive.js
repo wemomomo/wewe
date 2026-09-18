@@ -1,4 +1,4 @@
-
+  
 (function(){
   'use strict';
   
@@ -103,16 +103,15 @@
     height: '',
     birthday: '',
     zodiac: '',
-    wxid: '',
-    phone: '',
-    location: '',
-    userCallName: '',
-    relationToUser: '',
     appearance: '',
     personality: '',
     tags: '',
     hobbies: '',
     background: '',
+    wxid: '',
+    phone: '',
+    userCall: '',
+    userRel: '',
     quote0: DEFAULT_CHAR_QUOTES[0],
     quote1: DEFAULT_CHAR_QUOTES[1],
     quote2: DEFAULT_CHAR_QUOTES[2],
@@ -124,25 +123,8 @@
     serial: 'NO. 0000',
     tplIdx: 0,
     boundUserId: '',
-    boundWbIds: []
+    boundWbIds: [] // 👈 改为数组，支持绑定多本世界书
   };
-
-  function generateRandomWxId() {
-    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    var res = 'wxid_';
-    for (var i = 0; i < 7; i++) {
-      res += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return res;
-  }
-
-  function generateRandomPhone() {
-    var res = '1';
-    for (var i = 0; i < 9; i++) {
-      res += Math.floor(Math.random() * 10);
-    }
-    return res + '*';
-  }
 
   // ============ 核心自愈初始化 ============
   function initArchivePage() {
@@ -188,7 +170,7 @@
     initArchivePage();
   }
 
-  // ============ 展平读取逻辑 ============
+  // ============ 展平读取逻辑（彻底消除嵌套死锁） ============
   function loadAllData() {
     if (!window.AppDB) {
       renderArchiveShell();
@@ -222,17 +204,18 @@
         // 3. 读取角色列表
         AppDB.get(CHAR_ARCHIVES_LIST_KEY, function(cList) {
           charList = Array.isArray(cList) ? cList : [];
-          charList.forEach(function(c) {
-            if (c.name) c.name = c.name.replace(/[✞✟✠]/g, '').trim();
-            if (!Array.isArray(c.boundWbIds)) {
-              c.boundWbIds = c.boundWbId ? [c.boundWbId] : [];
-            }
-            for (var j = 0; j < 5; j++) {
-              if (!c['quote' + j]) {
-                c['quote' + j] = (j === 0 && c.quote) ? c.quote : DEFAULT_CHAR_QUOTES[j];
-              }
-            }
-          });
+            charList.forEach(function(c) {
+    if (c.name) c.name = c.name.replace(/[✞✟✠]/g, '').trim();
+    // 兼容多选世界书数组：
+    if (!Array.isArray(c.boundWbIds)) {
+      c.boundWbIds = c.boundWbId ? [c.boundWbId] : [];
+    }
+    for (var j = 0; j < 5; j++) {
+      if (!c['quote' + j]) {
+        c['quote' + j] = (j === 0 && c.quote) ? c.quote : DEFAULT_CHAR_QUOTES[j];
+      }
+    }
+  });
           charList = charList.filter(function(c) { return !c.id || !c.id.startsWith('user_'); });
 
           // 4. 读取角色激活ID
@@ -326,7 +309,7 @@
     if (!charId) return false;
     var c = charList.find(function(x) { return x.id === charId; });
     var hasWb = c && Array.isArray(c.boundWbIds) && c.boundWbIds.length > 0;
-    return !!(c && (c.boundUserId || hasWb));
+    return !!(c && (c.boundUserId || hasWb)); // 👈 只要绑定了用户或任意一本世界书，星星都会点亮！
   }
 
   // ==========================================
@@ -458,7 +441,7 @@
     if (bindDrawerCloseBtn) bindDrawerCloseBtn.addEventListener('click', closeBindDrawer);
     if (bindDrawerMask) bindDrawerMask.addEventListener('click', closeBindDrawer);
 
-    if (bindStarBtn) {
+        if (bindStarBtn) {
       bindStarBtn.addEventListener('click', function() {
         if (currentTab !== 'char') {
           if (window.AppNav) AppNav.showToast('✦ 切换到角色端即可绑定 ✦');
@@ -470,7 +453,7 @@
           return;
         }
 
-        var activeBindTab = 'user';
+        var activeBindTab = 'user'; // 'user' | 'wb'
 
         function renderBindList() {
           var listWrap = document.getElementById('bindUserListContent');
@@ -505,7 +488,8 @@
                 });
               });
             });
-          } else {
+                  } else {
+            // 渲染世界书绑定列表（支持多本勾选）
             if (!window.AppDB) return;
             window.AppDB.get('app_worldbooks_data', function(wbData) {
               var wbList = Array.isArray(wbData) ? wbData : [];
@@ -538,9 +522,11 @@
                   var idx = curChar.boundWbIds.indexOf(targetWbId);
 
                   if (idx !== -1) {
+                    // 已绑定 -> 移除
                     curChar.boundWbIds.splice(idx, 1);
                     if (window.AppNav) AppNav.showToast('✦ 已解除《' + (targetWb ? targetWb.title : '') + '》✦');
                   } else {
+                    // 未绑定 -> 追加绑定
                     curChar.boundWbIds.push(targetWbId);
                     if (window.AppNav) AppNav.showToast('✦ 已追加绑定《' + (targetWb ? targetWb.title : '') + '》✦');
                   }
@@ -609,7 +595,9 @@
     }
   }
 
-  // ============ 步骤 1：空状态 ============
+  // ==========================================
+  // 步骤 1：空状态凝聚冰晶
+  // ==========================================
   function renderStep1(subViewport) {
     var isUser = (currentTab === 'user');
     subViewport.innerHTML = '<div class="archive-step-panel step-active" id="archStep1">'
@@ -684,42 +672,15 @@
     });
   }
 
-  // ============ 步骤 2：手账录入填单 ============
+  // ==========================================
+  // 步骤 2：手账录入填单
+  // ==========================================
   var step2BackHandler = null;
 
   function renderStep2() {
     var isUser = (currentTab === 'user');
     var store = getActiveStore();
     var cur = getCurrentItem() || store.defaultObj;
-
-    // 角色专属扩展字段（严格顺序：微信号 -> 手机号 -> 所在地 -> 对user称呼 -> 与user关系）
-        function saveFormDataToCur(target) {
-      target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
-      target.gender = document.getElementById('fieldGender').value || '';
-      target.age = document.getElementById('fieldAge').value || '';
-      target.height = document.getElementById('fieldHeight').value || '';
-      target.birthday = document.getElementById('fieldBirthday').value || '';
-      target.zodiac = document.getElementById('fieldZodiac').value || '';
-
-      var elWx = document.getElementById('fieldWxId');
-      if (elWx) target.wxid = elWx.value.trim();
-      var elPhone = document.getElementById('fieldPhone');
-      if (elPhone) target.phone = elPhone.value.trim();
-      var elCall = document.getElementById('fieldUserCallName');
-      if (elCall) target.userCallName = elCall.value.trim();
-      var elRel = document.getElementById('fieldRelationToUser');
-      if (elRel) target.relationToUser = elRel.value.trim();
-
-      target.appearance = document.getElementById('fieldAppearance').value || '';
-      target.personality = document.getElementById('fieldPersonality').value || '';
-      target.tags = document.getElementById('fieldTags').value || '';
-      target.hobbies = document.getElementById('fieldHobbies').value || '';
-      target.background = document.getElementById('fieldBackground').value || '';
-      if (target.birthday) {
-        var cleanDigits = target.birthday.replace(/[^0-9]/g, '');
-        target.serial = 'NO. ' + (cleanDigits || target.birthday) + '-NIVEOUS';
-      }
-    }
 
     container.className = 'app-content archive-page-wrap';
     container.innerHTML = '<div class="archive-page-screen screen-bg-0">'
@@ -739,7 +700,7 @@
       + '<div class="journal-header-divider"><span class="divider-line"></span><span class="divider-star">✦</span><span class="divider-line"></span></div>'
       + '</div>'
 
-      // 01. 基础设定
+           // 01. 基础设定
       + '<div class="journal-section">'
       + '<div class="section-lead-title"><div class="section-name"><span class="sec-index">01.</span><span>基础设定</span></div><span class="section-tag-en">IDENTITY</span></div>'
       + '<div class="ruled-row-grid">'
@@ -749,7 +710,12 @@
       + '<div class="ruled-item"><span class="ruled-label">身高</span><input type="text" class="ruled-input" id="fieldHeight" value="' + esc(cur.height) + '" placeholder=""></div>'
       + '<div class="ruled-item"><span class="ruled-label">生日</span><input type="text" class="ruled-input" id="fieldBirthday" value="' + esc(cur.birthday) + '" placeholder=""></div>'
       + '<div class="ruled-item"><span class="ruled-label">星座</span><input type="text" class="ruled-input" id="fieldZodiac" value="' + esc(cur.zodiac) + '" placeholder=""></div>'
-      + charExtraFieldsHtml
+      + (!isUser ? (
+          '<div class="ruled-item"><span class="ruled-label">对User称呼</span><input type="text" class="ruled-input" id="fieldUserCall" value="' + esc(cur.userCall || '') + '" placeholder="如: 墨墨 / 宝宝"></div>'
+        + '<div class="ruled-item"><span class="ruled-label">与User关系</span><input type="text" class="ruled-input" id="fieldUserRel" value="' + esc(cur.userRel || '') + '" placeholder="如: 恋人 / 专属神明"></div>'
+        + '<div class="ruled-item"><span class="ruled-label">微信号</span><div class="ruled-input-with-action"><input type="text" class="ruled-input" id="fieldWxId" value="' + esc(cur.wxid || '') + '" placeholder="微信号"><button class="ruled-refresh-btn" id="btnRefCharWx" type="button" title="随机生成微信号"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></button></div></div>'
+        + '<div class="ruled-item"><span class="ruled-label">手机号</span><div class="ruled-input-with-action"><input type="text" class="ruled-input" id="fieldPhone" value="' + esc(cur.phone || '') + '" placeholder="手机号"><button class="ruled-refresh-btn" id="btnRefCharPhone" type="button" title="随机生成手机号"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></button></div></div>'
+      ) : '')
       + '</div>'
       + '</div>'
 
@@ -841,34 +807,8 @@
 
       + '</div>';
 
-    // 绑定刷新按钮
-    var btnRefWx = document.getElementById('btnRefCharWx');
-    if (btnRefWx) {
-      btnRefWx.addEventListener('click', function(e) {
-        e.stopPropagation();
-        btnRefWx.classList.remove('spin-active');
-        void btnRefWx.offsetWidth;
-        btnRefWx.classList.add('spin-active');
-        var ipt = document.getElementById('fieldWxId');
-        if (ipt) ipt.value = 'wxid_' + Math.random().toString(36).substring(2, 9);
-      });
-    }
-
-    var btnRefPhone = document.getElementById('btnRefCharPhone');
-    if (btnRefPhone) {
-      btnRefPhone.addEventListener('click', function(e) {
-        e.stopPropagation();
-        btnRefPhone.classList.remove('spin-active');
-        void btnRefPhone.offsetWidth;
-        btnRefPhone.classList.add('spin-active');
-        var ipt = document.getElementById('fieldPhone');
-        if (ipt) ipt.value = '1' + Math.floor(100000000 + Math.random() * 900000000) + '*';
-      });
-    }
-
     var originalSnapshot = JSON.stringify({
       name: cur.name || '', gender: cur.gender || '', age: cur.age || '', height: cur.height || '', birthday: cur.birthday || '', zodiac: cur.zodiac || '',
-      wxid: cur.wxid || '', phone: cur.phone || '', location: cur.location || '', userCallName: cur.userCallName || '', relationToUser: cur.relationToUser || '',
       appearance: cur.appearance || '', personality: cur.personality || '', tags: cur.tags || '', hobbies: cur.hobbies || '', background: cur.background || ''
     });
 
@@ -904,11 +844,6 @@
         height: (document.getElementById('fieldHeight') ? document.getElementById('fieldHeight').value : ''),
         birthday: (document.getElementById('fieldBirthday') ? document.getElementById('fieldBirthday').value : ''),
         zodiac: (document.getElementById('fieldZodiac') ? document.getElementById('fieldZodiac').value : ''),
-        wxid: (document.getElementById('fieldWxId') ? document.getElementById('fieldWxId').value : ''),
-        phone: (document.getElementById('fieldPhone') ? document.getElementById('fieldPhone').value : ''),
-        location: (document.getElementById('fieldLocation') ? document.getElementById('fieldLocation').value : ''),
-        userCallName: (document.getElementById('fieldUserCallName') ? document.getElementById('fieldUserCallName').value : ''),
-        relationToUser: (document.getElementById('fieldRelationToUser') ? document.getElementById('fieldRelationToUser').value : ''),
         appearance: (document.getElementById('fieldAppearance') ? document.getElementById('fieldAppearance').value : ''),
         personality: (document.getElementById('fieldPersonality') ? document.getElementById('fieldPersonality').value : ''),
         tags: (document.getElementById('fieldTags') ? document.getElementById('fieldTags').value : ''),
@@ -946,21 +881,22 @@
       target.height = document.getElementById('fieldHeight').value || '';
       target.birthday = document.getElementById('fieldBirthday').value || '';
       target.zodiac = document.getElementById('fieldZodiac').value || '';
-
+      target.appearance = document.getElementById('fieldAppearance').value;
+      target.personality = document.getElementById('fieldPersonality').value;
+      target.tags = document.getElementById('fieldTags').value;
+      target.hobbies = document.getElementById('fieldHobbies').value;
+      target.background = document.getElementById('fieldBackground').value;
+      
+      // 👇 新增角色专属字段保存：
+      var elCall = document.getElementById('fieldUserCall');
+      if (elCall) target.userCall = elCall.value || '';
+      var elRel = document.getElementById('fieldUserRel');
+      if (elRel) target.userRel = elRel.value || '';
       var elWx = document.getElementById('fieldWxId');
-      if (elWx) target.wxid = elWx.value.trim();
+      if (elWx) target.wxid = elWx.value || '';
       var elPhone = document.getElementById('fieldPhone');
-      if (elPhone) target.phone = elPhone.value.trim();
-      var elCall = document.getElementById('fieldUserCallName');
-      if (elCall) target.userCallName = elCall.value.trim();
-      var elRel = document.getElementById('fieldRelationToUser');
-      if (elRel) target.relationToUser = elRel.value.trim();
+      if (elPhone) target.phone = elPhone.value || '';
 
-      target.appearance = document.getElementById('fieldAppearance').value || '';
-      target.personality = document.getElementById('fieldPersonality').value || '';
-      target.tags = document.getElementById('fieldTags').value || '';
-      target.hobbies = document.getElementById('fieldHobbies').value || '';
-      target.background = document.getElementById('fieldBackground').value || '';
       if (target.birthday) {
         var cleanDigits = target.birthday.replace(/[^0-9]/g, '');
         target.serial = 'NO. ' + (cleanDigits || target.birthday) + '-NIVEOUS';
@@ -1063,6 +999,35 @@
       modalCancelBtn.addEventListener('click', handleModalCloseAttempt);
     }
 
+    // 角色微信号/手机号刷新与随机生成
+    var btnRefWx = document.getElementById('btnRefCharWx');
+    if (btnRefWx) {
+      btnRefWx.addEventListener('click', function() {
+        btnRefWx.classList.remove('rotating');
+        void btnRefWx.offsetWidth;
+        btnRefWx.classList.add('rotating');
+        var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        var rndWx = 'wxid_';
+        for (var i = 0; i < 7; i++) rndWx += chars.charAt(Math.floor(Math.random() * chars.length));
+        var ipt = document.getElementById('fieldWxId');
+        if (ipt) ipt.value = rndWx;
+      });
+    }
+
+    var btnRefPhone = document.getElementById('btnRefCharPhone');
+    if (btnRefPhone) {
+      btnRefPhone.addEventListener('click', function() {
+        btnRefPhone.classList.remove('rotating');
+        void btnRefPhone.offsetWidth;
+        btnRefPhone.classList.add('rotating');
+        var rndPhone = '1';
+        for (var j = 0; j < 9; j++) rndPhone += Math.floor(Math.random() * 10);
+        rndPhone += '*';
+        var ipt2 = document.getElementById('fieldPhone');
+        if (ipt2) ipt2.value = rndPhone;
+      });
+    }
+
     document.getElementById('generateCardBtn').addEventListener('click', function() {
       var nameVal = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
       if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
@@ -1071,7 +1036,6 @@
     });
   }
 
-  // ============ 边缘手势拦截 ============
   (function initGlobalSwipeInterceptor() {
     var touchStartX = 0, touchStartY = 0, touchCurX = 0, touchCurY = 0;
     var isIntercepting = false;
@@ -1108,7 +1072,9 @@
     }, { capture: true, passive: true });
   })();
 
-  // ============ 步骤 3：卡片展示与管理 ============
+  // ==========================================
+  // 步骤 3：卡片展示与管理
+  // ==========================================
   function renderStep3(subViewport, cur) {
     if (cur.name) cur.name = cur.name.replace(/[✞✟✠]/g, '');
     var hasPhotoClass = cur.photo ? ' has-img' : '';
@@ -1207,7 +1173,9 @@
     bindStep3Events(cur);
   }
 
-  // ============ 用户 5 款卡片 HTML ============
+  // ==========================================
+  // 用户 5 款卡片 HTML
+  // ==========================================
   function renderUserCardHtml(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
       return '<div class="arch-card-wrapper t1-wrapper">'
@@ -1283,7 +1251,9 @@
     }
   }
 
-  // ============ 角色 5 款卡片 HTML ============
+  // ==========================================
+  // 角色 5 款卡片 HTML
+  // ==========================================
   function renderCharCardHtml(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
       return '<div class="char-card-base theme-archive">'
@@ -1365,7 +1335,9 @@
     }
   }
 
-  // ============ 事件交互与抽屉管理绑定 ============
+  // ==========================================
+  // 事件交互与抽屉管理绑定
+  // ==========================================
   function bindStep3Events(cur) {
     var isUser = (currentTab === 'user');
 
@@ -1629,3 +1601,4 @@
   }
 
 })();
+
