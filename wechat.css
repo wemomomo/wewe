@@ -1551,7 +1551,7 @@
 /* 仅在 PWA 独立桌面环境单独生效 */
 @media (display-mode: standalone) {
   .wx-tabbar {
-    height: 78px !important;
+    height: 72px !important;
     padding-bottom: env(safe-area-inset-bottom, 20px) !important;
     display: flex !important;
     align-items: flex-start !important;
