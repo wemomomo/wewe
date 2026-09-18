@@ -519,3 +519,55 @@
   font-size: 7.5px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", monospace;
   letter-spacing: 1.5px; color: #9c9a9e; text-transform: uppercase; position: relative; z-index: 30; flex-shrink: 0;
 }
+
+/* =========================================================
+   档案角色手账表单：刷新按钮与复合输入框美化
+========================================================= */
+.ruled-input-refresh-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ruled-refresh-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(136, 171, 218, 0.15);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4a6b8f;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.ruled-refresh-btn:active {
+  background: rgba(136, 171, 218, 0.3);
+  transform: scale(0.92);
+}
+
+.ruled-refresh-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ruled-refresh-btn.rotating svg {
+  transform: rotate(360deg);
+}
+
+.full-width-ruled {
+  grid-column: 1 / -1;
+}
+
+
