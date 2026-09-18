@@ -1,4 +1,4 @@
-  
+
 (function(){
   'use strict';
   
@@ -188,7 +188,7 @@
     initArchivePage();
   }
 
-  // ============ 展平读取逻辑（彻底消除嵌套死锁） ============
+  // ============ 展平读取逻辑 ============
   function loadAllData() {
     if (!window.AppDB) {
       renderArchiveShell();
@@ -222,18 +222,17 @@
         // 3. 读取角色列表
         AppDB.get(CHAR_ARCHIVES_LIST_KEY, function(cList) {
           charList = Array.isArray(cList) ? cList : [];
-            charList.forEach(function(c) {
-    if (c.name) c.name = c.name.replace(/[✞✟✠]/g, '').trim();
-    // 兼容多选世界书数组：
-    if (!Array.isArray(c.boundWbIds)) {
-      c.boundWbIds = c.boundWbId ? [c.boundWbId] : [];
-    }
-    for (var j = 0; j < 5; j++) {
-      if (!c['quote' + j]) {
-        c['quote' + j] = (j === 0 && c.quote) ? c.quote : DEFAULT_CHAR_QUOTES[j];
-      }
-    }
-  });
+          charList.forEach(function(c) {
+            if (c.name) c.name = c.name.replace(/[✞✟✠]/g, '').trim();
+            if (!Array.isArray(c.boundWbIds)) {
+              c.boundWbIds = c.boundWbId ? [c.boundWbId] : [];
+            }
+            for (var j = 0; j < 5; j++) {
+              if (!c['quote' + j]) {
+                c['quote' + j] = (j === 0 && c.quote) ? c.quote : DEFAULT_CHAR_QUOTES[j];
+              }
+            }
+          });
           charList = charList.filter(function(c) { return !c.id || !c.id.startsWith('user_'); });
 
           // 4. 读取角色激活ID
@@ -327,7 +326,7 @@
     if (!charId) return false;
     var c = charList.find(function(x) { return x.id === charId; });
     var hasWb = c && Array.isArray(c.boundWbIds) && c.boundWbIds.length > 0;
-    return !!(c && (c.boundUserId || hasWb)); // 👈 只要绑定了用户或任意一本世界书，星星都会点亮！
+    return !!(c && (c.boundUserId || hasWb));
   }
 
   // ==========================================
@@ -459,7 +458,7 @@
     if (bindDrawerCloseBtn) bindDrawerCloseBtn.addEventListener('click', closeBindDrawer);
     if (bindDrawerMask) bindDrawerMask.addEventListener('click', closeBindDrawer);
 
-        if (bindStarBtn) {
+    if (bindStarBtn) {
       bindStarBtn.addEventListener('click', function() {
         if (currentTab !== 'char') {
           if (window.AppNav) AppNav.showToast('✦ 切换到角色端即可绑定 ✦');
@@ -471,7 +470,7 @@
           return;
         }
 
-        var activeBindTab = 'user'; // 'user' | 'wb'
+        var activeBindTab = 'user';
 
         function renderBindList() {
           var listWrap = document.getElementById('bindUserListContent');
@@ -506,8 +505,7 @@
                 });
               });
             });
-                  } else {
-            // 渲染世界书绑定列表（支持多本勾选）
+          } else {
             if (!window.AppDB) return;
             window.AppDB.get('app_worldbooks_data', function(wbData) {
               var wbList = Array.isArray(wbData) ? wbData : [];
@@ -540,11 +538,9 @@
                   var idx = curChar.boundWbIds.indexOf(targetWbId);
 
                   if (idx !== -1) {
-                    // 已绑定 -> 移除
                     curChar.boundWbIds.splice(idx, 1);
                     if (window.AppNav) AppNav.showToast('✦ 已解除《' + (targetWb ? targetWb.title : '') + '》✦');
                   } else {
-                    // 未绑定 -> 追加绑定
                     curChar.boundWbIds.push(targetWbId);
                     if (window.AppNav) AppNav.showToast('✦ 已追加绑定《' + (targetWb ? targetWb.title : '') + '》✦');
                   }
@@ -613,9 +609,7 @@
     }
   }
 
-  // ==========================================
-  // 步骤 1：空状态凝聚冰晶
-  // ==========================================
+  // ============ 步骤 1：空状态 ============
   function renderStep1(subViewport) {
     var isUser = (currentTab === 'user');
     subViewport.innerHTML = '<div class="archive-step-panel step-active" id="archStep1">'
@@ -693,9 +687,9 @@
   // ==========================================
   // 步骤 2：手账录入填单
   // ==========================================
-    var step2BackHandler = null;
+  var step2BackHandler = null;
 
-    function renderStep2() {
+  function renderStep2() {
     var isUser = (currentTab === 'user');
     var store = getActiveStore();
     var cur = getCurrentItem() || store.defaultObj;
@@ -1077,227 +1071,8 @@
       saveCurrentToDB(function() { renderArchiveShell(); });
     });
   }
-  
 
-    var btnRefPhone = document.getElementById('btnRefCharPhone');
-    if (btnRefPhone) {
-      btnRefPhone.addEventListener('click', function(e) {
-        e.stopPropagation();
-        btnRefPhone.classList.remove('rotating');
-        void btnRefPhone.offsetWidth;
-        btnRefPhone.classList.add('rotating');
-        var ipt = document.getElementById('fieldPhone');
-        if (ipt) ipt.value = generateRandomPhone();
-      });
-    }
-
-    var originalSnapshot = JSON.stringify({
-      name: cur.name || '', gender: cur.gender || '', age: cur.age || '', height: cur.height || '', birthday: cur.birthday || '', zodiac: cur.zodiac || '',
-      wxid: cur.wxid || '', phone: cur.phone || '', userCallName: cur.userCallName || '', location: cur.location || '', relationToUser: cur.relationToUser || '',
-      appearance: cur.appearance || '', personality: cur.personality || '', tags: cur.tags || '', hobbies: cur.hobbies || '', background: cur.background || ''
-    });
-
-    function exitWithoutSaving() {
-      var store = getActiveStore();
-      if (store.list.length > 0 && cur.name && cur.name !== '') {
-        renderArchiveShell();
-      } else if (store.list.length > 0) {
-        if (store.isUser) {
-          userList = userList.filter(function(u) { return u.id !== cur.id; });
-          if (userList.length) currentUserId = userList[0].id;
-        } else {
-          charList = charList.filter(function(c) { return c.id !== cur.id; });
-          if (charList.length) currentCharId = charList[0].id;
-        }
-        renderArchiveShell();
-      } else {
-        renderArchiveShell();
-      }
-    }
-
-    step2BackHandler = function() {
-      var modal = document.getElementById('expandModalOverlay');
-      if (modal && modal.classList.contains('show')) {
-        handleModalCloseAttempt();
-        return;
-      }
-
-      var currentSnapshot = JSON.stringify({
-        name: (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, ''),
-        gender: (document.getElementById('fieldGender') ? document.getElementById('fieldGender').value : ''),
-        age: (document.getElementById('fieldAge') ? document.getElementById('fieldAge').value : ''),
-        height: (document.getElementById('fieldHeight') ? document.getElementById('fieldHeight').value : ''),
-        birthday: (document.getElementById('fieldBirthday') ? document.getElementById('fieldBirthday').value : ''),
-        zodiac: (document.getElementById('fieldZodiac') ? document.getElementById('fieldZodiac').value : ''),
-        wxid: (document.getElementById('fieldWxId') ? document.getElementById('fieldWxId').value : ''),
-        phone: (document.getElementById('fieldPhone') ? document.getElementById('fieldPhone').value : ''),
-        userCallName: (document.getElementById('fieldUserCallName') ? document.getElementById('fieldUserCallName').value : ''),
-        location: (document.getElementById('fieldLocation') ? document.getElementById('fieldLocation').value : ''),
-        relationToUser: (document.getElementById('fieldRelationToUser') ? document.getElementById('fieldRelationToUser').value : ''),
-        appearance: (document.getElementById('fieldAppearance') ? document.getElementById('fieldAppearance').value : ''),
-        personality: (document.getElementById('fieldPersonality') ? document.getElementById('fieldPersonality').value : ''),
-        tags: (document.getElementById('fieldTags') ? document.getElementById('fieldTags').value : ''),
-        hobbies: (document.getElementById('fieldHobbies') ? document.getElementById('fieldHobbies').value : ''),
-        background: (document.getElementById('fieldBackground') ? document.getElementById('fieldBackground').value : '')
-      });
-
-      if (originalSnapshot !== currentSnapshot) {
-        if (window.AppDialog) {
-          AppDialog.confirm({
-            title: '提示',
-            desc: '检测到手札内容已修改，是否保存？',
-            confirmText: '保存'
-          }, function() {
-            var nameVal = (document.getElementById('fieldName') ? document.getElementById('fieldName').value : '').replace(/[✞✟✠]/g, '');
-            if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
-            saveFormDataToCur(cur);
-            saveCurrentToDB(function() { renderArchiveShell(); });
-          }, function() {
-            exitWithoutSaving();
-          });
-          return;
-        }
-      }
-
-      exitWithoutSaving();
-    };
-
-    document.getElementById('archBackBtn').addEventListener('click', step2BackHandler);
-
-    function saveFormDataToCur(target) {
-      target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
-      target.gender = document.getElementById('fieldGender').value || '';
-      target.age = document.getElementById('fieldAge').value || '';
-      target.height = document.getElementById('fieldHeight').value || '';
-      target.birthday = document.getElementById('fieldBirthday').value || '';
-      target.zodiac = document.getElementById('fieldZodiac').value || '';
-      
-      var elWx = document.getElementById('fieldWxId');
-      if (elWx) target.wxid = elWx.value.trim();
-      var elPhone = document.getElementById('fieldPhone');
-      if (elPhone) target.phone = elPhone.value.trim();
-      var elCall = document.getElementById('fieldUserCallName');
-      if (elCall) target.userCallName = elCall.value.trim();
-      var elLoc = document.getElementById('fieldLocation');
-      if (elLoc) target.location = elLoc.value.trim();
-      var elRel = document.getElementById('fieldRelationToUser');
-      if (elRel) target.relationToUser = elRel.value.trim();
-
-      target.appearance = document.getElementById('fieldAppearance').value || '';
-      target.personality = document.getElementById('fieldPersonality').value || '';
-      target.tags = document.getElementById('fieldTags').value || '';
-      target.hobbies = document.getElementById('fieldHobbies').value || '';
-      target.background = document.getElementById('fieldBackground').value || '';
-      if (target.birthday) {
-        var cleanDigits = target.birthday.replace(/[^0-9]/g, '');
-        target.serial = 'NO. ' + (cleanDigits || target.birthday) + '-NIVEOUS';
-      }
-    }
-
-    var currentTargetFieldId = '';
-    var modalOriginalText = '';
-    var modalOverlay = document.getElementById('expandModalOverlay');
-    var modalTitle = document.getElementById('expandModalTitle');
-    var modalTextarea = document.getElementById('expandModalTextarea');
-    var modalDoneBtn = document.getElementById('expandModalDoneBtn');
-    var modalCancelBtn = document.getElementById('expandModalCancelBtn');
-    var wordCount = document.getElementById('expandWordCount');
-    var clearBtn = document.getElementById('expandClearBtn');
-
-    function updateWordCount() {
-      if (wordCount && modalTextarea) wordCount.textContent = modalTextarea.value.length + ' 字';
-    }
-
-    function openExpandModal(fieldId, titleText) {
-      currentTargetFieldId = fieldId;
-      var targetInput = document.getElementById(fieldId);
-      if (modalTitle) modalTitle.textContent = titleText || '深度手札编辑';
-      if (modalTextarea) {
-        modalTextarea.value = targetInput ? targetInput.value : '';
-        modalOriginalText = modalTextarea.value;
-        updateWordCount();
-      }
-      if (modalOverlay) modalOverlay.classList.add('show');
-      setTimeout(function() { if (modalTextarea) modalTextarea.focus(); }, 300);
-    }
-
-    function closeExpandModal() {
-      if (modalOverlay) modalOverlay.classList.remove('show');
-      currentTargetFieldId = '';
-      modalOriginalText = '';
-    }
-
-    function handleModalCloseAttempt() {
-      if (modalTextarea && modalTextarea.value !== modalOriginalText) {
-        if (window.AppDialog) {
-          AppDialog.confirm({
-            title: '提示',
-            desc: '检测到手写板内容已修改，是否保存？',
-            confirmText: '保存'
-          }, function() {
-            if (currentTargetFieldId) {
-              var targetInput = document.getElementById(currentTargetFieldId);
-              if (targetInput && modalTextarea) targetInput.value = modalTextarea.value;
-            }
-            closeExpandModal();
-          }, function() {
-            closeExpandModal();
-          });
-          return;
-        }
-      }
-      closeExpandModal();
-    }
-
-    document.querySelectorAll('.expand-edit-btn').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        openExpandModal(this.dataset.expandTarget, this.dataset.expandTitle);
-      });
-    });
-
-    if (modalTextarea) modalTextarea.addEventListener('input', updateWordCount);
-
-    if (clearBtn) {
-      clearBtn.addEventListener('click', function() {
-        if (!modalTextarea) return;
-        if (window.AppDialog) {
-          AppDialog.confirm({
-            title: '提示',
-            desc: '确定要清空当前输入的内容吗？',
-            confirmText: '清空',
-            isDanger: true
-          }, function() {
-            modalTextarea.value = '';
-            updateWordCount();
-            modalTextarea.focus();
-          });
-        }
-      });
-    }
-
-    if (modalDoneBtn) {
-      modalDoneBtn.addEventListener('click', function() {
-        if (currentTargetFieldId) {
-          var targetInput = document.getElementById(currentTargetFieldId);
-          if (targetInput && modalTextarea) targetInput.value = modalTextarea.value;
-        }
-        closeExpandModal();
-      });
-    }
-
-    if (modalCancelBtn) {
-      modalCancelBtn.addEventListener('click', handleModalCloseAttempt);
-    }
-
-    document.getElementById('generateCardBtn').addEventListener('click', function() {
-      var nameVal = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
-      if (!nameVal.trim()) { if (window.AppNav) AppNav.showToast('请在第一栏写下姓名哦'); return; }
-      saveFormDataToCur(cur);
-      saveCurrentToDB(function() { renderArchiveShell(); });
-    });
-  }
-  
+  // ============ 边缘手势拦截 ============
   (function initGlobalSwipeInterceptor() {
     var touchStartX = 0, touchStartY = 0, touchCurX = 0, touchCurY = 0;
     var isIntercepting = false;
@@ -1334,9 +1109,7 @@
     }, { capture: true, passive: true });
   })();
 
-  // ==========================================
-  // 步骤 3：卡片展示与管理
-  // ==========================================
+  // ============ 步骤 3：卡片展示与管理 ============
   function renderStep3(subViewport, cur) {
     if (cur.name) cur.name = cur.name.replace(/[✞✟✠]/g, '');
     var hasPhotoClass = cur.photo ? ' has-img' : '';
@@ -1435,9 +1208,7 @@
     bindStep3Events(cur);
   }
 
-  // ==========================================
-  // 用户 5 款卡片 HTML
-  // ==========================================
+  // ============ 用户 5 款卡片 HTML ============
   function renderUserCardHtml(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
       return '<div class="arch-card-wrapper t1-wrapper">'
@@ -1513,9 +1284,7 @@
     }
   }
 
-  // ==========================================
-  // 角色 5 款卡片 HTML
-  // ==========================================
+  // ============ 角色 5 款卡片 HTML ============
   function renderCharCardHtml(cur, tplIdx, hasPhotoClass) {
     if (tplIdx === 0) {
       return '<div class="char-card-base theme-archive">'
@@ -1597,9 +1366,7 @@
     }
   }
 
-  // ==========================================
-  // 事件交互与抽屉管理绑定
-  // ==========================================
+  // ============ 事件交互与抽屉管理绑定 ============
   function bindStep3Events(cur) {
     var isUser = (currentTab === 'user');
 
@@ -1863,4 +1630,3 @@
   }
 
 })();
-
