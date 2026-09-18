@@ -1,4 +1,4 @@
-
+  
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -25,7 +25,6 @@
 <link rel="stylesheet" href="edit-drag.css?v=2.0.2">
 <link rel="stylesheet" href="settings.css?v=2.0.2">
 <link rel="stylesheet" href="wechat.css?v=2.0.2">
-<link rel="stylesheet" href="chat-room.css?v=2.0.2">
 <link rel="stylesheet" href="imgbed.css?v=2.0.2">
 <link rel="stylesheet" href="beautify.css?v=2.0.2">
 <link rel="stylesheet" href="worldbook.css?v=2.0.2">
@@ -34,6 +33,47 @@
 <link rel="stylesheet" href="character.css?v=2.0.2">
 </head>
 <body>
+
+<!-- 全局登录/注册门禁层 -->
+<div class="auth-gate-mask" id="authGateMask">
+  <div class="auth-gate-card">
+    <div class="auth-glow-top"></div>
+    <div class="auth-glow-bottom"></div>
+
+    <!-- 1. 登录表单 -->
+    <div class="auth-content-box" id="authLoginBox">
+      <div class="auth-subtitle">WELCOME</div>
+      <div class="auth-title">账号登录</div>
+      <div class="auth-divider"></div>
+
+      <div class="auth-inputs-wrap">
+        <input type="text" id="authUsernameInput" placeholder="账号" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="password" id="authPasswordInput" placeholder="密码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+
+      <button class="auth-submit-btn" id="authSubmitBtn" type="button">进入</button>
+
+      <div class="auth-switch-text" id="authGoRegister">激活码点这里<span>点此注册</span></div>
+    </div>
+
+    <!-- 2. 注册表单 -->
+    <div class="auth-content-box auth-hidden" id="authRegisterBox">
+      <div class="auth-subtitle">REGISTER</div>
+      <div class="auth-title">新用户注册</div>
+      <div class="auth-divider"></div>
+
+      <div class="auth-inputs-wrap">
+        <input type="text" id="authInviteInput" placeholder="邀请码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="text" id="authRegUserInput" placeholder="设置账号" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="password" id="authRegPassInput" placeholder="设置密码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+
+      <button class="auth-submit-btn" id="authRegisterBtn" type="button">注册并登录</button>
+
+      <div class="auth-switch-text" id="authGoLogin">已有账号？<span>返回登录</span></div>
+    </div>
+  </div>
+</div>
 
 <!-- 全局全屏壁纸层 -->
 <div class="home-bg-layer" id="homeBgLayer"></div>
@@ -143,7 +183,7 @@
             <div class="couple-section draggable" id="coupleSection" data-component="couple">
               <div class="couple-left">
                 <div class="couple-icons">
-                  <!-- 1. 美化图标 -->
+                  <!-- 1. 美化图标（纯镂空气泡） -->
                   <div class="couple-icon-item" data-action="beautify" data-open-app="beautify">
                     <div class="couple-icon-circle">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -155,7 +195,7 @@
                     <span>美化</span>
                   </div>
 
-                  <!-- 2. 世界书图标 -->
+                  <!-- 2. 世界书图标（右侧书本向左优雅轻倚 \ ，纯净无星芒） -->
                   <div class="couple-icon-item" data-action="worldbook">
                     <div class="couple-icon-circle">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -173,7 +213,7 @@
                     <span>世界书</span>
                   </div>
 
-                  <!-- 3. 论坛图标 -->
+                                   <!-- 3. 论坛图标 -->
                   <div class="couple-icon-item" data-action="forum">
                     <div class="couple-icon-circle">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -192,7 +232,7 @@
                     <span>论坛</span>
                   </div>
                   
-                  <!-- 4. 档案图标 -->
+                  <!-- 4. 档案图标（纯镂空） -->
                   <div class="couple-icon-item" data-action="archive" data-open-app="archive">
                     <div class="couple-icon-circle">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -356,7 +396,6 @@
 <script src="tabbar.js?v=2.0.2"></script>
 <script src="settings.js?v=2.0.2"></script>
 <script src="wechat.js?v=2.0.2"></script>
-<script src="chat-room.js?v=2.0.2"></script>
 <script src="imgbed.js?v=2.0.2"></script>
 <script src="beautify.js?v=2.0.2"></script>
 <script src="worldbook.js?v=2.0.2"></script>
@@ -392,3 +431,4 @@
 
 </body>
 </html>
+
