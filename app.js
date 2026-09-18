@@ -1,1005 +1,434 @@
-
-(function() {
-  'use strict';
-
-  // 修复 iOS Safari 点击不冒泡 Bug，确保苹果手机上所有 div 上的点击都能顺畅触发
-  if (document.body) {
-    document.body.style.cursor = 'pointer';
-  } else {
-    document.addEventListener('DOMContentLoaded', function() {
-      if (document.body) document.body.style.cursor = 'pointer';
-    });
-  }
-
-  // ============ IndexedDB 存储引擎 ============
-  var DB_NAME = 'AppDB';
-  var DB_VERSION = 1;
-  var STORE_NAME = 'appData';
-  var db = null;
   
-  window._dbReady = false;
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Niveous">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
+   
+<link rel="apple-touch-icon" id="appleTouchIcon" href="/api/heart-icon">
+<link rel="apple-touch-icon-precomposed" id="appleTouchIconPre" href="/api/heart-icon">
+<link rel="icon" id="favIconPng" href="/api/heart-icon">
 
-  function openDB(callback) {
-    var request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = function(e) {
-      var database = e.target.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = function(e) { 
-      db = e.target.result; 
-      window._dbReady = true;
-      window.dispatchEvent(new Event('dbReady'));
-      if (callback) callback(); 
-    };
-    request.onerror = function() { 
-      window._dbReady = true;
-      window.dispatchEvent(new Event('dbReady'));
-      if (callback) callback(); 
-    };
-  }
+<link rel="manifest" id="appManifest" href="/api/manifest?icon=heart">
+<title>Niveous</title>
 
-  function dbSave(key, value, cb) {
-    if (!db) { if (cb) cb(); return; }
-    try {
-      var tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put(value, key);
-      tx.oncomplete = function() { if (cb) cb(); };
-      tx.onerror = function() { if (cb) cb(); };
-    } catch(e) { if (cb) cb(); }
-  }
-  function dbGet(key, cb) {
-    if (!db) { cb(null); return; }
-    try {
-      var r = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(key);
-      r.onsuccess = function() { cb(r.result !== undefined ? r.result : null); };
-      r.onerror = function() { cb(null); };
-    } catch(e) { cb(null); }
-  }
-  function dbDelete(key, cb) {
-    if (!db) { if (cb) cb(); return; }
-    try {
-      var tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).delete(key);
-      tx.oncomplete = function() { if (cb) cb(); };
-      tx.onerror = function() { if (cb) cb(); };
-    } catch(e) { if (cb) cb(); }
-  }
+<!-- 核心防缓存机制：确保苹果手机每次实时拉取最新样式 -->
+<link rel="stylesheet" href="style.css?v=2.0.2">
+<link rel="stylesheet" href="components.css?v=2.0.2">
+<link rel="stylesheet" href="apps.css?v=2.0.2">
+<link rel="stylesheet" href="tabbar.css?v=2.0.2">
+<link rel="stylesheet" href="edit-drag.css?v=2.0.2">
+<link rel="stylesheet" href="settings.css?v=2.0.2">
+<link rel="stylesheet" href="wechat.css?v=2.0.2">
+<link rel="stylesheet" href="imgbed.css?v=2.0.2">
+<link rel="stylesheet" href="beautify.css?v=2.0.2">
+<link rel="stylesheet" href="worldbook.css?v=2.0.2">
+<link rel="stylesheet" href="forum.css?v=2.0.2">
+<link rel="stylesheet" href="archive.css?v=2.0.2">
+<link rel="stylesheet" href="character.css?v=2.0.2">
+</head>
+<body>
 
-  window.AppDB = { open: openDB, save: dbSave, get: dbGet, delete: dbDelete };
+<!-- 全局登录/注册门禁层 -->
+<div class="auth-gate-mask" id="authGateMask">
+  <div class="auth-gate-card">
+    <div class="auth-glow-top"></div>
+    <div class="auth-glow-bottom"></div>
 
-  function parseServerCookie(name) {
-    var nameEQ = name + "=";
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-      var c = ca[i];
-      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-      if (c.indexOf(nameEQ) === 0) {
-        try {
-          return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
-        } catch(e) {
-          return decodeURIComponent(c.substring(nameEQ.length, c.length));
-        }
+    <!-- 1. 登录表单 -->
+    <div class="auth-content-box" id="authLoginBox">
+      <div class="auth-subtitle">WELCOME</div>
+      <div class="auth-title">账号登录</div>
+      <div class="auth-divider"></div>
+
+      <div class="auth-inputs-wrap">
+        <input type="text" id="authUsernameInput" placeholder="账号" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="password" id="authPasswordInput" placeholder="密码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+
+      <button class="auth-submit-btn" id="authSubmitBtn" type="button">进入</button>
+
+      <div class="auth-switch-text" id="authGoRegister">激活码点这里<span>点此注册</span></div>
+    </div>
+
+    <!-- 2. 注册表单 -->
+    <div class="auth-content-box auth-hidden" id="authRegisterBox">
+      <div class="auth-subtitle">REGISTER</div>
+      <div class="auth-title">新用户注册</div>
+      <div class="auth-divider"></div>
+
+      <div class="auth-inputs-wrap">
+        <input type="text" id="authInviteInput" placeholder="邀请码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="text" id="authRegUserInput" placeholder="设置账号" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input type="password" id="authRegPassInput" placeholder="设置密码" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+
+      <button class="auth-submit-btn" id="authRegisterBtn" type="button">注册并登录</button>
+
+      <div class="auth-switch-text" id="authGoLogin">已有账号？<span>返回登录</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 全局全屏壁纸层 -->
+<div class="home-bg-layer" id="homeBgLayer"></div>
+<script>
+(function(){
+  try {
+    var c = JSON.parse(localStorage.getItem('app_beautify_cache') || '{}');
+    var el = document.getElementById('homeBgLayer');
+    if (!el) return;
+    if (c.bgType === 'color') {
+      var a = c.bgAngle || 135;
+      if (c.colorMode === 'single') {
+        el.style.backgroundColor = c.bgColor1 || '#ffffff';
+      } else if (c.colorMode === 'double') {
+        el.style.backgroundImage = 'linear-gradient(' + a + 'deg, ' + (c.bgColor1||'#fff') + ' 0%, ' + (c.bgColor2||'#eaf2f8') + ' 100%)';
+      } else if (c.colorMode === 'triple') {
+        el.style.backgroundImage = 'linear-gradient(' + a + 'deg, ' + (c.bgColor1||'#fff') + ' 0%, ' + (c.bgColor2||'#eaf2f8') + ' 50%, ' + (c.bgColor3||'#d5e5f5') + ' 100%)';
       }
+    } else {
+      var img = localStorage.getItem('home_bg_img_cache');
+      if (img) el.style.backgroundImage = 'url("' + img + '")';
     }
-    return null;
-  }
-
-  function getGlobalSession() {
-    try {
-      var token = localStorage.getItem('app_auth_token');
-      var info = localStorage.getItem('app_user_info');
-      if (token && info) {
-        return { token: token, userInfo: JSON.parse(info) };
-      }
-    } catch(e) {}
-
-    var session = parseServerCookie('niveous_session');
-    if (session && session.token && session.username) {
-      return {
-        token: session.token,
-        userInfo: { username: session.username }
-      };
-    }
-
-    return null;
-  }
-
-  function clearAllAuth() {
-    try {
-      localStorage.removeItem('app_auth_token');
-      localStorage.removeItem('app_user_info');
-    } catch(e) {}
-    document.cookie = 'niveous_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-  }
-
-  function getStableDeviceId(callback) {
-    var cookieDev = parseServerCookie('shared_device_id');
-    if (cookieDev && typeof cookieDev === 'string') {
-      callback(cookieDev);
-      return;
-    }
-
-    try {
-      var localDev = localStorage.getItem('shared_device_id');
-      if (localDev) {
-        callback(localDev);
-        return;
-      }
-    } catch(e) {}
-
-    dbGet('app_device_fingerprint', function(savedId) {
-      if (savedId) {
-        try { localStorage.setItem('shared_device_id', savedId); } catch(e){}
-        callback(savedId);
-        return;
-      }
-
-      var w = Math.min(screen.width, screen.height);
-      var h = Math.max(screen.width, screen.height);
-      var cores = navigator.hardwareConcurrency || 4;
-      var touch = navigator.maxTouchPoints || 5;
-
-      var rawString = [w, h, cores, touch].join('::');
-      var hash = simpleHash(rawString);
-      var deviceId = 'hw_' + hash.substring(0, 12);
-
-      dbSave('app_device_fingerprint', deviceId, function() {
-        try { localStorage.setItem('shared_device_id', deviceId); } catch(e){}
-        callback(deviceId);
-      });
-    });
-  }
-
-  function simpleHash(str) {
-    var hash = 0;
-    for (var i = 0; i < str.length; i++) {
-      var char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
-  }
-
-  function getApiEndpoint(action) {
-    return '/api/' + action;
-  }
-
-  // ============ 登录门禁逻辑 ============
-  function checkActivation() {
-    var mask = document.getElementById('authGateMask');
-    var usernameInput = document.getElementById('authUsernameInput');
-    var passwordInput = document.getElementById('authPasswordInput');
-    var submitBtn = document.getElementById('authSubmitBtn');
-    if (!mask) return;
-
-    function hideMask() {
-      mask.classList.remove('show');
-    }
-
-    function showMask() {
-      mask.classList.add('show');
-    }
-
-    function onLoginVerified(token, userInfo) {
-      try {
-        localStorage.setItem('app_auth_token', token);
-        localStorage.setItem('app_user_info', JSON.stringify(userInfo));
-      } catch(e) {}
-
-      dbSave('app_auth_token', token, function() {
-        dbSave('app_user_info', userInfo, function() {
-          hideMask();
-        });
-      });
-    }
-
-    function kickOut(message) {
-      dbDelete('app_auth_token', function() {
-        dbDelete('app_user_info', function() {
-          clearAllAuth();
-          showMask();
-          if (message) showToast(message);
-        });
-      });
-    }
-
-    function realTimeVerify(userInfo) {
-      getStableDeviceId(function(deviceId) {
-        fetch(getApiEndpoint('login') + '?_t=' + Date.now(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            username: userInfo.username,
-            password: userInfo.password || '',
-            deviceId: deviceId,
-            verifyOnly: true
-          })
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          if (data && data.kickOut === true) {
-            kickOut(data.message || '账号已失效');
-          }
-        })
-        .catch(function() {});
-      });
-    }
-
-    dbGet('app_user_info', function(userInfo) {
-      dbGet('app_auth_token', function(token) {
-        if (token && userInfo && userInfo.username) {
-          hideMask();
-          realTimeVerify(userInfo);
-        } else {
-          var session = getGlobalSession();
-          if (session && session.token && session.userInfo && session.userInfo.username) {
-            onLoginVerified(session.token, session.userInfo);
-            realTimeVerify(session.userInfo);
-          } else {
-            showMask();
-          }
-        }
-      });
-    });
-
-    document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'visible') {
-        dbGet('app_user_info', function(userInfo) {
-          if (userInfo && userInfo.username) realTimeVerify(userInfo);
-        });
-      }
-    });
-
-    function doLoginRequest(username, password, forceReset) {
-      getStableDeviceId(function(deviceId) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = '进入中...';
-
-        fetch(getApiEndpoint('login') + '?_t=' + Date.now(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            username: username,
-            password: password,
-            deviceId: deviceId,
-            forceReset: !!forceReset
-          })
-        })
-        .then(function(res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        })
-        .then(function(data) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = '进入';
-
-          if (data.success && data.token) {
-            var info = { username: data.username, password: password };
-            onLoginVerified(data.token, info);
-            showToast('欢迎回来');
-            window.dispatchEvent(new CustomEvent('loginSuccess'));
-          } else if (data.canReset) {
-            if (window.AppDialog) {
-              window.AppDialog.confirm({
-                title: '设备数已达上限',
-                desc: '已达到最大设备数，是否清空历史旧设备并将当前设备绑定进入？',
-                confirmText: '立即绑定当前设备',
-                isDanger: false
-              }, function() {
-                doLoginRequest(username, password, true);
-              });
-            } else {
-              showToast(data.message || '设备超过限制');
-            }
-          } else {
-            showToast(data.message || '登录失败');
-          }
-        })
-        .catch(function() {
-          submitBtn.disabled = false;
-          submitBtn.textContent = '进入';
-          showToast('登录失败，请重试');
-        });
-      });
-    }
-
-    if (submitBtn) {
-      submitBtn.addEventListener('click', function() {
-        var username = (usernameInput.value || '').trim();
-        var password = (passwordInput.value || '').trim();
-        if (!username || !password) { showToast('请输入账号和密码'); return; }
-        doLoginRequest(username, password, false);
-      });
-    }
-
-    var loginBox = document.getElementById('authLoginBox');
-    var registerBox = document.getElementById('authRegisterBox');
-    var goRegisterBtn = document.getElementById('authGoRegister');
-    var goLoginBtn = document.getElementById('authGoLogin');
-    var registerBtn = document.getElementById('authRegisterBtn');
-
-    if (goRegisterBtn) {
-      goRegisterBtn.addEventListener('click', function() {
-        loginBox.classList.add('auth-hidden');
-        registerBox.classList.remove('auth-hidden');
-      });
-    }
-
-    if (goLoginBtn) {
-      goLoginBtn.addEventListener('click', function() {
-        registerBox.classList.add('auth-hidden');
-        loginBox.classList.remove('auth-hidden');
-      });
-    }
-
-    if (registerBtn) {
-      registerBtn.addEventListener('click', function() {
-        var inviteCode = (document.getElementById('authInviteInput').value || '').trim();
-        var regUser = (document.getElementById('authRegUserInput').value || '').trim();
-        var regPass = (document.getElementById('authRegPassInput').value || '').trim();
-
-        if (!inviteCode || !regUser || !regPass) { showToast('请填写完整信息'); return; }
-
-        getStableDeviceId(function(deviceId) {
-          registerBtn.disabled = true;
-          registerBtn.textContent = '注册中...';
-
-          fetch(getApiEndpoint('register') + '?_t=' + Date.now(), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-              inviteCode: inviteCode,
-              username: regUser,
-              password: regPass,
-              deviceId: deviceId
-            })
-          })
-          .then(function(res) { return res.json(); })
-          .then(function(data) {
-            registerBtn.disabled = false;
-            registerBtn.textContent = '注册并登录';
-
-            if (data.success && data.token) {
-              var info = { username: data.username, password: regPass };
-              onLoginVerified(data.token, info);
-              showToast('注册成功，欢迎进入');
-              window.dispatchEvent(new CustomEvent('loginSuccess'));
-            } else {
-              showToast(data.message || '注册失败');
-            }
-          })
-          .catch(function() {
-            registerBtn.disabled = false;
-            registerBtn.textContent = '注册并登录';
-            showToast('网络异常，请重试');
-          });
-        });
-      });
-    }
-  }
-
-  // ============ 页面外壳与导航 ============
-  var dock = document.querySelector('.tab-bar');
-  var dockEditBtn = document.querySelector('.tabbar-edit-btn');
-
-  function initAppShells() {
-    var appPages = ['beautify', 'archive', 'imgbed', 'wechat', 'offline', 'settings', 'check', 'worldbook'];
-    appPages.forEach(function(name) {
-      var page = document.querySelector('[data-page="'+name+'"]');
-      if (!page || page.querySelector('.app-header') || (name === 'worldbook' && page.querySelector('#worldbookContent'))) return;
-      var titleText = { beautify: '美化中心', archive: '档案', imgbed: '图床', wechat: '微信', offline: '线下', settings: '设置', check: '查岗', worldbook: '世界书' }[name];
-      
-      if (name === 'worldbook') {
-        page.innerHTML = '<div class="app-content" id="worldbookContent"></div>';
-      } else if (name === 'beautify') {
-        page.innerHTML = '<div class="app-header">'
-          + '<button class="icon-back-btn" data-back="home"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-          + '<div class="app-title-group"><div class="app-title">'+titleText+'</div><div class="app-subtitle">DESIGN PROCESS</div></div>'
-          + '</div><div class="app-content" id="'+name+'Content"></div>';
-      } else {
-        page.innerHTML = '<div class="app-header"><button class="icon-back-btn" data-back="home"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><div class="app-title">'+titleText+'</div></div><div class="app-content" id="'+name+'Content"></div>';
-      }
-    });
-
-    var settingsContent = document.getElementById('settingsContent');
-    if (settingsContent && !settingsContent.querySelector('.settings-list')) {
-      settingsContent.innerHTML = '<div class="settings-list"><div class="settings-item" data-goto="api"><div class="settings-item-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="settings-item-text"><div class="settings-item-title">API 配置</div><div class="settings-item-desc">管理接口密钥与模型设置</div></div><svg class="settings-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div><div class="settings-item" data-goto="data"><div class="settings-item-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div><div class="settings-item-text"><div class="settings-item-title">数据</div><div class="settings-item-desc">导入导出与清除本地数据</div></div><svg class="settings-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div></div>';
-    }
-
-    var subPages = [{name:'api',title:'API 配置',back:'settings'},{name:'data',title:'数据',back:'settings'}];
-    subPages.forEach(function(sub) {
-      var existing = document.querySelector('[data-page="'+sub.name+'"]');
-      if (existing) return;
-      var subPage = document.createElement('div');
-      subPage.className = 'page app-page';
-      subPage.dataset.page = sub.name;
-      subPage.innerHTML = '<div class="app-header"><button class="icon-back-btn" data-back="'+sub.back+'"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><div class="app-title">'+sub.title+'</div></div><div class="app-content" id="'+sub.name+'PageContent"></div>';
-      document.getElementById('pageContainer').appendChild(subPage);
-    });
-  }
-
-  function showPage(name) {
-    var allPages = document.querySelectorAll('.page');
-    allPages.forEach(function(p) {
-      if (p.dataset.page === name) { p.classList.add('active'); p.style.transform = ''; }
-      else { p.classList.remove('active'); }
-    });
-    
-    var desktopPagination = document.getElementById('desktopPagination');
-    if (name === 'home') { 
-      if (dock) dock.style.display = 'flex'; 
-      if (dockEditBtn) dockEditBtn.style.display = 'block'; 
-      if (desktopPagination) desktopPagination.style.display = 'flex';
-    } else { 
-      if (dock) dock.style.display = 'none'; 
-      if (dockEditBtn) dockEditBtn.style.display = 'none'; 
-      if (desktopPagination) desktopPagination.style.display = 'none';
-    }
-    window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: name } }));
-  }
-
-  // ============ 桌面双屏滑动交互 ============
-  function setupDesktopSlider() {
-    var slider = document.getElementById('desktopSlider');
-    var dots = document.querySelectorAll('.desktop-dot');
-    var currentScreen = 0;
-    var startX = 0, startY = 0, distX = 0, distY = 0, isDragging = false;
-
-    function goToScreen(idx) {
-      currentScreen = idx;
-      if (slider) slider.style.transform = 'translateX(-' + (idx * 50) + '%)';
-      dots.forEach(function(dot, i) {
-        if (i === idx) dot.classList.add('active');
-        else dot.classList.remove('active');
-      });
-    }
-
-    dots.forEach(function(dot, idx) {
-      dot.addEventListener('click', function(e) {
-        e.stopPropagation();
-        goToScreen(idx);
-      });
-    });
-
-    if (slider) {
-      slider.addEventListener('touchstart', function(e) {
-        if (document.querySelector('.app-shell') && document.querySelector('.app-shell').classList.contains('edit-mode')) return;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        distX = 0;
-        distY = 0;
-        isDragging = true;
-      }, { passive: true });
-
-      slider.addEventListener('touchmove', function(e) {
-        if (!isDragging) return;
-        var curX = e.touches[0].clientX;
-        var curY = e.touches[0].clientY;
-        distX = curX - startX;
-        distY = curY - startY;
-      }, { passive: true });
-
-      slider.addEventListener('touchend', function() {
-        if (!isDragging) return;
-        isDragging = false;
-        if (Math.abs(distX) > Math.abs(distY) && Math.abs(distX) > 35) {
-          if (distX < 0 && currentScreen === 0) {
-            goToScreen(1);
-          } else if (distX > 0 && currentScreen === 1) {
-            goToScreen(0);
-          }
-        }
-      });
-    }
-  }
-
-  // 严丝合缝的子页面侦测器（实时双重校验 JS 状态与 DOM 元素）
-  function checkSubViewStatus(page) {
-    var pageName = page.dataset.page;
-
-    // 1. 世界书
-    if (pageName === 'worldbook') {
-      if (window.WorldbookState && window.WorldbookState.currentLevel && window.WorldbookState.currentLevel !== 'home') {
-        return {
-          isSub: true,
-          action: function() { window.dispatchEvent(new CustomEvent('wbStepBack')); }
-        };
-      }
-      var editV = page.querySelector('#wbEditView');
-      var entriesV = page.querySelector('#wbEntriesView');
-      var metaV = page.querySelector('#wbBookMetaView');
-      var isWbOpen = (editV && !editV.classList.contains('wb-view-hidden'))
-        || (entriesV && !entriesV.classList.contains('wb-view-hidden'))
-        || (metaV && !metaV.classList.contains('wb-view-hidden'));
-      if (isWbOpen) {
-        return {
-          isSub: true,
-          action: function() { window.dispatchEvent(new CustomEvent('wbStepBack')); }
-        };
-      }
-    }
-
-    // 2. 档案中心
-    if (pageName === 'archive') {
-      if (window.ArchiveState && window.ArchiveState.currentLevel && window.ArchiveState.currentLevel !== 'home') {
-        return {
-          isSub: true,
-          action: function() {
-            if (window.ArchiveState.stepBack) window.ArchiveState.stepBack();
-            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
-          }
-        };
-      }
-      var arcSub = page.querySelector('.archive-sub-view.active, .char-edit-view.active, .archive-drawer.open, .archive-modal.show');
-      if (arcSub) {
-        return {
-          isSub: true,
-          action: function() {
-            var bBtn = arcSub.querySelector('[data-back], .icon-back-btn, #charEditBackBtn');
-            if (bBtn) bBtn.click();
-            else window.dispatchEvent(new CustomEvent('archiveStepBack'));
-          }
-        };
-      }
-    }
-
-    // 3. 美化中心
-    if (pageName === 'beautify' || pageName === 'beautiful') {
-      var bSub = page.querySelector('.beautify-sub-view.active');
-      if (bSub) {
-        return {
-          isSub: true,
-          action: function() { window.dispatchEvent(new Event('closeBeautifySub')); }
-        };
-      }
-    }
-
-    // 4. 设置及其他二级 App
-    if (pageName === 'api' || pageName === 'data') {
-      return {
-        isSub: true,
-        action: function() { showPage('settings'); }
-      };
-    }
-
-    return { isSub: false, action: null };
-  }
-
-  // ============ 全局统一导航绑定 ============
-  function bindNavigation() {
-    document.querySelectorAll('.tab-item').forEach(function(tab) {
-      tab.addEventListener('click', function() { 
-        var targetTab = this.dataset.tab;
-        
-        if (targetTab === 'wechat') {
-          var DEV_PASSCODE = '0525'; 
-          var isDevUnlocked = sessionStorage.getItem('dev_wechat_unlocked');
-
-          if (isDevUnlocked === 'true') {
-            showPage('wechat');
-            return;
-          }
-
-          var inputCode = prompt('✦ 微信开发中 · 请输入开发者密匙 ✦');
-          if (inputCode === DEV_PASSCODE) {
-            sessionStorage.setItem('dev_wechat_unlocked', 'true');
-            showToast('✦ 开发者身份验证成功 ✦');
-            showPage('wechat');
-          } else if (inputCode !== null) {
-            showToast('✦ 密匙错误，暂未对公众开放 ✦');
-          }
-          return;
-        }
-        if (targetTab === 'offline') {
-          showToast('✦ 线下功能正在精心筹备中 ✦');
-          return;
-        }
-        if (targetTab === 'check') {
-          showToast('✦ 查岗系统正在研发中 ✦');
-          return;
-        }
-        showPage(targetTab); 
-      });
-    });
-
-    document.addEventListener('click', function(e) { 
-      var b = e.target.closest('[data-back]'); 
-      if (b) {
-        var backTarget = b.dataset.back;
-        if (backTarget === 'beautify-main') {
-          window.dispatchEvent(new Event('closeBeautifySub'));
-        } else {
-          showPage(backTarget);
-        }
-      }
-    });
-
-    document.addEventListener('click', function(e) { 
-      var g = e.target.closest('[data-goto]'); 
-      if (g) showPage(g.dataset.goto); 
-    });
-    
-    document.addEventListener('click', function(e) {
-      var appItem = e.target.closest('[data-open-app]');
-      if (appItem && appItem.dataset.openApp) {
-        showPage(appItem.dataset.openApp);
-      }
-    });
-
-    document.addEventListener('click', function(e) {
-      var coupleItem = e.target.closest('.couple-icon-item');
-      if (coupleItem && !coupleItem.dataset.openApp && !coupleItem.dataset.goto) {
-        var action = coupleItem.dataset.action;
-        if (action === 'worldbook') {
-          showPage('worldbook');
-        } else if (action === 'forum') {
-          showToast('✦ 论坛社区即将开放 ✦');
-        } else {
-          showToast('✦ 该功能正在精心研发中 ✦');
-        }
-      }
-    });
-
-    // 核心多级滑动返回引擎 (实时校验，绝不误杀)
-    document.querySelectorAll('.app-page').forEach(function(page) {
-      var startX = 0, startY = 0, currentX = 0, isDragging = false, isLocked = false, isHoriz = false;
-      var subInfo = { isSub: false, action: null };
-
-      page.addEventListener('touchstart', function(e) { 
-        if (e.touches[0].clientX > 45) return; 
-        
-        startX = e.touches[0].clientX; 
-        startY = e.touches[0].clientY;
-        currentX = 0;
-        isDragging = true; 
-        isLocked = false;
-        isHoriz = false;
-
-        // 每次手势触发瞬间，精确判定当前 App 所在的深层状态
-        subInfo = checkSubViewStatus(page);
-
-        if (!subInfo.isSub) {
-          page.style.transition = 'none'; 
-        }
-      }, { passive: true });
-
-      page.addEventListener('touchmove', function(e) { 
-        if (!isDragging) return; 
-        var diffX = e.touches[0].clientX - startX;
-        var diffY = e.touches[0].clientY - startY;
-
-        if (!isLocked && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
-          isLocked = true;
-          isHoriz = Math.abs(diffX) > Math.abs(diffY);
-        }
-
-        if (!isHoriz) return;
-
-        if (diffX > 0) {
-          currentX = diffX;
-          // 只要处在子页面，外层 Page 绝对不作位移，防止暴露底层！
-          if (!subInfo.isSub) {
-            page.style.transform = 'translateX(' + currentX + 'px)'; 
-          }
-        }
-      }, { passive: true });
-
-      page.addEventListener('touchend', function() {
-        if (!isDragging || !isHoriz) {
-          isDragging = false;
-          return;
-        }
-        isDragging = false;
-
-        // 【最核心保护机制】：如果在任意 App 子页面中，100% 仅触发子页面的回退，绝不调 showPage('home')！
-        if (subInfo.isSub && typeof subInfo.action === 'function') {
-          if (currentX > 35) {
-            subInfo.action();
-          }
-          return;
-        }
-
-        // 只有在 App 的第一层大首页，且手势位移充足时，才退回桌面
-        if (!subInfo.isSub) {
-          page.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          var backBtn = page.querySelector('[data-back]');
-          if (currentX > window.innerWidth * 0.28) { 
-            var targetBack = backBtn ? backBtn.dataset.back : 'home';
-            showPage(targetBack); 
-            setTimeout(function() { page.style.transform = ''; }, 280); 
-          } else { 
-            page.style.transform = 'translateX(0)'; 
-          }
-        }
-      });
-    });
-  }
-
-  // ============ Canvas 裁剪器 ============
-  var cropOverlay = document.getElementById('cropOverlay');
-  var cropCanvas = document.getElementById('cropCanvas');
-  var cropWorkspace = document.getElementById('cropWorkspace');
-  var cropCancelBtn = document.getElementById('cropCancelBtn');
-  var cropConfirmBtn = document.getElementById('cropConfirmBtn');
-  var cropCtx = cropCanvas ? cropCanvas.getContext('2d') : null;
-  var cropDpr = window.devicePixelRatio || 1;
-
-  var cropImg = null, cropCallback = null, cropScale = 1;
-  var cropDisplayW = 0, cropDisplayH = 0;
-  var cropBox = { x: 0, y: 0, w: 0, h: 0 };
-  var cropLockedRatio = 0, cropDragMode = '';
-  var cropStartX = 0, cropStartY = 0, cropStartBox = {};
-  var CROP_HANDLE = 24, CROP_MIN = 40;
-
-  window.AppCropper = {
-    open: function(src, options, callback) {
-      cropCallback = callback; cropLockedRatio = 0;
-      cropOverlay.querySelectorAll('.crop-ratio-btn').forEach(function(b) { b.classList.remove('active'); });
-      var freeBtn = cropOverlay.querySelector('[data-ratio="free"]');
-      if (freeBtn) freeBtn.classList.add('active');
-      cropOverlay.classList.add('show');
-
-      cropImg = new Image();
-      cropImg.onload = function() {
-        var maxW = cropWorkspace.clientWidth - 32, maxH = cropWorkspace.clientHeight - 32;
-        if (maxW <= 0 || maxH <= 0) { maxW = window.innerWidth - 32; maxH = window.innerHeight - 180; }
-        cropScale = Math.min(maxW / cropImg.width, maxH / cropImg.height, 1);
-        cropDisplayW = Math.round(cropImg.width * cropScale);
-        cropDisplayH = Math.round(cropImg.height * cropScale);
-        cropCanvas.width = cropDisplayW * cropDpr; cropCanvas.height = cropDisplayH * cropDpr;
-        cropCanvas.style.width = cropDisplayW + 'px'; cropCanvas.style.height = cropDisplayH + 'px';
-        cropCtx.setTransform(cropDpr, 0, 0, cropDpr, 0, 0);
-        var initRatio = (options && options.aspectRatio) ? options.aspectRatio : (cropDisplayW / cropDisplayH);
-        var initW = cropDisplayW * 0.85, initH = initW / initRatio;
-        if (initH > cropDisplayH * 0.85) { initH = cropDisplayH * 0.85; initW = initH * initRatio; }
-        cropBox.w = initW; cropBox.h = initH;
-        cropBox.x = (cropDisplayW - cropBox.w) / 2; cropBox.y = (cropDisplayH - cropBox.h) / 2;
-        cropDraw();
-      };
-      cropImg.src = src;
-    }
-  };
-
-  function cropClamp() {
-    if (cropBox.w < CROP_MIN) cropBox.w = CROP_MIN;
-    if (cropBox.h < CROP_MIN) cropBox.h = CROP_MIN;
-    if (cropBox.x < 0) { cropBox.w += cropBox.x; cropBox.x = 0; }
-    if (cropBox.y < 0) { cropBox.h += cropBox.y; cropBox.y = 0; }
-    if (cropBox.x + cropBox.w > cropDisplayW) { cropBox.w = cropDisplayW - cropBox.x; }
-    if (cropBox.y + cropBox.h > cropDisplayH) { cropBox.h = cropDisplayH - cropBox.y; }
-  }
-
-  function cropDraw() {
-    if (!cropCtx) return;
-    var c = cropBox;
-    cropCtx.clearRect(0, 0, cropDisplayW, cropDisplayH);
-    cropCtx.drawImage(cropImg, 0, 0, cropDisplayW, cropDisplayH);
-    cropCtx.fillStyle = 'rgba(0,0,0,0.55)';
-    cropCtx.fillRect(0, 0, cropDisplayW, c.y);
-    cropCtx.fillRect(0, c.y + c.h, cropDisplayW, cropDisplayH - c.y - c.h);
-    cropCtx.fillRect(0, c.y, c.x, c.h);
-    cropCtx.fillRect(c.x + c.w, c.y, cropDisplayW - c.x - c.w, c.h);
-    cropCtx.strokeStyle = '#fff'; cropCtx.lineWidth = 2;
-    cropCtx.strokeRect(c.x, c.y, c.w, c.h);
-    cropCtx.strokeStyle = 'rgba(255,255,255,0.35)'; cropCtx.lineWidth = 1;
-    var tw = c.w/3, th = c.h/3;
-    cropCtx.beginPath();
-    cropCtx.moveTo(c.x+tw,c.y); cropCtx.lineTo(c.x+tw,c.y+c.h);
-    cropCtx.moveTo(c.x+tw*2,c.y); cropCtx.lineTo(c.x+tw*2,c.y+c.h);
-    cropCtx.moveTo(c.x,c.y+th); cropCtx.lineTo(c.x+c.w,c.y+th);
-    cropCtx.moveTo(c.x,c.y+th*2); cropCtx.lineTo(c.x+c.w,c.y+th*2);
-    cropCtx.stroke();
-    cropCtx.fillStyle = '#fff'; var hs = 9;
-    [[c.x,c.y],[c.x+c.w,c.y],[c.x,c.y+c.h],[c.x+c.w,c.y+c.h]].forEach(function(p){cropCtx.fillRect(p[0]-hs/2,p[1]-hs/2,hs,hs);});
-    [[c.x+c.w/2,c.y],[c.x+c.w/2,c.y+c.h],[c.x,c.y+c.h/2],[c.x+c.w,c.y+c.h/2]].forEach(function(p){cropCtx.fillRect(p[0]-hs/2,p[1]-hs/2,hs,hs);});
-  }
-
-  function cropGetPos(e) { var t = e.touches ? e.touches[0] : e; var rect = cropCanvas.getBoundingClientRect(); return { x: t.clientX - rect.left, y: t.clientY - rect.top }; }
-
-  function cropHitTest(px, py) {
-    var c = cropBox, H = CROP_HANDLE;
-    if (px>=c.x-H&&px<=c.x+H&&py>=c.y-H&&py<=c.y+H) return 'tl';
-    if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'tr';
-    if (px>=c.x-H&&px<=c.x+H&&py>=c.y+c.h-H&&py<=c.y+c.h+H) return 'bl';
-    if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>=c.y-H&&py<=c.y+H) return 'br';
-    if (py>=c.y-H&&py<=c.y+H&&px>c.x+H&&px<c.x+c.w-H) return 't';
-    if (py>=c.y+c.h-H&&py<=c.y+c.h+H&&px>c.x+H&&px<c.x+c.w-H) return 'b';
-    if (px>=c.x-H&&px<=c.x+H&&py>c.y+H&&py<c.y+c.h-H) return 'l';
-    if (px>=c.x+c.w-H&&px<=c.x+c.w+H&&py>c.y+H&&py<c.y+c.h-H) return 'r';
-    if (px>=c.x&&px<=c.x+c.w&&py>=c.y&&py<=c.y+c.h) return 'move';
-    return '';
-  }
-
-  function cropOnStart(e) {
-    if (e.touches && e.touches.length > 1) return;
-    e.preventDefault(); var p = cropGetPos(e);
-    cropDragMode = cropHitTest(p.x, p.y); if (!cropDragMode) return;
-    cropStartX = p.x; cropStartY = p.y;
-    cropStartBox = { x:cropBox.x, y:cropBox.y, w:cropBox.w, h:cropBox.h };
-    document.addEventListener('mousemove', cropOnMove);
-    document.addEventListener('mouseup', cropOnEnd);
-    document.addEventListener('touchmove', cropOnMove, { passive: false });
-    document.addEventListener('touchend', cropOnEnd);
-  }
-
-  function cropOnMove(e) {
-    if (!cropDragMode) return; e.preventDefault();
-    var p = cropGetPos(e), dx = p.x-cropStartX, dy = p.y-cropStartY, sc = cropStartBox;
-    if (cropDragMode==='move') { cropBox.x=Math.max(0,Math.min(cropDisplayW-cropBox.w,sc.x+dx)); cropBox.y=Math.max(0,Math.min(cropDisplayH-cropBox.h,sc.y+dy)); cropDraw(); return; }
-    if (cropDragMode==='r') { cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); }
-    else if (cropDragMode==='l') { var ra=sc.x+sc.w; var nx=Math.max(0,Math.min(ra-CROP_MIN,sc.x+dx)); cropBox.x=nx; cropBox.w=ra-nx; }
-    else if (cropDragMode==='b') { cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
-    else if (cropDragMode==='t') { var ba=sc.y+sc.h; var ny=Math.max(0,Math.min(ba-CROP_MIN,sc.y+dy)); cropBox.y=ny; cropBox.h=ba-ny; }
-    else if (cropDragMode==='br') { cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
-    else if (cropDragMode==='bl') { var ra2=sc.x+sc.w; var nx2=Math.max(0,Math.min(ra2-CROP_MIN,sc.x+dx)); cropBox.x=nx2; cropBox.w=ra2-nx2; cropBox.h=Math.max(CROP_MIN,Math.min(cropDisplayH-sc.y,sc.h+dy)); }
-    else if (cropDragMode==='tr') { var ba2=sc.y+sc.h; var ny2=Math.max(0,Math.min(ba2-CROP_MIN,sc.y+dy)); cropBox.w=Math.max(CROP_MIN,Math.min(cropDisplayW-sc.x,sc.w+dx)); cropBox.y=ny2; cropBox.h=ba2-ny2; }
-    else if (cropDragMode==='tl') { var ra3=sc.x+sc.w; var ba3=sc.y+sc.h; var nx3=Math.max(0,Math.min(ra3-CROP_MIN,sc.x+dx)); var ny3=Math.max(0,Math.min(ba3-CROP_MIN,sc.y+dy)); cropBox.x=nx3; cropBox.w=ra3-nx3; cropBox.y=ny3; cropBox.h=ba3-ny3; }
-    if (cropLockedRatio) {
-      if (cropDragMode==='r'||cropDragMode==='l'||cropDragMode==='tr'||cropDragMode==='tl') cropBox.h=cropBox.w/cropLockedRatio;
-      else cropBox.w=cropBox.h*cropLockedRatio;
-      cropClamp();
-    }
-    cropDraw();
-  }
-
-  function cropOnEnd() {
-    cropDragMode = '';
-    document.removeEventListener('mousemove', cropOnMove); document.removeEventListener('mouseup', cropOnEnd);
-    document.removeEventListener('touchmove', cropOnMove); document.removeEventListener('touchend', cropOnEnd);
-  }
-
-  if (cropCanvas) {
-    cropCanvas.addEventListener('mousedown', cropOnStart);
-    cropCanvas.addEventListener('touchstart', cropOnStart, { passive: false });
-    var cropLastDist = 0;
-    cropCanvas.addEventListener('touchstart', function(e) { if (e.touches.length===2) { e.preventDefault(); cropDragMode=''; cropLastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); } }, { passive: false });
-    cropCanvas.addEventListener('touchmove', function(e) {
-      if (e.touches.length===2) { e.preventDefault(); var dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); var diff=dist-cropLastDist; var ratio=cropBox.w/cropBox.h; var cx=cropBox.x+cropBox.w/2,cy=cropBox.y+cropBox.h/2; cropBox.w=Math.max(CROP_MIN,cropBox.w+diff); cropBox.h=Math.max(CROP_MIN,cropBox.h+diff/ratio); cropBox.x=cx-cropBox.w/2; cropBox.y=cy-cropBox.h/2; cropClamp(); cropLastDist=dist; cropDraw(); }
-    }, { passive: false });
-  }
-
-  if (cropOverlay) {
-    cropOverlay.querySelectorAll('.crop-ratio-btn').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        cropOverlay.querySelectorAll('.crop-ratio-btn').forEach(function(b){b.classList.remove('active');});
-        btn.classList.add('active');
-        var r=btn.dataset.ratio;
-        if (r==='free') cropLockedRatio=0;
-        else if (r==='1') cropLockedRatio=1;
-        else if (r==='4:3') cropLockedRatio=4/3;
-        else if (r==='16:9') cropLockedRatio=16/9;
-        if (cropLockedRatio) { var cx=cropBox.x+cropBox.w/2,cy=cropBox.y+cropBox.h/2; var nw=cropBox.w,nh=nw/cropLockedRatio; if(nh>cropDisplayH*0.9){nh=cropDisplayH*0.9;nw=nh*cropLockedRatio;} cropBox.w=nw;cropBox.h=nh;cropBox.x=cx-cropBox.w/2;cropBox.y=cy-cropBox.h/2; cropClamp(); cropDraw(); }
-      });
-    });
-  }
-
-  if (cropCancelBtn) cropCancelBtn.addEventListener('click', function() { cropOverlay.classList.remove('show'); cropCallback=null; });
-  if (cropConfirmBtn) cropConfirmBtn.addEventListener('click', function() {
-    var outW = Math.round(cropBox.w / cropScale);
-    var outH = Math.round(cropBox.h / cropScale);
-    var output = document.createElement('canvas');
-    output.width = outW;
-    output.height = outH;
-    var outCtx = output.getContext('2d');
-    outCtx.drawImage(cropImg, cropBox.x / cropScale, cropBox.y / cropScale, outW, outH, 0, 0, outW, outH);
-    var data = output.toDataURL('image/jpeg', 0.92);
-    cropOverlay.classList.remove('show');
-    if (cropCallback) cropCallback(data);
-    cropCallback = null;
-  });
-
-  // ============ 照片操作卡片 ============
-  var photoActionCard=null,photoActionMask=null,photoActionOnSelect=null,photoActionOnDelete=null;
-  function setupPhotoAction() {
-    if (photoActionMask) return;
-    photoActionMask=document.createElement('div'); photoActionMask.className='photo-action-mask'; document.body.appendChild(photoActionMask);
-    photoActionCard=document.createElement('div'); photoActionCard.className='photo-action-card';
-    photoActionCard.innerHTML='<button id="paSelectBtn" type="button">选择照片</button><button id="paDeleteBtn" type="button">删除照片</button>';
-    document.body.appendChild(photoActionCard);
-    photoActionMask.addEventListener('click',function(){photoActionMask.classList.remove('show');photoActionCard.classList.remove('show');photoActionOnSelect=null;photoActionOnDelete=null;});
-    document.getElementById('paSelectBtn').addEventListener('click',function(e){e.stopPropagation();var cb=photoActionOnSelect;photoActionMask.classList.remove('show');photoActionCard.classList.remove('show');photoActionOnSelect=null;photoActionOnDelete=null;if(cb)cb();});
-    document.getElementById('paDeleteBtn').addEventListener('click',function(e){e.stopPropagation();var cb=photoActionOnDelete;photoActionMask.classList.remove('show');photoActionCard.classList.remove('show');photoActionOnSelect=null;photoActionOnDelete=null;if(cb)cb();});
-  }
-  window.PhotoAction={show:function(onSelect,onDelete){if(!photoActionMask)setupPhotoAction();photoActionOnSelect=onSelect;photoActionOnDelete=onDelete;photoActionMask.classList.add('show');photoActionCard.classList.add('show');}};
-
-  // ============ 全局高定「双选确认弹窗」引擎 ============
-  var appDialogMask = null, appDialogOnConfirm = null, appDialogOnCancel = null;
-  function setupAppDialog() {
-    if (appDialogMask) return;
-    appDialogMask = document.createElement('div');
-    appDialogMask.className = 'app-dialog-mask';
-    appDialogMask.innerHTML = '<div class="app-dialog-card">'
-      + '<div class="app-dialog-title" id="appDialogTitle">提示</div>'
-      + '<div class="app-dialog-desc" id="appDialogDesc">确定执行此操作吗？</div>'
-      + '<div class="app-dialog-btns">'
-      + '<button class="app-dialog-btn cancel" id="appDialogCancelBtn" type="button">取消</button>'
-      + '<button class="app-dialog-btn confirm" id="appDialogConfirmBtn" type="button">确定</button>'
-      + '</div>'
-      + '</div>';
-    document.body.appendChild(appDialogMask);
-
-    function closeDialog() {
-      appDialogMask.classList.remove('show');
-      appDialogOnConfirm = null;
-      appDialogOnCancel = null;
-    }
-
-    appDialogMask.addEventListener('click', function(e) {
-      if (e.target === appDialogMask) {
-        var cb = appDialogOnCancel;
-        closeDialog();
-        if (cb) cb();
-      }
-    });
-
-    document.getElementById('appDialogCancelBtn').addEventListener('click', function(e) {
-      e.stopPropagation();
-      var cb = appDialogOnCancel;
-      closeDialog();
-      if (cb) cb();
-    });
-
-    document.getElementById('appDialogConfirmBtn').addEventListener('click', function(e) {
-      e.stopPropagation();
-      var cb = appDialogOnConfirm;
-      closeDialog();
-      if (cb) cb();
-    });
-  }
-
-  window.AppDialog = {
-    confirm: function(options, onConfirm, onCancel) {
-      if (!appDialogMask) setupAppDialog();
-      options = options || {};
-      document.getElementById('appDialogTitle').textContent = options.title || '提示';
-      document.getElementById('appDialogDesc').textContent = options.desc || '确定执行此操作吗？';
-      
-      var confirmBtn = document.getElementById('appDialogConfirmBtn');
-      confirmBtn.textContent = options.confirmText || '确定';
-      if (options.isDanger) {
-        confirmBtn.className = 'app-dialog-btn danger';
-      } else {
-        confirmBtn.className = 'app-dialog-btn confirm';
-      }
-
-      appDialogOnConfirm = onConfirm;
-      appDialogOnCancel = onCancel;
-      appDialogMask.classList.add('show');
-    }
-  };
-
-  // ============ Toast ============
-  var currentToastTimer = null;
-  function showToast(message) {
-    var existing = document.querySelector('.toast-message');
-    if (existing && existing.parentNode) {
-      existing.parentNode.removeChild(existing);
-      clearTimeout(currentToastTimer);
-    }
-    var toast = document.createElement('div');
-    toast.className = 'toast-message';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(function(){ toast.classList.add('show'); }, 10);
-    currentToastTimer = setTimeout(function(){
-      toast.classList.remove('show');
-      setTimeout(function(){
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-      }, 300);
-    }, 2000);
-  }
-
-  window.AppNav = { showPage: showPage, showToast: showToast };
-
-  // ============ 初始化 ============
-  openDB(function() {
-    setupPhotoAction();
-    setupAppDialog();
-    initAppShells();
-    setupDesktopSlider();
-    bindNavigation();
-    checkActivation();
-  });
-
+  } catch(e){}
 })();
+</script>
+
+<div class="app-shell">
+  <div class="page-container" id="pageContainer">
+
+    <!-- 编辑模式工具按钮组（左上角） -->
+    <div class="edit-toolbar-group">
+      <button class="reset-layout-btn" id="resetLayoutBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+          <path d="M21 3v5h-5"></path>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+          <path d="M3 21v-5h5"></path>
+        </svg>
+        <span>恢复初始</span>
+      </button>
+
+      <button class="edit-tool-btn" id="addHomeBgBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        <span>添加背景</span>
+      </button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 桌面 (Home) - 双屏滑动容器 -->
+    <!-- ========================================== -->
+    <div class="page active" data-page="home">
+
+      <div class="desktop-slider-wrapper">
+        <div class="desktop-slider" id="desktopSlider">
+          
+          <!-- 桌面第 1 屏 (3个大组件卡片) -->
+          <div class="desktop-screen" data-screen-idx="0">
+            <!-- 1. 个人卡片 -->
+            <div class="profile-card draggable" id="profileCard" data-component="card">
+              <div class="card-bg" id="cardBg"></div>
+              <div class="card-upper" id="cardUpper"></div>
+              <div class="card-lower">
+                <div class="lower-overlay" id="lowerOverlay"></div>
+                <div class="avatar-wrapper" id="avatarBtn">
+                  <img id="avatarImg" alt="头像">
+                  <svg class="avatar-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="9" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+                </div>
+                <div class="info-area">
+                  <div class="info-text line-1" contenteditable="true" data-key="line1" data-placeholder="名字"></div>
+                  <div class="info-text line-2" contenteditable="true" data-key="line2" data-placeholder="@昵称"></div>
+                  <div class="info-text line-3" contenteditable="true" data-key="line3" data-placeholder="签名"></div>
+                  <div class="info-text line-4">
+                    <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    <span class="location-text" contenteditable="true"></span>
+                  </div>
+                </div>
+              </div>
+              <button class="edit-btn" data-edit-target="card" type="button">编辑</button>
+            </div>
+
+            <!-- 2. 消息卡片 -->
+            <div class="message-card draggable" id="messageCard" data-component="message">
+              <div class="message-avatar" id="messageAvatar">
+                <img id="messageAvatarImg" alt="角色头像">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="9" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+              </div>
+              <div class="message-content">
+                <div class="message-preview" id="messagePreview" contenteditable="true">暂未联通角色...</div>
+              </div>
+              <div class="message-badge" id="messageBadge">
+                <svg class="badge-icon" id="messageBadgeIcon" viewBox="0 0 20 22" fill="none" stroke="currentColor">
+                  <path d="M4 2 L16 2 Q18 2 18 4 L18 12 Q18 14 16 14 L11 14 L10 17 L9 14 L4 14 Q2 14 2 12 L2 4 Q2 2 4 2 Z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <circle cx="6" cy="8" r="1" fill="currentColor"></circle>
+                  <circle cx="10" cy="8" r="1" fill="currentColor"></circle>
+                  <circle cx="14" cy="8" r="1" fill="currentColor"></circle>
+                </svg>
+                <span id="messageBadgeText">最新讯息</span>
+              </div>
+              <button class="edit-btn" data-edit-target="message" type="button">编辑</button>
+            </div>
+
+            <!-- 3. 头像展示区 -->
+            <div class="couple-section draggable" id="coupleSection" data-component="couple">
+              <div class="couple-left">
+                <div class="couple-icons">
+                  <!-- 1. 美化图标（纯镂空气泡） -->
+                  <div class="couple-icon-item" data-action="beautify" data-open-app="beautify">
+                    <div class="couple-icon-circle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polygon class="star-fill" points="11,5 13,9.5 17.5,10.2 14.3,13.5 15.3,18 11,15.7 6.7,18 7.7,13.5 4.5,10.2 9,9.5" fill="currentColor" stroke-width="3.5" stroke-linejoin="round"></polygon>
+                        <circle cx="20.8" cy="4" r="1.3" fill="none" stroke="currentColor" stroke-width="1.2"></circle>
+                        <circle cx="21.5" cy="8.8" r="0.9" fill="none" stroke="currentColor" stroke-width="1.2"></circle>
+                      </svg>
+                    </div>
+                    <span>美化</span>
+                  </div>
+
+                  <!-- 2. 世界书图标（右侧书本向左优雅轻倚 \ ，纯净无星芒） -->
+                  <div class="couple-icon-item" data-action="worldbook">
+                    <div class="couple-icon-circle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 9v11.5h1.5" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <line x1="3" y1="20.5" x2="21" y2="20.5" stroke-width="1.4" stroke-linecap="round"></line>
+                        <rect x="6.5" y="7" width="3.2" height="13.5" rx="0.8" stroke-width="1.3" fill="none"></rect>
+                        <rect x="10.5" y="4.5" width="3.5" height="16" rx="0.8" stroke-width="1.4" fill="none"></rect>
+                        <line x1="10.5" y1="7.5" x2="14" y2="7.5" stroke-width="1.1"></line>
+                        <line x1="10.5" y1="17.5" x2="14" y2="17.5" stroke-width="1.1"></line>
+                        <g transform="rotate(-13 20 19.5)">
+                          <rect x="18.2" y="5.8" width="2.9" height="13.8" rx="0.8" stroke-width="1.3" fill="none"></rect>
+                        </g>
+                      </svg>
+                    </div>
+                    <span>世界书</span>
+                  </div>
+
+                                   <!-- 3. 论坛图标 -->
+                  <div class="couple-icon-item" data-action="forum">
+                    <div class="couple-icon-circle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3.2 14.5C4.2 17 8.8 17.7 13.5 16.2C18.2 14.7 21.2 11.5 20.4 9" stroke-width="1.25" stroke-linecap="round"></path>
+                        <circle cx="10.8" cy="12.6" r="6.2" stroke-width="1.4" fill="none"></circle>
+                        <ellipse cx="10.8" cy="12.6" rx="2.7" ry="6.2" stroke-width="1.15" fill="none"></ellipse>
+                        <line x1="4.6" y1="12.6" x2="17" y2="12.6" stroke-width="1.15"></line>
+                        <path d="M2.5 12C1.7 9.5 6.4 8.6 11.2 10.2" stroke-width="1.25" stroke-linecap="round"></path>
+                        <path d="M14.5 2.8H20.8C21.7 2.8 22.4 3.5 22.4 4.4V7.8C22.4 8.7 21.7 9.4 20.8 9.4H18.2L16.2 10.8V9.4H14.5C13.6 9.4 12.9 8.7 12.9 7.8V4.4C12.9 3.5 13.6 2.8 14.5 2.8Z" stroke-width="1.3" stroke-linejoin="round" fill="none"></path>
+                        <line x1="16.0" y1="5.3" x2="19.3" y2="5.3" stroke-width="0.85" stroke-linecap="round"></line>
+                        <line x1="16.0" y1="6.9" x2="19.3" y2="6.9" stroke-width="0.85" stroke-linecap="round"></line>
+                        <line x1="17.2" y1="4.5" x2="16.8" y2="7.7" stroke-width="0.85" stroke-linecap="round"></line>
+                        <line x1="18.5" y1="4.5" x2="18.1" y2="7.7" stroke-width="0.85" stroke-linecap="round"></line>
+                      </svg>
+                    </div>
+                    <span>论坛</span>
+                  </div>
+                  
+                  <!-- 4. 档案图标（纯镂空） -->
+                  <div class="couple-icon-item" data-action="archive" data-open-app="archive">
+                    <div class="couple-icon-circle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 6.5A2 2 0 0 1 5 4.5h4.2l1.8 2.2H19a2 2 0 0 1 2 2v8.6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10.8z" stroke-width="1.4" fill="none"></path>
+                        <line x1="6.8" y1="11.8" x2="12" y2="11.8" stroke-width="1.3"></line>
+                        <line x1="6.8" y1="15.2" x2="16.5" y2="15.2" stroke-width="1.3"></line>
+                        <path d="M16.8 9.2 Q16.8 11 18.6 11 Q16.8 11 16.8 12.8 Q16.8 11 15 11 Q16.8 11 16.8 9.2 Z" fill="currentColor" stroke="none"></path>
+                      </svg>
+                    </div>
+                    <span>档案</span>
+                  </div>
+                </div>
+              </div>
+              <div class="couple-right">
+                <div class="couple-avatars">
+                  <div class="couple-avatar-item">
+                    <div class="couple-speech" contenteditable="true" id="coupleSpeech1">对话1</div>
+                    <div class="couple-avatar-circle" id="coupleAvatar1">
+                      <img id="coupleAvatarImg1" alt="">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="9" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+                    </div>
+                    <div class="couple-name" contenteditable="true" id="coupleName1">TA</div>
+                  </div>
+                  <div class="couple-avatar-item">
+                    <div class="couple-speech" contenteditable="true" id="coupleSpeech2">对话2</div>
+                    <div class="couple-avatar-circle" id="coupleAvatar2">
+                      <img id="coupleAvatarImg2" alt="">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="9" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+                    </div>
+                    <div class="couple-name" contenteditable="true" id="coupleName2">你</div>
+                  </div>
+                </div>
+                <div class="couple-date-card" id="coupleDateCard">
+                  <div class="date-card-header">
+                    <span class="date-card-text">和<span class="date-card-name" id="datePartnerName">TA</span>在一起 已经</span>
+                    <span class="date-card-days" id="dateDaysCount">0</span>
+                    <span class="date-card-unit">天</span>
+                    <input type="date" id="dateStartInput" class="date-hidden-input">
+                  </div>
+                  <div class="date-card-calendar">
+                    <div class="date-card-labels">
+                      <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                    </div>
+                    <div class="date-card-dates" id="dateWeekDates"></div>
+                  </div>
+                </div>
+              </div>
+              <button class="edit-btn" data-edit-target="couple" type="button">编辑</button>
+            </div>
+          </div>
+
+          <!-- 桌面第 2 屏 (图床等应用专属屏幕) -->
+          <div class="desktop-screen" data-screen-idx="1">
+            <div class="desktop-apps-container">
+              <div class="couple-icon-item" data-goto="imgbed" data-open-app="imgbed">
+                <div class="couple-icon-circle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                </div>
+                <span>图床</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- App 空壳页面挂载点 -->
+    <div class="page app-page" data-page="beautify"></div>
+    <div class="page app-page" data-page="archive"></div>
+    <div class="page app-page" data-page="worldbook"></div>
+    <div class="page app-page" data-page="imgbed"></div>
+    <div class="page app-page" data-page="wechat"></div>
+    <div class="page app-page" data-page="offline"></div>
+    <div class="page app-page" data-page="settings"></div>
+    <div class="page app-page" data-page="check"></div>
+
+  </div>
+</div>
+
+<!-- 底部栏编辑按钮 -->
+<button class="edit-btn tabbar-edit-btn" data-edit-target="tabbar" type="button">编辑</button>
+
+<!-- 桌面 Dock 栏 -->
+<div class="tab-bar">
+  <div class="desktop-pagination" id="desktopPagination">
+    <span class="desktop-dot active" data-screen="0"></span>
+    <span class="desktop-dot" data-screen="1"></span>
+  </div>
+
+  <div class="tab-bar-capsule">
+    <div class="tab-item" data-tab="wechat">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15.5 11c2.8 0 5 1.7 5 3.8 0 1.4-1 2.6-2.5 3.3l.3 2-1.8-1.1c-.5.1-1.1.2-1.7.2-2.8 0-5-1.7-5-3.8 0-.2 0-.5.1-.7"></path>
+          <path d="M9 3.5C5 3.5 2 6 2 9c0 1.7 1 3.2 2.7 4.3L4 16l2.8-1.4c.7.2 1.5.3 2.2.3 4 0 7-2.5 7-5.5S13 3.5 9 3.5z"></path>
+        </svg>
+      </div>
+      <div class="tab-label">微信</div>
+    </div>
+    <div class="tab-item" data-tab="offline">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </div>
+      <div class="tab-label">线下</div>
+    </div>
+    <div class="tab-item" data-tab="settings">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </div>
+      <div class="tab-label">设置</div>
+    </div>
+    <div class="tab-item" data-tab="check">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="3" ry="3"></rect>
+          <path d="M12 18h.01"></path>
+          <path d="M9 6h6"></path>
+        </svg>
+      </div>
+      <div class="tab-label">查岗</div>
+    </div>
+  </div>
+</div>
+
+<!-- 裁剪器 -->
+<div class="crop-overlay" id="cropOverlay">
+  <div class="crop-container">
+    <div class="crop-header">
+      <button class="crop-cancel" id="cropCancelBtn" type="button">取消</button>
+      <span>裁剪图片</span>
+      <button class="crop-confirm" id="cropConfirmBtn" type="button">确定</button>
+    </div>
+    <div class="crop-toolbar">
+      <button class="crop-ratio-btn active" data-ratio="free" type="button">自由</button>
+      <button class="crop-ratio-btn" data-ratio="1" type="button">1:1</button>
+      <button class="crop-ratio-btn" data-ratio="4:3" type="button">4:3</button>
+      <button class="crop-ratio-btn" data-ratio="16:9" type="button">16:9</button>
+    </div>
+    <div class="crop-workspace" id="cropWorkspace">
+      <canvas id="cropCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 核心防缓存机制：确保苹果手机每次实时拉取最新脚本 -->
+<script src="app.js?v=2.0.4"></script>
+<script src="components.js?v=2.0.2"></script>
+<script src="edit-drag.js?v=2.0.2"></script>
+<script src="tabbar.js?v=2.0.2"></script>
+<script src="settings.js?v=2.0.2"></script>
+<script src="wechat.js?v=2.0.2"></script>
+<script src="imgbed.js?v=2.0.2"></script>
+<script src="beautify.js?v=2.0.2"></script>
+<script src="worldbook.js?v=2.0.2"></script>
+<script src="forum.js?v=2.0.2"></script>
+<script src="archive.js?v=2.0.2"></script>
+
+<!-- PWA 独立桌面环境底距自适应 -->
+<script>
+(function() {
+  function adjustPWABottomBar() {
+    var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (!isPWA) return;
+    var div = document.createElement('div');
+    div.style.cssText = 'position: fixed; bottom: env(safe-area-inset-bottom, 0px); visibility: hidden; height: 0;';
+    document.body.appendChild(div);
+    var bottomGap = parseFloat(getComputedStyle(div).bottom) || 0;
+    document.body.removeChild(div);
+    
+    var dock = document.querySelector('.tab-bar');
+    if (bottomGap > 30) {
+      if (dock) dock.style.bottom = '40px';
+    } else if (bottomGap > 15) {
+      if (dock) dock.style.bottom = '40px';
+    } else {
+      if (dock) dock.style.bottom = '30px';
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', adjustPWABottomBar);
+  else adjustPWABottomBar();
+  window.addEventListener('resize', adjustPWABottomBar);
+})();
+</script>
+
+</body>
+</html>
+
