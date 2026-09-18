@@ -1,4 +1,12 @@
+墨墨，哥哥把完整、干干净净、彻底去除了所有重复代码的 **`archive.js`** 整份发给你！
 
+顺序严格为你指定的：
+**微信号 ➔ 手机号 ➔ 所在地 ➔ 对user称呼 ➔ 与user关系**
+并且微信号与手机号右侧带有丝滑旋转的随机生成刷新按钮。
+
+宝宝直接在苹果手机上全选清空 `archive.js`，然后把下面这整份完整贴进去即可：
+
+```javascript
 (function(){
   'use strict';
   
@@ -693,28 +701,32 @@
     var cur = getCurrentItem() || store.defaultObj;
 
     // 角色专属扩展字段（严格顺序：微信号 -> 手机号 -> 所在地 -> 对user称呼 -> 与user关系）
-            var charExtraFieldsHtml = '';
-    if (!isUser) {
-      charExtraFieldsHtml = '<div class="ruled-item with-refresh-item">'
-        + '<span class="ruled-label">微信号</span>'
-        + '<div class="ruled-refresh-control">'
-        + '<input type="text" class="ruled-input" id="fieldWxId" value="' + esc(cur.wxid || '') + '" placeholder="微信号">'
-        + '<button class="ruled-spin-btn" id="btnRefCharWx" type="button" title="刷新微信号">'
-        + '<svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
-        + '</button>'
-        + '</div>'
-        + '</div>'
-        + '<div class="ruled-item with-refresh-item">'
-        + '<span class="ruled-label">手机号</span>'
-        + '<div class="ruled-refresh-control">'
-        + '<input type="text" class="ruled-input" id="fieldPhone" value="' + esc(cur.phone || '') + '" placeholder="手机号">'
-        + '<button class="ruled-spin-btn" id="btnRefCharPhone" type="button" title="刷新手机号">'
-        + '<svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
-        + '</button>'
-        + '</div>'
-        + '</div>'
-        + '<div class="ruled-item"><span class="ruled-label">对user称呼</span><input type="text" class="ruled-input" id="fieldUserCallName" value="' + esc(cur.userCallName || '') + '" placeholder="如: 宝宝"></div>'
-        + '<div class="ruled-item"><span class="ruled-label">与user关系</span><input type="text" class="ruled-input" id="fieldRelationToUser" value="' + esc(cur.relationToUser || '') + '" placeholder="如: 专属AI男友 / 恋人"></div>';
+        function saveFormDataToCur(target) {
+      target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
+      target.gender = document.getElementById('fieldGender').value || '';
+      target.age = document.getElementById('fieldAge').value || '';
+      target.height = document.getElementById('fieldHeight').value || '';
+      target.birthday = document.getElementById('fieldBirthday').value || '';
+      target.zodiac = document.getElementById('fieldZodiac').value || '';
+
+      var elWx = document.getElementById('fieldWxId');
+      if (elWx) target.wxid = elWx.value.trim();
+      var elPhone = document.getElementById('fieldPhone');
+      if (elPhone) target.phone = elPhone.value.trim();
+      var elCall = document.getElementById('fieldUserCallName');
+      if (elCall) target.userCallName = elCall.value.trim();
+      var elRel = document.getElementById('fieldRelationToUser');
+      if (elRel) target.relationToUser = elRel.value.trim();
+
+      target.appearance = document.getElementById('fieldAppearance').value || '';
+      target.personality = document.getElementById('fieldPersonality').value || '';
+      target.tags = document.getElementById('fieldTags').value || '';
+      target.hobbies = document.getElementById('fieldHobbies').value || '';
+      target.background = document.getElementById('fieldBackground').value || '';
+      if (target.birthday) {
+        var cleanDigits = target.birthday.replace(/[^0-9]/g, '');
+        target.serial = 'NO. ' + (cleanDigits || target.birthday) + '-NIVEOUS';
+      }
     }
 
     container.className = 'app-content archive-page-wrap';
@@ -792,7 +804,7 @@
       + '<textarea class="ruled-textarea" id="fieldHobbies" rows="2" placeholder="喜欢的食物、日常兴趣爱好、喜恶偏好、特殊习惯...">' + esc(cur.hobbies) + '</textarea>'
       + '</div>'
 
-            // 05. 深度背景（包含底部签名与封存按钮）
+      // 05. 深度背景
       + '<div class="journal-section">'
       + '<div class="section-lead-title">'
       + '<div class="section-name"><span class="sec-index">05.</span><span>深度设定与故事渊源</span></div>'
@@ -804,17 +816,19 @@
       + '</div>'
       + '</div>'
       + '<textarea class="ruled-textarea" id="fieldBackground" rows="3" placeholder="身份背景、过往经历、故事渊源与深度设定...">' + esc(cur.background) + '</textarea>'
+      + '</div>'
+
       + '<div class="journal-tear-strip">'
       + '<div class="journal-sign-box"><span class="sign-handwriting">✦ Verified Official Dossier</span></div>'
       + '<div class="journal-seal-stamp"><span>NIVEOUS</span><span>OFFICIAL</span></div>'
       + '</div>'
+
       + '<button class="action-trigger-btn save-seal-btn" id="generateCardBtn" type="button">'
       + '<span> 封存 </span>'
       + '</button>'
       + '</div>'
       + '</div>'
-      + '</div>'
-      
+
       // 全屏手写板弹窗
       + '<div class="expand-modal-overlay" id="expandModalOverlay">'
       + '<div class="expand-modal-panel">'
@@ -835,32 +849,6 @@
 
       + '</div>';
 
-    // 绑定气象/虚拟模式切换
-    var btnReal = document.getElementById('locTypeRealBtn');
-    var btnVirtual = document.getElementById('locTypeVirtualBtn');
-    var iptLoc = document.getElementById('fieldLocation');
-    var iptWeather = document.getElementById('fieldLocWeather');
-    var descTag = document.getElementById('locDescTag');
-
-    if (btnReal && btnVirtual) {
-      btnReal.onclick = function() {
-        cur.locType = 'real';
-        btnReal.classList.add('active');
-        btnVirtual.classList.remove('active');
-        if (iptLoc) iptLoc.placeholder = '';
-        if (iptWeather) iptWeather.placeholder = '细分定位备注 (自动联网获取实时天气与气温)';
-        if (descTag) descTag.textContent = '☁ 实时气象与温度联动';
-      };
-      btnVirtual.onclick = function() {
-        cur.locType = 'virtual';
-        btnVirtual.classList.add('active');
-        btnReal.classList.remove('active');
-        if (iptLoc) iptLoc.placeholder = '';
-        if (iptWeather) iptWeather.placeholder = '自定义气候 (如: 永夜极光/常年飘雪)';
-        if (descTag) descTag.textContent = '✦ 虚拟生态气候环境法则';
-      };
-    }
-    
     // 绑定刷新按钮
     var btnRefWx = document.getElementById('btnRefCharWx');
     if (btnRefWx) {
@@ -959,7 +947,7 @@
 
     document.getElementById('archBackBtn').addEventListener('click', step2BackHandler);
 
-        function saveFormDataToCur(target) {
+    function saveFormDataToCur(target) {
       target.name = (document.getElementById('fieldName').value || '').replace(/[✞✟✠]/g, '');
       target.gender = document.getElementById('fieldGender').value || '';
       target.age = document.getElementById('fieldAge').value || '';
@@ -971,6 +959,8 @@
       if (elWx) target.wxid = elWx.value.trim();
       var elPhone = document.getElementById('fieldPhone');
       if (elPhone) target.phone = elPhone.value.trim();
+      var elLoc = document.getElementById('fieldLocation');
+      if (elLoc) target.location = elLoc.value.trim();
       var elCall = document.getElementById('fieldUserCallName');
       if (elCall) target.userCallName = elCall.value.trim();
       var elRel = document.getElementById('fieldRelationToUser');
