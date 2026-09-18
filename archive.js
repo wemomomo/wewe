@@ -103,6 +103,11 @@
     height: '',
     birthday: '',
     zodiac: '',
+    wxid: '',
+    phone: '',
+    userCallName: '',
+    location: '',
+    relationToUser: '',
     appearance: '',
     personality: '',
     tags: '',
@@ -118,8 +123,27 @@
     tagRomaji: 'NIVEOUS // MOON',
     serial: 'NO. 0000',
     tplIdx: 0,
-    boundUserId: ''
+    boundUserId: '',
+    boundWbIds: [] // 支持绑定多本世界书
   };
+
+  // 生成随机微信号与手机号工具函数
+  function generateRandomWxId() {
+    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    var res = 'wxid_';
+    for (var i = 0; i < 7; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return res;
+  }
+
+  function generateRandomPhone() {
+    var res = '1';
+    for (var i = 0; i < 9; i++) {
+      res += Math.floor(Math.random() * 10);
+    }
+    return res + '*';
+  }
 
   // ============ 核心自愈初始化 ============
   function initArchivePage() {
@@ -199,14 +223,18 @@
         // 3. 读取角色列表
         AppDB.get(CHAR_ARCHIVES_LIST_KEY, function(cList) {
           charList = Array.isArray(cList) ? cList : [];
-          charList.forEach(function(c) {
-            if (c.name) c.name = c.name.replace(/[✞✟✠]/g, '').trim();
-            for (var j = 0; j < 5; j++) {
-              if (!c['quote' + j]) {
-                c['quote' + j] = (j === 0 && c.quote) ? c.quote : DEFAULT_CHAR_QUOTES[j];
-              }
-            }
-          });
+            charList.forEach(function(c) {
+    if (c.name) c.name = c.name.replace(/[✞✟✠]/g, '').trim();
+    // 兼容多选世界书数组：
+    if (!Array.isArray(c.boundWbIds)) {
+      c.boundWbIds = c.boundWbId ? [c.boundWbId] : [];
+    }
+    for (var j = 0; j < 5; j++) {
+      if (!c['quote' + j]) {
+        c['quote' + j] = (j === 0 && c.quote) ? c.quote : DEFAULT_CHAR_QUOTES[j];
+      }
+    }
+  });
           charList = charList.filter(function(c) { return !c.id || !c.id.startsWith('user_'); });
 
           // 4. 读取角色激活ID
@@ -299,7 +327,8 @@
   function isCharBound(charId) {
     if (!charId) return false;
     var c = charList.find(function(x) { return x.id === charId; });
-    return !!(c && c.boundUserId);
+    var hasWb = c && Array.isArray(c.boundWbIds) && c.boundWbIds.length > 0;
+    return !!(c && (c.boundUserId || hasWb)); // 👈 只要绑定了用户或任意一本世界书，星星都会点亮！
   }
 
   // ==========================================
@@ -365,12 +394,16 @@
 
       + '<div class="archive-showcase-wrap" id="archiveSubViewport"></div>'
 
-      // 专属用户羁绊绑定抽屉
+      // 专属羁绊与世界书绑定抽屉
       + '<div class="user-drawer-mask" id="bindDrawerMask"></div>'
       + '<div class="user-drawer-card bind-drawer-card" id="bindDrawerCard">'
       + '<div class="drawer-header">'
-      + '<div class="drawer-title">✦ 专属羁绊绑定 ✦</div>'
+      + '<div class="drawer-title">✦ 专属羁绊与世界书 ✦</div>'
       + '<button class="drawer-close-btn" id="bindDrawerCloseBtn" type="button">✕</button>'
+      + '</div>'
+      + '<div class="bind-drawer-tabs">'
+      + '<button class="bind-tab-btn active" id="bindTabUserBtn" type="button">专属用户</button>'
+      + '<button class="bind-tab-btn" id="bindTabWbBtn" type="button">专属世界书</button>'
       + '</div>'
       + '<div class="drawer-list" id="bindUserListContent"></div>'
       + '</div>'
@@ -427,10 +460,10 @@
     if (bindDrawerCloseBtn) bindDrawerCloseBtn.addEventListener('click', closeBindDrawer);
     if (bindDrawerMask) bindDrawerMask.addEventListener('click', closeBindDrawer);
 
-    if (bindStarBtn) {
+        if (bindStarBtn) {
       bindStarBtn.addEventListener('click', function() {
         if (currentTab !== 'char') {
-          if (window.AppNav) AppNav.showToast('✦ 切换到角色端即可绑定专属用户 ✦');
+          if (window.AppNav) AppNav.showToast('✦ 切换到角色端即可绑定 ✦');
           return;
         }
         var curChar = getCurrentChar();
@@ -438,48 +471,113 @@
           if (window.AppNav) AppNav.showToast('请先录入角色设定哦');
           return;
         }
-        
-        var pureUsers = userList.filter(function(u) { return !u.id || !u.id.startsWith('char_'); });
 
-        if (!pureUsers.length) {
-          if (window.AppNav) AppNav.showToast('暂无用户设定，请在用户端新建档案');
-          return;
-        }
+        var activeBindTab = 'user'; // 'user' | 'wb'
 
-        var listWrap = document.getElementById('bindUserListContent');
-        if (listWrap) {
-          listWrap.innerHTML = pureUsers.map(function(u) {
-            var isBoundToThis = (curChar.boundUserId === u.id);
-            return '<div class="drawer-user-item' + (isBoundToThis ? ' active' : '') + '" data-bind-uid="' + u.id + '">'
-              + '<div class="drawer-avatar">' + (u.photo ? '<img src="' + esc(u.photo) + '">' : '✦') + '</div>'
-              + '<div class="drawer-user-info">'
-              + '<div class="drawer-user-name">' + esc(u.name) + (isBoundToThis ? '<span class="drawer-active-tag">已绑定</span>' : '') + '</div>'
-              + '<div class="drawer-user-date">' + esc(u.userid || '@NIVEOUSMOON') + '</div>'
-              + '</div>'
-              + '<button class="bind-select-btn' + (isBoundToThis ? ' is-cancel' : '') + '" type="button">' + (isBoundToThis ? '解除' : '绑定') + '</button>'
-              + '</div>';
-          }).join('');
+        function renderBindList() {
+          var listWrap = document.getElementById('bindUserListContent');
+          if (!listWrap) return;
 
-          listWrap.querySelectorAll('.drawer-user-item').forEach(function(item) {
-            item.addEventListener('click', function() {
-              var targetUid = this.dataset.bindUid;
-              var targetUser = userList.find(function(x){ return x.id === targetUid; });
-              if (curChar.boundUserId === targetUid) {
-                curChar.boundUserId = '';
-                if (window.AppNav) AppNav.showToast('✦ 已解除与 [' + (targetUser ? targetUser.name : '该用户') + '] 的专属绑定 ✦');
-              } else {
-                curChar.boundUserId = targetUid;
-                if (window.AppNav) AppNav.showToast('✦ 已将 [' + (curChar.name || '角色') + '] 专属绑定至 [' + (targetUser ? targetUser.name : '用户') + '] ✦');
-              }
-              saveCurrentToDB(function() {
-                closeBindDrawer();
-                updateBindStarStatus();
-                renderSubContent();
+          if (activeBindTab === 'user') {
+            var pureUsers = userList.filter(function(u) { return !u.id || !u.id.startsWith('char_'); });
+            if (!pureUsers.length) {
+              listWrap.innerHTML = '<div class="drawer-user-item" style="justify-content:center; color:#94a3b8; font-size:12px;">暂无用户设定，请先新建用户档案</div>';
+              return;
+            }
+            listWrap.innerHTML = pureUsers.map(function(u) {
+              var isBound = (curChar.boundUserId === u.id);
+              return '<div class="drawer-user-item' + (isBound ? ' active' : '') + '" data-bind-uid="' + u.id + '">'
+                + '<div class="drawer-avatar">' + (u.photo ? '<img src="' + esc(u.photo) + '">' : '✦') + '</div>'
+                + '<div class="drawer-user-info">'
+                + '<div class="drawer-user-name">' + esc(u.name) + (isBound ? '<span class="drawer-active-tag">已绑定</span>' : '') + '</div>'
+                + '<div class="drawer-user-date">' + esc(u.userid || '@NIVEOUSMOON') + '</div>'
+                + '</div>'
+                + '<button class="bind-select-btn' + (isBound ? ' is-cancel' : '') + '" type="button">' + (isBound ? '解除' : '绑定') + '</button>'
+                + '</div>';
+            }).join('');
+
+            listWrap.querySelectorAll('.drawer-user-item').forEach(function(item) {
+              item.addEventListener('click', function() {
+                var targetUid = this.dataset.bindUid;
+                curChar.boundUserId = (curChar.boundUserId === targetUid) ? '' : targetUid;
+                saveCurrentToDB(function() {
+                  renderBindList();
+                  updateBindStarStatus();
+                  renderSubContent();
+                });
               });
             });
-          });
+                  } else {
+            // 渲染世界书绑定列表（支持多本勾选）
+            if (!window.AppDB) return;
+            window.AppDB.get('app_worldbooks_data', function(wbData) {
+              var wbList = Array.isArray(wbData) ? wbData : [];
+              if (!wbList.length) {
+                listWrap.innerHTML = '<div class="drawer-user-item" style="justify-content:center; color:#94a3b8; font-size:12px;">暂无世界书，请前往世界书应用新建</div>';
+                return;
+              }
+
+              if (!Array.isArray(curChar.boundWbIds)) {
+                curChar.boundWbIds = curChar.boundWbId ? [curChar.boundWbId] : [];
+              }
+
+              listWrap.innerHTML = wbList.map(function(wb) {
+                var isBound = curChar.boundWbIds.indexOf(wb.id) !== -1;
+                var entryCount = Array.isArray(wb.entries) ? wb.entries.length : 0;
+                return '<div class="drawer-user-item is-wb-item' + (isBound ? ' active' : '') + '" data-bind-wbid="' + wb.id + '">'
+                  + '<div class="drawer-avatar">' + (wb.cover ? '<img src="' + esc(wb.cover) + '">' : '📖') + '</div>'
+                  + '<div class="drawer-user-info">'
+                  + '<div class="drawer-user-name">' + esc(wb.title || '未命名世界书') + (isBound ? '<span class="drawer-active-tag">已绑定</span>' : '') + '</div>'
+                  + '<div class="drawer-user-date"><span class="drawer-wb-badge">' + entryCount + ' 词条</span></div>'
+                  + '</div>'
+                  + '<button class="bind-select-btn' + (isBound ? ' is-cancel' : '') + '" type="button">' + (isBound ? '解除' : '绑定') + '</button>'
+                  + '</div>';
+              }).join('');
+
+              listWrap.querySelectorAll('.drawer-user-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                  var targetWbId = this.dataset.bindWbid;
+                  var targetWb = wbList.find(function(w){ return w.id === targetWbId; });
+                  var idx = curChar.boundWbIds.indexOf(targetWbId);
+
+                  if (idx !== -1) {
+                    // 已绑定 -> 移除
+                    curChar.boundWbIds.splice(idx, 1);
+                    if (window.AppNav) AppNav.showToast('✦ 已解除《' + (targetWb ? targetWb.title : '') + '》✦');
+                  } else {
+                    // 未绑定 -> 追加绑定
+                    curChar.boundWbIds.push(targetWbId);
+                    if (window.AppNav) AppNav.showToast('✦ 已追加绑定《' + (targetWb ? targetWb.title : '') + '》✦');
+                  }
+
+                  saveCurrentToDB(function() {
+                    renderBindList();
+                    updateBindStarStatus();
+                  });
+                });
+              });
+            });
+          }
         }
 
+        var tabUser = document.getElementById('bindTabUserBtn');
+        var tabWb = document.getElementById('bindTabWbBtn');
+        if (tabUser && tabWb) {
+          tabUser.onclick = function() {
+            activeBindTab = 'user';
+            tabUser.classList.add('active');
+            tabWb.classList.remove('active');
+            renderBindList();
+          };
+          tabWb.onclick = function() {
+            activeBindTab = 'wb';
+            tabWb.classList.add('active');
+            tabUser.classList.remove('active');
+            renderBindList();
+          };
+        }
+
+        renderBindList();
         if (bindDrawerMask) bindDrawerMask.classList.add('show');
         if (bindDrawerCard) bindDrawerCard.classList.add('show');
       });
@@ -596,12 +694,38 @@
   // ==========================================
   // 步骤 2：手账录入填单
   // ==========================================
-  var step2BackHandler = null;
+    var step2BackHandler = null;
 
   function renderStep2() {
     var isUser = (currentTab === 'user');
     var store = getActiveStore();
     var cur = getCurrentItem() || store.defaultObj;
+
+    // 角色专属扩展字段区域
+    var charExtraFieldsHtml = '';
+    if (!isUser) {
+      charExtraFieldsHtml = '<div class="ruled-item with-refresh">'
+        + '<span class="ruled-label">微信号</span>'
+        + '<div class="ruled-input-refresh-wrap">'
+        + '<input type="text" class="ruled-input" id="fieldWxId" value="' + esc(cur.wxid || '') + '" placeholder="如: wxid_xxx">'
+        + '<button class="ruled-refresh-btn" id="btnRefCharWx" type="button" title="随机生成微信号">'
+        + '<svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
+        + '</button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="ruled-item with-refresh">'
+        + '<span class="ruled-label">手机号</span>'
+        + '<div class="ruled-input-refresh-wrap">'
+        + '<input type="text" class="ruled-input" id="fieldPhone" value="' + esc(cur.phone || '') + '" placeholder="如: 1380000000*">'
+        + '<button class="ruled-refresh-btn" id="btnRefCharPhone" type="button" title="随机生成手机号">'
+        + '<svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'
+        + '</button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="ruled-item"><span class="ruled-label">对user称呼</span><input type="text" class="ruled-input" id="fieldUserCallName" value="' + esc(cur.userCallName || '') + '" placeholder="如: 宝宝 / 墨墨"></div>'
+        + '<div class="ruled-item"><span class="ruled-label">所在地</span><input type="text" class="ruled-input" id="fieldLocation" value="' + esc(cur.location || '') + '" placeholder="真实或虚拟地点"></div>'
+        + '<div class="ruled-item full-width-ruled"><span class="ruled-label">与user关系</span><input type="text" class="ruled-input" id="fieldRelationToUser" value="' + esc(cur.relationToUser || '') + '" placeholder="如: 专属AI男友 / 恋人"></div>';
+    }
 
     container.className = 'app-content archive-page-wrap';
     container.innerHTML = '<div class="archive-page-screen screen-bg-0">'
@@ -631,6 +755,7 @@
       + '<div class="ruled-item"><span class="ruled-label">身高</span><input type="text" class="ruled-input" id="fieldHeight" value="' + esc(cur.height) + '" placeholder=""></div>'
       + '<div class="ruled-item"><span class="ruled-label">生日</span><input type="text" class="ruled-input" id="fieldBirthday" value="' + esc(cur.birthday) + '" placeholder=""></div>'
       + '<div class="ruled-item"><span class="ruled-label">星座</span><input type="text" class="ruled-input" id="fieldZodiac" value="' + esc(cur.zodiac) + '" placeholder=""></div>'
+      + charExtraFieldsHtml
       + '</div>'
       + '</div>'
 
@@ -722,8 +847,34 @@
 
       + '</div>';
 
+    // 绑定随机刷新按钮事件
+    var btnRefWx = document.getElementById('btnRefCharWx');
+    if (btnRefWx) {
+      btnRefWx.addEventListener('click', function(e) {
+        e.stopPropagation();
+        btnRefWx.classList.remove('rotating');
+        void btnRefWx.offsetWidth;
+        btnRefWx.classList.add('rotating');
+        var ipt = document.getElementById('fieldWxId');
+        if (ipt) ipt.value = generateRandomWxId();
+      });
+    }
+
+    var btnRefPhone = document.getElementById('btnRefCharPhone');
+    if (btnRefPhone) {
+      btnRefPhone.addEventListener('click', function(e) {
+        e.stopPropagation();
+        btnRefPhone.classList.remove('rotating');
+        void btnRefPhone.offsetWidth;
+        btnRefPhone.classList.add('rotating');
+        var ipt = document.getElementById('fieldPhone');
+        if (ipt) ipt.value = generateRandomPhone();
+      });
+    }
+
     var originalSnapshot = JSON.stringify({
       name: cur.name || '', gender: cur.gender || '', age: cur.age || '', height: cur.height || '', birthday: cur.birthday || '', zodiac: cur.zodiac || '',
+      wxid: cur.wxid || '', phone: cur.phone || '', userCallName: cur.userCallName || '', location: cur.location || '', relationToUser: cur.relationToUser || '',
       appearance: cur.appearance || '', personality: cur.personality || '', tags: cur.tags || '', hobbies: cur.hobbies || '', background: cur.background || ''
     });
 
@@ -759,6 +910,11 @@
         height: (document.getElementById('fieldHeight') ? document.getElementById('fieldHeight').value : ''),
         birthday: (document.getElementById('fieldBirthday') ? document.getElementById('fieldBirthday').value : ''),
         zodiac: (document.getElementById('fieldZodiac') ? document.getElementById('fieldZodiac').value : ''),
+        wxid: (document.getElementById('fieldWxId') ? document.getElementById('fieldWxId').value : ''),
+        phone: (document.getElementById('fieldPhone') ? document.getElementById('fieldPhone').value : ''),
+        userCallName: (document.getElementById('fieldUserCallName') ? document.getElementById('fieldUserCallName').value : ''),
+        location: (document.getElementById('fieldLocation') ? document.getElementById('fieldLocation').value : ''),
+        relationToUser: (document.getElementById('fieldRelationToUser') ? document.getElementById('fieldRelationToUser').value : ''),
         appearance: (document.getElementById('fieldAppearance') ? document.getElementById('fieldAppearance').value : ''),
         personality: (document.getElementById('fieldPersonality') ? document.getElementById('fieldPersonality').value : ''),
         tags: (document.getElementById('fieldTags') ? document.getElementById('fieldTags').value : ''),
@@ -794,13 +950,25 @@
       target.gender = document.getElementById('fieldGender').value || '';
       target.age = document.getElementById('fieldAge').value || '';
       target.height = document.getElementById('fieldHeight').value || '';
-      target.birthday = document.getElementById('fieldBirthday').value;
+      target.birthday = document.getElementById('fieldBirthday').value || '';
       target.zodiac = document.getElementById('fieldZodiac').value || '';
-      target.appearance = document.getElementById('fieldAppearance').value;
-      target.personality = document.getElementById('fieldPersonality').value;
-      target.tags = document.getElementById('fieldTags').value;
-      target.hobbies = document.getElementById('fieldHobbies').value;
-      target.background = document.getElementById('fieldBackground').value;
+      
+      var elWx = document.getElementById('fieldWxId');
+      if (elWx) target.wxid = elWx.value.trim();
+      var elPhone = document.getElementById('fieldPhone');
+      if (elPhone) target.phone = elPhone.value.trim();
+      var elCall = document.getElementById('fieldUserCallName');
+      if (elCall) target.userCallName = elCall.value.trim();
+      var elLoc = document.getElementById('fieldLocation');
+      if (elLoc) target.location = elLoc.value.trim();
+      var elRel = document.getElementById('fieldRelationToUser');
+      if (elRel) target.relationToUser = elRel.value.trim();
+
+      target.appearance = document.getElementById('fieldAppearance').value || '';
+      target.personality = document.getElementById('fieldPersonality').value || '';
+      target.tags = document.getElementById('fieldTags').value || '';
+      target.hobbies = document.getElementById('fieldHobbies').value || '';
+      target.background = document.getElementById('fieldBackground').value || '';
       if (target.birthday) {
         var cleanDigits = target.birthday.replace(/[^0-9]/g, '');
         target.serial = 'NO. ' + (cleanDigits || target.birthday) + '-NIVEOUS';
@@ -910,7 +1078,7 @@
       saveCurrentToDB(function() { renderArchiveShell(); });
     });
   }
-
+  
   (function initGlobalSwipeInterceptor() {
     var touchStartX = 0, touchStartY = 0, touchCurX = 0, touchCurY = 0;
     var isIntercepting = false;
@@ -1476,3 +1644,4 @@
   }
 
 })();
+
