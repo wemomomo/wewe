@@ -3,9 +3,9 @@
   'use strict';
 
   var sectionThemes = {
-    wb: { color: '#88abda', bg: 'rgba(136, 171, 218, 0.18)' },
-    preset: { color: '#88abda', bg: 'rgba(136, 171, 218, 0.18)' },
-    regex: { color: '#88abda', bg: 'rgba(136, 171, 218, 0.18)' }
+    wb: { color: '#A6BFE0', bg: 'rgba(166, 191, 224, 0.22)' },
+    preset: { color: '#A6BFE0', bg: 'rgba(166, 191, 224, 0.22)' },
+    regex: { color: '#A6BFE0', bg: 'rgba(166, 191, 224, 0.22)' }
   };
 
   var sectionMeta = {
@@ -24,6 +24,7 @@
     currentEntryId: null,
     isCreatingNewWb: false,
     editTempTags: [],
+    isEditingBookTitle: false,
     initialized: false
   };
 
@@ -157,40 +158,201 @@
     }
   }
 
-  // ============ 导入 .docx / 自有标准 .json ============
+  // ============ 真正解压读取 .docx 真实全文 ============
+  function extractDocxText(buffer, callback) {
+    function fallbackRegex() {
+      try {
+        var bytes = new Uint8Array(buffer);
+        var str = new TextDecoder('utf-8').decode(bytes);
+        var matches = str.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) || [];
+        var parts = [];
+        for (var i = 0; i < matches.length; i++) {
+          var c = matches[i].replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, '');
+          c = c.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+          if (c.trim()) parts.push(c);
+        }
+        callback(parts.join(''));
+      } catch (e) {
+        callback('');
+      }
+    }
+
+    function loadZip(cb) {
+      if (window.JSZip) return cb(window.JSZip);
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = function () { cb(window.JSZip); };
+      s.onerror = function () { cb(null); };
+      document.head.appendChild(s);
+    }
+
+    loadZip(function (JSZipLib) {
+      if (!JSZipLib) {
+        fallbackRegex();
+        return;
+      }
+      JSZipLib.loadAsync(buffer).then(function (zip) {
+        var doc = zip.file('word/document.xml');
+        if (!doc) {
+          fallbackRegex();
+          return;
+        }
+        doc.async('string').then(function (xml) {
+          var pList = xml.split(/<\/w:p>/g);
+          var paras = [];
+          for (var i = 0; i < pList.length; i++) {
+            var tList = pList[i].match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) || [];
+            var line = '';
+            for (var j = 0; j < tList.length; j++) {
+              var txt = tList[j].replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, '');
+              txt = txt.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+              line += txt;
+            }
+            if (line.trim()) paras.push(line.trim());
+          }
+          callback(paras.join('\n\n'));
+        }).catch(fallbackRegex);
+      }).catch(fallbackRegex);
+    });
+  }
+
+  // ============ DOCX 智能多词条拆分引擎 ============
+  function splitDocxToEntries(rawText, defaultTitle) {
+    if (!rawText || !rawText.trim()) return [];
+    var text = rawText.trim();
+    var entries = [];
+
+    function makeEntry(name, content, idx) {
+      var cleanName = (name || ('条目 ' + (idx + 1))).trim();
+      var cleanContent = (content || '').trim();
+      var keys = [cleanName];
+
+      var keyMatch = cleanContent.match(/^(?:关键词|触发词|Keys?|Key)\s*[:：]\s*(.+)$/im);
+      if (keyMatch) {
+        var foundKeys = keyMatch[1].split(/[,，\s]+/).filter(Boolean);
+        if (foundKeys.length > 0) {
+          keys = foundKeys;
+          cleanContent = cleanContent.replace(/^(?:关键词|触发词|Keys?|Key)\s*[:：].*$\n?/im, '').trim();
+        }
+      }
+
+      return {
+        id: 'entry_' + Date.now() + '_' + idx,
+        name: cleanName,
+        content: cleanContent,
+        mode: 'key',
+        keys: keys,
+        scanDepth: 4,
+        pos: 'depth',
+        depthVal: 2,
+        enabled: true
+      };
+    }
+
+    var match;
+    var idx = 0;
+
+    // 1. 尝试 <标签>内容</> 语法
+    var tagRegex = /<([^>/]+)>([\s\S]*?)(?:<\/\1>|<\/>)/g;
+    while ((match = tagRegex.exec(text)) !== null) {
+      if (match[1] && match[2] && match[2].trim()) {
+        entries.push(makeEntry(match[1], match[2], idx++));
+      }
+    }
+    if (entries.length > 0) return entries;
+
+    // 2. 尝试 【标题】内容 或 [标题]内容
+    var bracketRegex = /(?:^|\n)\s*[【\[]([^】\]]+)[】\]]\s*([\s\S]*?)(?=(?:\n\s*[【\[][^】\]]+[】\]]|$))/g;
+    idx = 0;
+    while ((match = bracketRegex.exec(text)) !== null) {
+      if (match[1] && match[2] && match[2].trim()) {
+        entries.push(makeEntry(match[1], match[2], idx++));
+      }
+    }
+    if (entries.length > 1) return entries;
+
+    // 3. 尝试 Markdown 标题 (## 标题 或 # 标题)
+    var mdRegex = /(?:^|\n)\s*#{1,3}\s+([^\n]+)\n([\s\S]*?)(?=(?:\n\s*#{1,3}\s+[^\n]+|$))/g;
+    idx = 0;
+    entries = [];
+    while ((match = mdRegex.exec(text)) !== null) {
+      if (match[1] && match[2] && match[2].trim()) {
+        entries.push(makeEntry(match[1], match[2], idx++));
+      }
+    }
+    if (entries.length > 1) return entries;
+
+    // 4. 尝试 中文序号或数字序号
+    var numRegex = /(?:^|\n)\s*(?:(?:[一二三四五六七八九十百]+|[0-9]{1,3})[、.．:]|条目\s*(?:[一二三四五六七八九十百0-9]+)\s*[:：])\s*([^\n]+)\n([\s\S]*?)(?=(?:\n\s*(?:(?:[一二三四五六七八九十百]+|[0-9]{1,3})[、.．:]|条目\s*(?:[一二三四五六七八九十百0-9]+)\s*[:：])|$))/g;
+    idx = 0;
+    entries = [];
+    while ((match = numRegex.exec(text)) !== null) {
+      if (match[1] && match[2] && match[2].trim()) {
+        entries.push(makeEntry(match[1], match[2], idx++));
+      }
+    }
+    if (entries.length > 1) return entries;
+
+    // 5. 兜底：作为单条核心设定
+    return [makeEntry(defaultTitle + ' 设定', text, 0)];
+  }
+
+  // ============ 导入 .docx / 自研 .json (彻底绝杀拦截第三方酒馆格式) ============
   function importWorldbookDocx() {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = '.docx,.json,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    fileInput.accept = '.docx,.json,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain';
     fileInput.onchange = function (e) {
       var file = e.target.files[0];
       if (!file) return;
       var fileName = file.name.replace(/\.[^/.]+$/, '') || '导入的世界书';
-      var isJson = file.name.toLowerCase().endsWith('.json');
+      var isDocx = file.name.toLowerCase().endsWith('.docx');
 
-      var reader = new FileReader();
-
-      if (isJson) {
-        reader.onload = function (evt) {
+      if (!isDocx) {
+        var textReader = new FileReader();
+        textReader.onload = function (evt) {
           try {
-            var data = JSON.parse(evt.target.result);
-            if (!data || !Array.isArray(data.entries)) {
-              if (window.AppNav) window.AppNav.showToast('非标准数据格式，无法导入');
+            var rawStr = (evt.target.result || '').toString().replace(/^\uFEFF/, '').trim();
+            var data = JSON.parse(rawStr);
+
+            // 绝杀拦截：检测酒馆私有特征字段
+            if (data.tavo_spec || data.tavo_spec_version || (data.entries && typeof data.entries === 'object' && !Array.isArray(data.entries))) {
+              if (window.AppNav) window.AppNav.showToast('格式不支持，仅支持 Niveous 独立自研世界书');
               return;
             }
 
-            var wbTitle = data.name || fileName;
+            if (!data || !Array.isArray(data.entries) || data.entries.length === 0) {
+              if (window.AppNav) window.AppNav.showToast('世界书中未检测到有效词条');
+              return;
+            }
+
+            var wbTitle = data.name || data.title || fileName;
             var parsedEntries = data.entries.map(function (item, idx) {
+              var keysArr = [];
+              var sourceKey = item.keys || item.key;
+              if (Array.isArray(sourceKey)) {
+                keysArr = sourceKey;
+              } else if (typeof sourceKey === 'string' && sourceKey.trim()) {
+                keysArr = sourceKey.split(/[,，\s]+/).filter(Boolean);
+              }
+
+              var isConst = (item.mode === 'const') || (item.constant === true);
+              var entryName = item.name || ('条目 ' + (idx + 1));
+              var contentText = item.content || item.text || item.value || '';
+              var scanDepth = parseInt(item.scanDepth, 10) || 4;
+              var depthVal = parseInt(item.depthVal, 10) || 2;
+              var isEnabled = (item.enabled !== false);
+
               return {
                 id: 'entry_' + Date.now() + '_' + idx,
-                name: item.name || item.comment || ('条目 ' + (idx + 1)),
-                content: item.content || '',
-                mode: (item.mode === 'const' || item.constant) ? 'const' : 'key',
-                keys: Array.isArray(item.keys) ? item.keys : (Array.isArray(item.key) ? item.key : []),
-                scanDepth: parseInt(item.scanDepth || item.scan_depth, 10) || 4,
+                name: entryName,
+                content: contentText,
+                mode: isConst ? 'const' : 'key',
+                keys: keysArr,
+                scanDepth: scanDepth,
                 pos: (item.pos === 'before' || item.pos === 'after') ? item.pos : 'depth',
-                depthVal: parseInt(item.depthVal || item.order, 10) || 2,
-                enabled: item.enabled !== false && item.disable !== true
+                depthVal: depthVal,
+                enabled: isEnabled
               };
             });
 
@@ -203,83 +365,42 @@
 
             saveWorldbooksData();
             renderHomeView();
-            if (window.AppNav) window.AppNav.showToast('成功导入：《' + wbTitle + '》');
+            if (window.AppNav) window.AppNav.showToast('成功导入：《' + wbTitle + '》共 ' + parsedEntries.length + ' 条');
           } catch (err) {
-            if (window.AppNav) window.AppNav.showToast('文件损坏，导入失败');
+            if (window.AppNav) window.AppNav.showToast('文件格式有误，导入失败');
           }
         };
-        reader.readAsText(file);
+        textReader.readAsText(file, 'utf-8');
       } else {
+        var reader = new FileReader();
         reader.onload = function (evt) {
-          try {
-            var arrayBuffer = evt.target.result;
-            var textContent = extractDocxText(arrayBuffer);
+          var arrayBuffer = evt.target.result;
+          if (window.AppNav) window.AppNav.showToast('正在解析文档...');
+          extractDocxText(arrayBuffer, function (textContent) {
             if (!textContent || !textContent.trim()) {
-              textContent = '从文档中导入的内容设定。';
+              if (window.AppNav) window.AppNav.showToast('未能从文档中提取到文字内容');
+              return;
             }
 
-            var newEntry = {
-              id: 'entry_' + Date.now(),
-              name: fileName + ' 设定',
-              content: textContent.trim(),
-              mode: 'key',
-              keys: [fileName],
-              scanDepth: 4,
-              pos: 'depth',
-              depthVal: 2,
-              enabled: true
-            };
+            var entriesList = splitDocxToEntries(textContent, fileName);
 
             var newWb = {
               id: 'wb_' + Date.now(),
               title: fileName,
               cover: '',
-              entries: [newEntry]
+              entries: entriesList
             };
 
             state.worldbooks.push(newWb);
             saveWorldbooksData();
             renderHomeView();
-            if (window.AppNav) window.AppNav.showToast('成功导入文档：《' + fileName + '》');
-          } catch (err) {
-            if (window.AppNav) window.AppNav.showToast('文档解析失败，请确保为标准 .docx 格式');
-          }
+            if (window.AppNav) window.AppNav.showToast('成功导入文档：《' + fileName + '》共 ' + entriesList.length + ' 条');
+          });
         };
         reader.readAsArrayBuffer(file);
       }
     };
     fileInput.click();
-  }
-
-  function extractDocxText(buffer) {
-    try {
-      var bytes = new Uint8Array(buffer);
-      var textParts = [];
-      var decoder = new TextDecoder('utf-8');
-      var decoded = decoder.decode(bytes);
-
-      var matches = decoded.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g);
-      if (matches && matches.length) {
-        for (var i = 0; i < matches.length; i++) {
-          var clean = matches[i].replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, '');
-          clean = clean.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
-          textParts.push(clean);
-        }
-        return textParts.join('');
-      }
-
-      var pMatches = decoded.match(/<w:p[^>]*>([\s\S]*?)<\/w:p>/g);
-      if (pMatches && pMatches.length) {
-        for (var j = 0; j < pMatches.length; j++) {
-          var pClean = pMatches[j].replace(/<[^>]+>/g, '');
-          if (pClean && pClean.trim()) textParts.push(pClean.trim());
-        }
-        return textParts.join('\n');
-      }
-      return '';
-    } catch (e) {
-      return '';
-    }
   }
 
   // ============ 导出 JSON ============
@@ -362,10 +483,10 @@
         + '        <span>导入世界书</span>'
         + '      </button>'
         + '      <div class="wb-menu-color-row">'
-        + '        <div class="wb-swatch-dot" style="background:#88abda;" data-color="#88abda" data-bg="rgba(136,171,218,0.22)" title="经典冰蓝"></div>'
-        + '        <div class="wb-swatch-dot" style="background:#8e8e93;" data-color="#8e8e93" data-bg="rgba(142,142,147,0.22)" title="高级浅灰"></div>'
+        + '        <div class="wb-swatch-dot" style="background:#A6BFE0;" data-color="#A6BFE0" data-bg="rgba(166,191,224,0.22)" title="经典冰蓝"></div>'
+        + '        <div class="wb-swatch-dot" style="background:#e5e5ea;" data-color="#e5e5ea" data-bg="rgba(229,229,234,0.22)" title="高级浅灰"></div>'
         + '        <div class="wb-custom-color-item" title="自定义取色">'
-        + '          <input type="color" class="wb-custom-color-input" id="wbCustomColorInput" value="#88abda">'
+        + '          <input type="color" class="wb-custom-color-input" id="wbCustomColorInput" value="#A6BFE0">'
         + '        </div>'
         + '      </div>'
         + '    </div>'
@@ -436,10 +557,10 @@
           var stats = getWbTokensStats(wb);
 
           html += ''
-            + '<div class="wb-art-card" data-wb-id="' + wb.id + '" data-card-click-enter="' + wb.id + '">'
+            + '<div class="wb-art-card" data-wb-id="' + wb.id + '">'
             + '  <div class="wb-art-frame-left' + hasImgCls + '" data-cover-wb="' + wb.id + '">'
             + coverImgHtml
-            + '    <svg class="wb-art-cam-icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>'
+            + '    <svg class="wb-art-cam-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>'
             + '  </div>'
             + '  <div class="wb-art-info-right">'
             + '    <div class="wb-art-title-line">'
@@ -451,7 +572,7 @@
             + '      </button>'
             + '    </div>'
             + '    <div class="wb-art-dot-divider"></div>'
-            + '    <div class="wb-art-meta-bottom">'
+            + '    <div class="wb-art-meta-bottom" data-card-click-enter="' + wb.id + '">'
             + '      <span class="wb-art-count">总计 ' + stats.total + ' · 实际发送 <span>' + stats.active + ' Tokens</span></span>'
             + '      <span class="wb-art-enter">ENTER ➔</span>'
             + '    </div>'
@@ -683,7 +804,7 @@
       + '    <div class="wb-tag-box" id="wbTagBox"></div>'
       + '    <input class="wb-clean-input" type="text" id="wbIptKeyInput" placeholder="输入词后回车添加...">'
       + '    <div class="wb-scan-depth-row">'
-      + '      <span class="wb-scan-desc">扫描深度 (向前检索多少轮消息)</span>'
+      + '      <span class="wb-scan-desc">扫描深度（向前检索多少轮消息扫到相关关键词）</span>'
       + '      <input class="wb-scan-input" type="number" id="wbIptScanDepth" value="' + scanDepth + '" min="1" max="50">'
       + '    </div>'
       + '  </div>'
@@ -696,7 +817,7 @@
       + '      <button class="wb-depth-pos-btn' + posDepthCls + '" data-pos="depth" type="button">上下文深度 Depth</button>'
       + '    </div>'
       + '    <div class="wb-depth-num-inline' + depthInlineShow + '" id="wbDepthInline">'
-      + '      <span class="wb-scan-desc">插入深度 (0是插入到最新一条消息的前面，1是倒数第二条，以此类推)</span>'
+      + '      <span class="wb-scan-desc">插入深度 (0是插入到最新一条历史聊天消息的前面，1是第二新，以此类推)</span>'
       + '      <input class="wb-scan-input" type="number" id="wbIptDepthVal" value="' + depthVal + '" min="0" max="99">'
       + '    </div>'
       + '  </div>'
@@ -894,9 +1015,15 @@
     } else if (state.currentLevel === 'book_meta') {
       if (state.isCreatingNewWb) {
         state.worldbooks = state.worldbooks.filter(function (w) { return w.id !== state.currentWbId; });
+        state.isCreatingNewWb = false;
         saveWorldbooksData();
+        renderHomeView();
+      } else if (state.isEditingBookTitle) {
+        state.isEditingBookTitle = false;
+        renderEntriesView(state.currentWbId);
+      } else {
+        renderHomeView();
       }
-      renderHomeView();
     } else if (state.currentLevel === 'entries') {
       if (state.isCreatingNewWb) {
         var chkWb = state.worldbooks.find(function (w) { return w.id === state.currentWbId; });
@@ -919,7 +1046,6 @@
         var countEl = document.getElementById('wbCharCount');
         if (countEl) countEl.innerText = e.target.value.length + ' 字';
       }
-      // 核心改色：自定义取色器实时真联动！
       if (e.target && e.target.id === 'wbCustomColorInput') {
         var chosenColor = e.target.value;
         var customBg = 'rgba(' + hexToRgb(chosenColor) + ', 0.22)';
@@ -998,7 +1124,7 @@
         return;
       }
 
-      // 2. 右上角三横线圆圈按钮展开浮层
+      // 2. 右上角土星按钮展开浮层
       if (e.target.closest('#wbBtnRightAction')) {
         e.stopPropagation();
         var popRight = document.getElementById('wbRightMenuPopover');
@@ -1037,7 +1163,7 @@
         return;
       }
 
-      // 5. 核心改色：点击色块实时真改色并持久化保存
+      // 5. 核心改色
       var swatch = e.target.closest('.wb-swatch-dot');
       if (swatch) {
         e.stopPropagation();
@@ -1056,9 +1182,14 @@
       if (e.target.closest('#wbBtnMetaBack')) {
         if (state.isCreatingNewWb) {
           state.worldbooks = state.worldbooks.filter(function (w) { return w.id !== state.currentWbId; });
-          saveWorldbooksData();
+          state.isCreatingNewWb = false;
+          renderHomeView();
+        } else if (state.isEditingBookTitle) {
+          state.isEditingBookTitle = false;
+          renderEntriesView(state.currentWbId);
+        } else {
+          renderHomeView();
         }
-        renderHomeView();
         return;
       }
 
@@ -1070,7 +1201,11 @@
           saveWorldbooksData();
           
           if (state.isCreatingNewWb) {
+            state.isCreatingNewWb = false;
             renderEditView(null);
+          } else if (state.isEditingBookTitle) {
+            state.isEditingBookTitle = false;
+            renderEntriesView(state.currentWbId);
           } else {
             renderEntriesView(state.currentWbId);
           }
@@ -1079,6 +1214,7 @@
       }
 
       if (e.target.closest('#wbBtnEditBookTitle')) {
+        state.isEditingBookTitle = true;
         renderBookMetaView(state.currentWbId);
         return;
       }
@@ -1103,7 +1239,7 @@
         return;
       }
 
-      // 点击空白处关闭下拉菜单与右侧面板
+      // 空白处关闭浮层
       if (!e.target.closest('#wbHeaderSwitchWrap') && !e.target.closest('#wbHeaderDropdownMenu')) {
         var hMenu = document.getElementById('wbHeaderDropdownMenu');
         var hArr = document.getElementById('wbHeaderArrowDown');
@@ -1182,7 +1318,7 @@
         return;
       }
 
-      // 11. 全卡片点击直接进入
+      // 11. 全卡片点击直接进入（仅限点击下半部分）
       var enterCard = e.target.closest('[data-card-click-enter]');
       if (enterCard) {
         renderEntriesView(enterCard.dataset.cardClickEnter);
@@ -1340,3 +1476,4 @@
   });
 
 })();
+
