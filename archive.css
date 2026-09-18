@@ -64,7 +64,7 @@
 
 /* ========== 绑定专属用户按钮样式 ========== */
 .bind-select-btn {
-  margin-left: auto !important; /* 👈 核心：自动顶到卡片最右侧边缘！ */
+  margin-left: auto !important;
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 700;
@@ -94,22 +94,22 @@
   gap: 10px !important;
   padding: 8px 10px !important;
   border-radius: 12px !important;
-  background: #ffffff; /* 👈 去掉 !important，允许被 active 覆盖 */
+  background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .drawer-user-item.active {
-  background: rgba(24, 25, 28, 0.07)!important; /* 微深边框凸显当前 */
-  border-color: #f1f5f9 !important; /* 优雅微灰高亮 */ 
+  background: rgba(24, 25, 28, 0.07) !important;
+  border-color: #f1f5f9 !important;
 }
 
-/* 中间文字列：不占满整行，紧凑两行排版 */
+/* 中间文字列：紧凑排版 */
 .drawer-user-info {
   display: flex !important;
   flex-direction: column !important;
-  gap: 2px !important; /* 👈 名称与建档日期之间的空隙恢复紧凑！ */
-  flex: 0 0 auto !important; /* 核心：不霸道撑开，紧随文字宽度 */
+  gap: 2px !important;
+  flex: 0 0 auto !important;
   min-width: 0 !important;
 }
 
@@ -138,7 +138,7 @@
   flex-shrink: 0 !important;
 }
 
-/* 多角色守护头像并排（微叠错落感，精致不占地） */
+/* 多角色守护头像并排 */
 .drawer-multi-bound-avatars {
   display: flex !important;
   align-items: center !important;
@@ -174,7 +174,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  color: #e0b4c2 !important; /* 指定的高定灰粉色 */
+  color: #e0b4c2 !important;
   flex-shrink: 0 !important;
   margin: 0 -2px !important;
 }
@@ -186,12 +186,11 @@
   filter: drop-shadow(0 1px 3px rgba(224, 180, 194, 0.3)) !important;
 }
 
-/* 核心：把删除按钮自动顶到最右侧边缘！ */
 .drawer-del-btn {
   margin-left: auto !important;
   background: none;
   border: none;
-  color: #c94a4a; /* 删除红色位置 1 */
+  color: #c94a4a;
   font-size: 11.5px;
   font-weight: 600;
   padding: 5px 8px;
@@ -228,7 +227,6 @@
   z-index: 20;
 }
 
-/* 1. 左上角玄月星芒圣盘 */
 .celestial-crescent-emblem {
   position: absolute;
   top: -24px;
@@ -251,7 +249,6 @@
   stroke-linejoin: round;
 }
 
-/* 3. 点缀星芒与准星刻度 */
 .art-star {
   position: absolute;
   font-size: 11px;
@@ -277,7 +274,7 @@
 .art-crosshair.c1 { top: 36px; left: 10px; }
 .art-crosshair.c2 { top: 34px; right: 12px; }
 
-/* 标题区域（单层三等分横向对齐） */
+/* 标题区域 */
 .archive-header {
   width: 100%;
   display: flex;
@@ -306,7 +303,6 @@
   padding: 2px;
   margin-left: -4px;
 }
-/* 1. 让特工令(bg-2)和塔罗牌(bg-3)的返回箭头都变成纯白 */
 .char-screen-bg-2 .arch-native-back { 
   color: #f8fafc !important; 
 }
@@ -329,7 +325,6 @@
   line-height: 1;
 }
 
-/* 2. 让特工令和塔罗牌的“档案”大标题都变成纯白！ */
 .char-screen-bg-2 .archive-title { 
   color: #ffffff !important; 
 }
@@ -341,7 +336,6 @@
   flex-shrink: 0;
 }
 
-/* 顶部三横线图标圆形胶囊按钮 */
 .arch-tool-pill {
   display: inline-flex;
   align-items: center;
@@ -362,9 +356,6 @@
 .arch-tool-pill:active { background: #e2e6ea; transform: scale(0.96); }
 .arch-tool-pill svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.2; fill: none; }
 
-
-
-/* 悬浮分段双滑块导航栏（单层紧凑版） */
 .archive-nav-capsule {
   display: flex;
   width: 136px;
@@ -399,7 +390,7 @@
   z-index: 30;
   pointer-events: none;
 }
-/* 3. 让特工令和塔罗牌的右上角圆形按钮变成通透白 */
+
 .char-screen-bg-2 .arch-tool-pill,
 .char-screen-bg-3 .arch-tool-pill {
   background: rgba(255, 255, 255, 0.1) !important;
@@ -407,7 +398,6 @@
   border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
-/* 角色标签激活时：黑色滑块平移到右侧 */
 .nav-glider-pill.char-pos {
   transform: translateX(100%) !important;
 }
@@ -437,7 +427,7 @@
 }
 
 /* ======================================================== */
-/* 最初 100% 满血完美的卡片与手账排版（完全不动）        */
+/* 卡片与文字样式                                            */
 /* ======================================================== */
 .arch-card-wrapper [contenteditable="true"],
 .t1-bio, .t2-bio, .t3-bio, .t4-bio, .t5-sub-cn {
@@ -448,16 +438,6 @@
 .char-card-wrapper [contenteditable="true"],
 .t1-bio, .t2-bio, .t3-bio, .t4-bio, .t5-sub-cn,
 .char-intro-text, .char-quote,
-[contenteditable="true"] {
-  outline: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-  white-space: pre-wrap !important; /* 强制保留空格与换行 */
-  word-break: break-word !important;
-}
-
-/* 修复：移除导致黑底白字标签隐形的全局透明背景 */
-.arch-card-wrapper [contenteditable="true"],
-.char-card-wrapper [contenteditable="true"],
 [contenteditable="true"] {
   outline: none !important;
   -webkit-tap-highlight-color: transparent !important;
@@ -477,24 +457,22 @@
 }
 
 .page[data-page="archive"] {
-  background: #ffffff !important; /* 核心：实心纯白兜底，死死挡住桌面壁纸 */
+  background: #ffffff !important;
   z-index: 30 !important;
   position: absolute !important;
   inset: 0 !important;
 }
 
-/* 1. 卡片展示时彻底锁死，禁止任何上下晃动 */
 .archive-page-wrap {
   width: 100%;
   height: 100%;
   padding: 0 !important;
   display: flex;
   flex-direction: column;
-  overflow: hidden !important; /* 彻底锁死滑动 */
+  overflow: hidden !important;
   overscroll-behavior: none !important;
 }
 
-/* 2. 满屏 100% 严丝合缝贴死屏幕，绝不多出 1 像素 */
 .archive-page-screen {
   width: 100%;
   height: 100% !important;
@@ -507,7 +485,6 @@
   overflow: hidden !important;
 }
 
-/* 3. 只有在手账填单编辑时，才开启内容滚动 */
 .archive-page-wrap:has(.journal-sheet) {
   overflow-y: auto !important;
 }
@@ -541,7 +518,6 @@
   background: #ffffff !important;
 }
 
-/* 角色第3款（特工令）：实心纯黑科技底色 */
 .archive-page-screen.char-screen-bg-2 {
   background-color: #08090d !important;
   background-image: 
@@ -550,9 +526,8 @@
   background-size: 100% 100%, 16px 16px !important;
 }
 
-/* 角色第4款（血月塔罗）：实心暗夜深红神秘底色 */
 .archive-page-screen.char-screen-bg-3 {
-  background-color: #fff !important; /* 实心暗黑深红，绝不透底 */
+  background-color: #fff !important;
   background-image: 
     radial-gradient(circle at 50% 15%, rgba(181, 34, 52, 0.25) 0%, transparent 60%),
     radial-gradient(rgba(241, 245, 249, 0.06) 1.2px, transparent 1.2px) !important;
@@ -844,9 +819,6 @@
   flex-shrink: 0;
   border: none !important;
 }
-.t2-top-ring::after {
-  content: none;
-}
 .t2-frame {
   position: relative; border: 1px solid rgba(30, 36, 45, 0.15);
   background: #ffffff; border-radius: 20px; padding: 6px 18px;
@@ -893,7 +865,6 @@
 }
 .t2-wave-bar:nth-child(2) { height: 12px; animation-delay: 0.2s; }
 .t2-wave-bar:nth-child(3) { height: 6px; animation-delay: 0.4s; }
-@keyframes waveBounce { 0% { transform: scaleY(0.4); } 100% { transform: scaleY(1.2); } }
 
 .t2-footer { display: flex; flex-direction: column; gap: 8px; padding: 4px 4px 0; }
 .t2-user-row { display: flex; justify-content: space-between; align-items: center; }
@@ -1270,19 +1241,18 @@
   justify-content: center;
   color: #18191c;
   cursor: pointer;
-  position: relative; /* 必须加这行 */
+  position: relative;
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 核心优化：生成隐形 360° 向外延伸的感应热区，彻底解决右下角点不到的问题！ */
 .dock-arrow-btn::after {
   content: "";
   position: absolute;
   top: -12px;
   bottom: -12px;
   left: -12px;
-  right: -12px; /* 向外四周全部扩大 12px 触摸感应圈 */
+  right: -12px;
   z-index: 30;
 }
 .dock-arrow-btn:active { transform: scale(0.92); background: #f8f9fa; }
@@ -1309,7 +1279,6 @@
 .dock-edit-btn:active { transform: scale(0.97); background: #000000; }
 .dock-edit-btn svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2; fill: none; }
 
-/* 仅限 PWA 桌面端生效：拉开编辑按钮与卡片的距离 */
 @media (display-mode: standalone) {
   .archive-bottom-dock {
     margin-top: 28px !important;
@@ -1338,8 +1307,8 @@
 .empty-card-stage {
   width: 100%;
   max-width: 370px;
-  flex: 1; /* 重点：自动吃满屏幕下方所有剩余垂直高度 */
-  min-height: calc(100vh - 120px - var(--safe-top) - var(--safe-bottom)); /* 撑满屏幕兜底 */
+  flex: 1;
+  min-height: calc(100vh - 120px - var(--safe-top) - var(--safe-bottom));
   background: #ffffff;
   border-radius: 24px;
   padding: 30px 20px;
@@ -1348,14 +1317,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* 重点：让冰晶与所有文字在满屏卡片里正中心垂直居中 */
+  justify-content: center;
   text-align: center;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
 }
 
-/* 让父容器的动画面板也随之 100% 撑开 */
 #archStep1.archive-step-panel {
   flex: 1;
   display: flex;
@@ -1400,7 +1368,6 @@
   color: #18191c;
 }
 
-/* ========== 初雪 Pure Crystal 清透雪晶蓝 ========== */
 .frost-crystal-svg { width: 46px; height: 46px; overflow: visible; }
 .crystal-stroke { 
   stroke: rgba(90, 145, 210, 0.75) !important; 
@@ -1454,13 +1421,8 @@
   100% { opacity: 1; transform: scale(1); } 
 }
 
-.empty-sparkle { position: absolute; font-size: 11px; color: rgba(110, 160, 215, 0.75) !important; opacity: 0; }
 .empty-card-stage .empty-sparkle.s1 { top: 4px; right: 6px; animation: sparkleSlowIn 0.4s ease 1.1s forwards; }
 .empty-card-stage .empty-sparkle.s2 { bottom: 6px; left: 4px; animation: sparkleSlowIn 0.4s ease 1.25s forwards; }
-@keyframes sparkleSlowIn { 
-  0% { opacity: 0; transform: scale(0.4); } 
-  100% { opacity: 0.85; transform: scale(1); } 
-}
 
 .empty-title { font-size: 17px; font-weight: 700; color: #18191c; letter-spacing: 0.5px; margin-bottom: 6px; }
 .empty-desc { font-size: 12.5px; color: #5c6470; line-height: 1.6; max-width: 250px; margin-bottom: 24px; }
@@ -1487,33 +1449,42 @@
 .action-trigger-btn:active { transform: scale(0.97); background: #000000; }
 .action-trigger-btn svg { width: 15px; height: 15px; stroke: #ffffff; stroke-width: 2.2; fill: none; }
 
-/* ========== 法式手账填单本面（字体间距全面加大版） ========== */
+/* ======================================================== */
+/* 法式手账填单本面：字体全面加大 + 版块间距加大宽松版        */
+/* ======================================================== */
 .journal-sheet {
   width: 100%;
-  max-width: 370px;
+  max-width: 375px;
   background: #ffffff;
-  border-radius: 20px;
-  padding: 24px 20px 28px !important;
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.07);
+  border-radius: 24px;
+  padding: 24px 20px 28px; /* 内边距加宽 */
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 22px !important;
+  gap: 26px; /* 版块与版块间距加大到 26px，不再拥挤 */
+  box-sizing: border-box;
 }
 
-.journal-header { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.journal-header { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  text-align: center;
+  margin-bottom: 4px;
+}
 
 .journal-header-top {
   width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .journal-header-top-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .journal-inline-back {
@@ -1523,13 +1494,13 @@
   color: #3c3c43;
   display: flex;
   align-items: center;
-  padding: 2px;
+  padding: 3px;
   margin-left: -4px;
 }
 .journal-inline-back:active { opacity: 0.5; }
 .journal-inline-back svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   stroke: currentColor;
   stroke-width: 2.5;
   fill: none;
@@ -1537,28 +1508,61 @@
   stroke-linejoin: round;
 }
 
-.brand-confidential { font-size: 8px; font-family: monospace; font-weight: 800; color: #18191c; background: #f1f3f5; padding: 2.5px 7px; border-radius: 4px; letter-spacing: 1.5px; }
-.brand-serial { font-size: 9px; font-family: monospace; font-weight: 700; color: #5c6470; letter-spacing: 0.5px; }
+.brand-confidential { 
+  font-size: 9px; 
+  font-family: monospace; 
+  font-weight: 800; 
+  color: #18191c; 
+  background: #f1f3f5; 
+  padding: 3.5px 8px; 
+  border-radius: 5px; 
+  letter-spacing: 1.5px; 
+}
+.brand-serial { 
+  font-size: 10px; 
+  font-family: monospace; 
+  font-weight: 700; 
+  color: #5c6470; 
+  letter-spacing: 0.5px; 
+}
 
-.journal-main-title { font-size: 21px; font-weight: 800; letter-spacing: 2px; color: #18191c; font-family: "Didot", "Playfair Display", "Times New Roman", "PingFang SC", serif; margin-bottom: 4px; }
-.journal-desc-text { font-size: 11.5px; color: #5c6470; line-height: 1.5; max-width: 280px; margin-bottom: 12px; }
-.journal-header-divider { width: 100%; display: flex; align-items: center; gap: 8px; }
+.journal-main-title { 
+  font-size: 23px; /* 标题字号加大 */
+  font-weight: 800; 
+  letter-spacing: 2.5px; 
+  color: #18191c; 
+  font-family: "Didot", "Playfair Display", "Times New Roman", "PingFang SC", serif; 
+  margin-bottom: 6px; 
+}
+.journal-desc-text { 
+  font-size: 12px; /* 描述文字加大 */
+  color: #5c6470; 
+  line-height: 1.6; 
+  max-width: 300px; 
+  margin-bottom: 14px; 
+}
+.journal-header-divider { width: 100%; display: flex; align-items: center; gap: 10px; }
 .divider-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(24, 25, 28, 0.22), transparent); }
-.divider-star { font-size: 9px; color: #18191c; }
+.divider-star { font-size: 10px; color: #18191c; }
 
-.journal-section { display: flex; flex-direction: column; gap: 12px !important; }
+.journal-section { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; /* 单节内部间隙拉大 */
+}
+
 .section-lead-title {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   flex-wrap: nowrap !important;
-  border-bottom: 1.5px solid rgba(24, 25, 28, 0.12) !important;
-  padding-bottom: 5px !important;
+  border-bottom: 1px solid rgba(24, 25, 28, 0.12);
+  padding-bottom: 6px; /* 标题下划线内边距加大 */
   width: 100%;
 }
 
 .section-name {
-  font-size: 14.5px !important;
+  font-size: 15px; /* 节标序号字体加大到 15px */
   font-weight: 800;
   letter-spacing: 1.5px;
   color: #18191c;
@@ -1571,52 +1575,101 @@
 .section-lead-right {
   display: flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 6px !important;
   flex-shrink: 0 !important;
 }
-.section-name .sec-index { font-family: monospace; font-size: 11px !important; color: #5c6470; }
-.section-tag-en { font-size: 9.5px !important; font-family: monospace; color: #5c6470; letter-spacing: 1px; }
+.section-name .sec-index { 
+  font-family: monospace; 
+  font-size: 11.5px; 
+  color: #5c6470; 
+}
+.section-tag-en { 
+  font-size: 9.5px; 
+  font-family: monospace; 
+  color: #5c6470; 
+  letter-spacing: 1px; 
+}
 
-/* 重点：双列间距从原先紧凑的 10px 12px 加大到 16px 14px */
-.ruled-row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px !important; }
-.ruled-item { display: flex; flex-direction: column; gap: 4px !important; }
+/* 基础设定输入网格：间距与输入项全面加大 */
+.ruled-row-grid { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 16px 14px; /* 网格上下间隙从 10px 加大到 16px */
+}
 
-/* 重点：标签字号从 10px 提升到 12px */
-.ruled-label { font-size: 12px !important; font-weight: 700; color: #5c6470; letter-spacing: 0.5px; }
+.ruled-item { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 5px; /* 标签与输入框间距加大 */
+}
+.ruled-item.compact-item {
+  margin-bottom: 4px;
+}
 
-/* 重点：输入文字从 13.5px 提升到 14.5px，点按高度增加 */
-.ruled-input { width: 100%; border: none; border-bottom: 1.2px dashed rgba(24, 25, 28, 0.22); padding: 5px 0 !important; font-size: 14.5px !important; font-weight: 600; color: #18191c; background: transparent; outline: none; font-family: inherit; }
-.ruled-input:focus { border-bottom-color: #18191c; border-bottom-style: solid; }
-.ruled-input::placeholder { color: #cbd5e1; font-weight: 400; font-size: 12.5px !important; }
+.ruled-label { 
+  font-size: 11.5px; /* 属性名称字号加大到 11.5px */
+  font-weight: 700; 
+  color: #5c6470; 
+  letter-spacing: 0.5px; 
+}
 
-/* 微信号/手机号整齐包装与刷新按钮 */
-.ruled-refresh-control {
+.ruled-input { 
+  width: 100%; 
+  border: none; 
+  border-bottom: 1px dashed rgba(24, 25, 28, 0.25); 
+  padding: 5px 0; /* 输入框高度与内边距加大 */
+  font-size: 14.5px; /* 输入文字字号加大到 14.5px */
+  font-weight: 600; 
+  color: #18191c; 
+  background: transparent; 
+  outline: none; 
+  font-family: inherit; 
+  box-sizing: border-box;
+}
+.ruled-input:focus { 
+  border-bottom-color: #18191c; 
+  border-bottom-style: solid; 
+}
+.ruled-input::placeholder { 
+  color: #cbd5e1; 
+  font-weight: 400; 
+  font-size: 12.5px; 
+}
+
+/* 带旋转刷新按钮的输入框容器 (微信/手机号) */
+.ruled-input-with-action {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
+  position: relative;
 }
-.ruled-spin-btn {
+
+.ruled-input-with-action .ruled-input {
+  padding-right: 28px !important;
+}
+
+.ruled-refresh-btn {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
   width: 24px;
   height: 24px;
   border: none;
-  background: rgba(136, 171, 218, 0.18);
-  border-radius: 6px;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #64748b;
   cursor: pointer;
-  color: #4a6b8f;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
+  padding: 0;
+  transition: color 0.15s ease;
 }
-.ruled-spin-btn:active {
-  background: rgba(136, 171, 218, 0.35);
-  transform: scale(0.92);
+.ruled-refresh-btn:active {
+  color: #18191c;
 }
-.ruled-spin-btn svg {
-  width: 12px;
-  height: 12px;
+.ruled-refresh-btn svg {
+  width: 13.5px;
+  height: 13.5px;
   stroke: currentColor;
   stroke-width: 2.2;
   fill: none;
@@ -1624,26 +1677,65 @@
   stroke-linejoin: round;
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.ruled-spin-btn.spin-active svg {
+.ruled-refresh-btn.rotating svg {
   transform: rotate(360deg);
 }
 
-/* 重点：多行文本框行距与底纹线加宽加舒展 */
-.ruled-textarea { width: 100%; border: none; background: transparent; font-size: 14px !important; line-height: 25px !important; color: #18191c; font-family: inherit; outline: none; resize: none; padding: 0; background-image: linear-gradient(transparent, transparent 24px, rgba(24, 25, 28, 0.18) 24px, rgba(24, 25, 28, 0.18) 25px) !important; background-size: 100% 25px !important; }
-.ruled-textarea::placeholder { color: #cbd5e1; line-height: 25px !important; font-size: 12.5px !important; }
-.journal-tear-strip { border-top: 1.5px dashed rgba(24, 25, 28, 0.22); padding-top: 12px; display: flex; align-items: center; justify-content: space-between; }
+/* 多行手账手写纸文本框：字体加大，行高与下划线同步宽展 */
+.ruled-textarea { 
+  width: 100%; 
+  border: none; 
+  background: transparent; 
+  font-size: 14.5px; /* 长文输入字号加大到 14.5px */
+  line-height: 26px; /* 行间距拉宽到 26px */
+  color: #18191c; 
+  font-family: inherit; 
+  outline: none; 
+  resize: none; 
+  padding: 2px 0; 
+  background-image: linear-gradient(transparent, transparent 25px, rgba(24, 25, 28, 0.22) 25px, rgba(24, 25, 28, 0.22) 26px); 
+  background-size: 100% 26px; 
+}
+.ruled-textarea::placeholder { 
+  color: #cbd5e1; 
+  line-height: 26px; 
+  font-size: 12.5px; 
+}
+
+.journal-tear-strip { 
+  border-top: 1.5px dashed rgba(24, 25, 28, 0.22); 
+  padding-top: 16px; 
+  margin-top: 4px;
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+}
 .journal-sign-box { display: flex; flex-direction: column; gap: 2px; }
 .sign-label { font-size: 8px; font-family: monospace; color: #5c6470; letter-spacing: 1px; }
-.sign-handwriting { font-size: 12.5px; font-weight: 700; letter-spacing: 0.5px; color: #18191c; font-style: italic; }
-.journal-seal-stamp { width: 38px; height: 38px; border: 1.5px solid #18191c; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 6.5px; font-weight: 900; letter-spacing: 0.5px; transform: rotate(-8deg); color: #18191c; opacity: 0.85; }
-.seal-star { font-size: 8px; line-height: 1; }
+.sign-handwriting { font-size: 13.5px; font-weight: 700; letter-spacing: 0.5px; color: #18191c; font-style: italic; }
+.journal-seal-stamp { 
+  width: 42px; 
+  height: 42px; 
+  border: 1.5px solid #18191c; 
+  border-radius: 50%; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  font-size: 7px; 
+  font-weight: 900; 
+  letter-spacing: 0.5px; 
+  transform: rotate(-8deg); 
+  color: #18191c; 
+  opacity: 0.85; 
+}
 
-/* ========== 用户/角色档案抽屉（盖住所有底层内容） ========== */
+/* ========== 用户/角色档案抽屉 ========== */
 .user-drawer-mask, .char-drawer-mask {
   position: fixed;
   inset: 0;
-  background: transparent !important; /* 彻底去掉黑灰色阴影，完全透明 */
-  backdrop-filter: none !important;    /* 彻底去掉毛玻璃模糊 */
+  background: transparent !important;
+  backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   z-index: 40;
   display: none;
@@ -1663,10 +1755,8 @@
 .drawer-user-name, .char-drawer-name { font-size: 14px; font-weight: 800; color: #18191c; display: flex; align-items: center; gap: 5px; }
 .drawer-active-tag, .char-active-tag { font-size: 10px; font-weight: 700; color: #ffffff; background: #18191c; padding: 2px 5px; border-radius: 3px; }
 .drawer-user-date, .char-drawer-date { font-size: 11px; color: #94a3b8; font-family: monospace; margin-top: 1px; }
-.drawer-del-btn, .char-drawer-del { background: none; border: none; color: #c94a4a; font-size: 12.5px; font-weight: 600; padding: 5px 8px; cursor: pointer; border-radius: 5px; }
-.drawer-del-btn:active, .char-drawer-del:active { background: rgba(239, 68, 68, 0.1); }
 
-/* 02-05 扩大编辑按钮样式 */
+/* 扩大编辑按钮样式 */
 .expand-edit-btn {
   background: none;
   border: none;
@@ -1685,19 +1775,19 @@
   transform: scale(0.92);
 }
 .expand-edit-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   stroke: currentColor;
   stroke-width: 2.2;
   fill: none;
 }
 
-/* 全屏手写纸板弹窗（完全透明、无毛玻璃模糊、无黑灰遮罩） */
+/* 全屏手写纸板弹窗 */
 .expand-modal-overlay {
   position: fixed;
   inset: 0;
-  background: transparent !important; /* 彻底去除灰色/黑色遮罩 */
-  backdrop-filter: none !important;    /* 彻底去除毛玻璃模糊 */
+  background: transparent !important;
+  backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   z-index: 40;
   display: none;
@@ -1707,10 +1797,6 @@
 .expand-modal-overlay.show {
   display: flex;
   animation: modalFadeIn 0.25s ease-out;
-}
-@keyframes modalFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 .expand-modal-panel {
@@ -1757,7 +1843,7 @@
   fill: none;
 }
 .expand-modal-title {
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 800;
   color: #18191c;
   letter-spacing: 0.5px;
@@ -1766,7 +1852,7 @@
   background: #18191c;
   border: none;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   padding: 5px 14px;
   border-radius: 14px;
@@ -1790,20 +1876,20 @@
   height: 100%;
   border: none;
   background: transparent;
-  font-size: 14px;
-  line-height: 26px;
+  font-size: 15px;
+  line-height: 28px;
   color: #18191c;
   font-family: inherit;
   outline: none;
   resize: none;
   padding: 0;
-  background-image: linear-gradient(transparent, transparent 25px, rgba(24, 25, 28, 0.12) 25px, rgba(24, 25, 28, 0.12) 26px);
-  background-size: 100% 26px;
+  background-image: linear-gradient(transparent, transparent 27px, rgba(24, 25, 28, 0.12) 27px, rgba(24, 25, 28, 0.12) 28px);
+  background-size: 100% 28px;
 }
 .expand-modal-textarea::placeholder {
   color: #cbd5e1;
-  line-height: 26px;
-  font-size: 13px;
+  line-height: 28px;
+  font-size: 13.5px;
 }
 
 .expand-modal-footer {
@@ -1815,7 +1901,7 @@
   flex-shrink: 0;
 }
 .expand-word-count {
-  font-size: 11px;
+  font-size: 11.5px;
   font-family: monospace;
   color: #868e96;
   font-weight: 600;
@@ -1824,16 +1910,13 @@
   background: none;
   border: none;
   color: #c94a4a;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   padding: 4px 6px;
 }
-.expand-clear-btn:active {
-  opacity: 0.6;
-}
 
-/* ========== 纯粹微白浮雕扣「+ 新建」 ========== */
+/* 抽屉操作按钮 */
 .drawer-header-actions {
   display: flex;
   align-items: center;
@@ -1857,9 +1940,9 @@
   font-weight: 700 !important;
   letter-spacing: 0.5px !important;
   cursor: pointer !important;
-  white-space: nowrap !important; /* 重点：强制绝对不许上下折行 */
-  width: auto !important;          /* 重点：宽度随文字自适应撑开 */
-  flex-shrink: 0 !important;       /* 重点：绝对不许被两边挤压 */
+  white-space: nowrap !important;
+  width: auto !important;
+  flex-shrink: 0 !important;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
@@ -1878,21 +1961,22 @@
   fill: none !important;
 }
 
-/* ========== 编辑手账底部封存按钮（100% 完美撑开居中） ========== */
+/* 封存按钮 */
 #generateCardBtn,
 #generateCharCardBtn,
 .save-seal-btn {
   width: 100% !important;
   max-width: 100% !important;
-  height: 44px !important;
+  height: 46px !important;
   border-radius: 12px !important;
-  margin: 6px auto 0 !important;
+  margin: 10px auto 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  font-size: 14px !important;
 }
 
-/* ========== 统一所有卡片上传立绘区域的底色为纯白 ========== */
+/* 统一立绘背景为纯白 */
 .t1-photo-stage,
 .t2-photo-stage,
 .t3-photo-stage,
@@ -1904,7 +1988,7 @@
   background: #ffffff !important;
 }
 
-/* ========== 彻底消灭收起工具栏后的点击延迟 ========== */
+/* 彻底消除点击延迟 */
 .archive-bottom-dock,
 .dock-arrow-btn,
 .dock-edit-btn,
@@ -1912,13 +1996,12 @@
 .arch-native-back,
 .archive-nav-item,
 .archive-nav-capsule {
-  touch-action: manipulation !important; /* 禁用系统双击缩放与手势等待 */
+  touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
   cursor: pointer !important;
 }
 
 .dock-arrow-btn,
 .dock-edit-btn {
-  transform: translateZ(0); /* 强制提升到独立硬件图层，视口变大时瞬间重绘 */
+  transform: translateZ(0);
 }
-
