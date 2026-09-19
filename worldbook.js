@@ -845,25 +845,25 @@
     });
   }
 
-  function saveCurrentEditEntry() {
+    function saveCurrentEditEntry() {
     var wb = state.worldbooks.find(function (w) { return w.id === state.currentWbId; });
     if (!wb) return;
+    if (!Array.isArray(wb.entries)) wb.entries = [];
+
     var nameInput = document.getElementById('wbIptName');
-    if (!nameInput) return;
-    var name = (nameInput.value || '').trim();
-    var content = (document.getElementById('wbIptContent').value || '').trim();
+    var contentInput = document.getElementById('wbIptContent');
+    var scanInput = document.getElementById('wbIptScanDepth');
+    var depthInput = document.getElementById('wbIptDepthVal');
 
-    if (!name && !content && !state.currentEntryId) return;
+    var name = nameInput ? nameInput.value : '';
+    var content = contentInput ? contentInput.value : '';
+    var scanDepth = scanInput ? (parseInt(scanInput.value, 10) || 4) : 4;
+    var depthVal = depthInput ? (parseInt(depthInput.value, 10) || 2) : 2;
 
-    name = name || '未命名条目';
-    var scanDepth = parseInt(document.getElementById('wbIptScanDepth').value, 10) || 4;
-    var depthVal = parseInt(document.getElementById('wbIptDepthVal').value, 10) || 2;
     var activeModeBtn = document.querySelector('.wb-mode-pill.active');
     var mode = activeModeBtn ? activeModeBtn.dataset.mode : 'key';
     var activePosBtn = document.querySelector('.wb-depth-pos-btn.active');
     var pos = activePosBtn ? activePosBtn.dataset.pos : 'depth';
-
-    if (!wb.entries) wb.entries = [];
 
     if (state.currentEntryId) {
       var entry = wb.entries.find(function (e) { return e.id === state.currentEntryId; });
@@ -877,9 +877,12 @@
         entry.keys = [...state.editTempTags];
       }
     } else {
+      // 如果是新建条目，一敲字就立刻分配唯一 ID 锁定保存
+      var newEntryId = 'entry_' + Date.now();
+      state.currentEntryId = newEntryId;
       wb.entries.push({
-        id: 'entry_' + Date.now(),
-        name: name,
+        id: newEntryId,
+        name: name || '未命名条目',
         content: content,
         mode: mode,
         pos: pos,
@@ -889,6 +892,7 @@
         enabled: true
       });
     }
+
     saveWorldbooksData();
   }
 
@@ -1041,11 +1045,36 @@
     if (state.initialized) return;
     state.initialized = true;
 
-    container.addEventListener('input', function (e) {
-      if (e.target && e.target.id === 'wbIptContent') {
-        var countEl = document.getElementById('wbCharCount');
-        if (countEl) countEl.innerText = e.target.value.length + ' 字';
+        container.addEventListener('input', function (e) {
+      // 1. 世界书标题输入即存
+      if (e.target && e.target.id === 'wbIptBookTitle') {
+        var curBook = state.worldbooks.find(function (w) { return w.id === state.currentWbId; });
+        if (curBook) {
+          curBook.title = e.target.value;
+          saveWorldbooksData();
+        }
       }
+
+      // 2. 条目名称、正文、深度参数输入即存
+      if (e.target && (e.target.id === 'wbIptName' || e.target.id === 'wbIptContent' || e.target.id === 'wbIptScanDepth' || e.target.id === 'wbIptDepthVal')) {
+        if (e.target.id === 'wbIptContent') {
+          var countEl = document.getElementById('wbCharCount');
+          if (countEl) countEl.innerText = e.target.value.length + ' 字';
+        }
+        saveCurrentEditEntry();
+      }
+
+      // 3. 全屏沉浸手写板同步输入即存
+      if (e.target && e.target.id === 'wbExpandedText') {
+        var normalTextarea = document.getElementById('wbIptContent');
+        if (normalTextarea) {
+          normalTextarea.value = e.target.value;
+          var countEle = document.getElementById('wbCharCount');
+          if (countEle) countEle.innerText = e.target.value.length + ' 字';
+        }
+        saveCurrentEditEntry();
+      }
+
       if (e.target && e.target.id === 'wbCustomColorInput') {
         var chosenColor = e.target.value;
         var customBg = 'rgba(' + hexToRgb(chosenColor) + ', 0.22)';
@@ -1055,7 +1084,7 @@
       }
     });
 
-    function addKeyTagFromInput(inputEl) {
+        function addKeyTagFromInput(inputEl) {
       if (!inputEl) return;
       var raw = inputEl.value || '';
       var words = raw.split(/[,，\s]+/);
@@ -1067,6 +1096,7 @@
       });
       renderTags();
       inputEl.value = '';
+      saveCurrentEditEntry(); // 👈 仅末尾加了这行
     }
 
     container.addEventListener('keydown', function (e) {
@@ -1388,7 +1418,7 @@
       }
 
       // 15. 模式与注入位置切换
-      var modePill = e.target.closest('.wb-mode-pill');
+            var modePill = e.target.closest('.wb-mode-pill');
       if (modePill) {
         container.querySelectorAll('.wb-mode-pill').forEach(function (p) { p.classList.remove('active'); });
         modePill.classList.add('active');
@@ -1402,6 +1432,7 @@
             keyWrap.querySelectorAll('input').forEach(function (i) { i.disabled = false; });
           }
         }
+        saveCurrentEditEntry(); // 👈 增加了这一行
         return;
       }
 
@@ -1414,17 +1445,19 @@
           if (depthBtn.dataset.pos === 'depth') inlineWrap.classList.add('show');
           else inlineWrap.classList.remove('show');
         }
+        saveCurrentEditEntry(); // 👈 增加了这一行
         return;
       }
 
       // 16. 标签删除
-      var delTagBtn = e.target.closest('[data-del-tag]');
+            var delTagBtn = e.target.closest('[data-del-tag]');
       if (delTagBtn) {
         e.stopPropagation();
         e.preventDefault();
         var idx = parseInt(delTagBtn.dataset.delTag, 10);
         state.editTempTags.splice(idx, 1);
         renderTags();
+        saveCurrentEditEntry(); // 👈 仅在 return 前加了这行
         return;
       }
 
@@ -1476,4 +1509,3 @@
   });
 
 })();
-
