@@ -221,11 +221,10 @@
   }
 
   function buildPromptRules(cfg, charData, userData, history) {
-    var charName = currentChatChar ? (currentChatChar.name || '角色') : '角色';
-  var userName = currentChatUser ? (currentChatUser.name || currentChatUser.nickname || '对方') : '对方';
-  var callName = (currentChatChar && currentChatChar.callName) ? currentChatChar.callName : userName;
-  
-  var prompt = '距离「' + callName + '」上次发来消息已经过去了一段时间。请根据你此刻当下的心境、所在环境以及你与「' + callName + '」的关系，以「' + charName + '」的身份主动向「' + callName + '」发来消息。';
+    var charName = charData ? (charData.name || '角色') : '角色';
+    var userName = userData ? (userData.name || userData.nickname || '对方') : '对方';
+    var callName = (charData && charData.callName) ? charData.callName : userName;
+    
     var minM = Math.max(1, cfg.minMsgs || 1);
     var maxM = Math.max(1, cfg.maxMsgs || 3);
 
@@ -1066,7 +1065,7 @@
         currentVoicePageIdx = currentVoiceList.indexOf(targetMsg);
         if (currentVoicePageIdx === -1) currentVoicePageIdx = 0;
 
-        updateVoiceCardUI();
+        updateVoiceCardUI(); // 👈 确保这行存在
         voiceModalWrap.classList.add('show');
       }
     });
@@ -1198,11 +1197,12 @@
       cfg.stickerStyles = checkedStyles.length ? checkedStyles : ['可爱卡通'];
 
       saveCfg(currentChatChar.id, cfg);
-    if (cfg.proactive) {
-      startProactiveTimer();
-    } else {
-      stopProactiveTimer();
-    }
+      if (cfg.proactive) {
+        startProactiveTimer();
+      } else {
+        stopProactiveTimer();
+      }
+    } // 👈 必须加这一行，闭合 syncSettingFields 函数！
 
     stage.querySelectorAll('.wx-switch').forEach(function(sw) {
       sw.addEventListener('click', function() {
