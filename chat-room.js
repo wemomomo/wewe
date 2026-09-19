@@ -632,7 +632,12 @@
     for (var i = 0; i < chatMessages.length; i++) {
       var m = chatMessages[i];
       var isUser = (m.role === 'user' || m.sender === 'user');
-      if (!curGroup || curGroup.isUser !== isUser || m.isSystem) {
+      
+      // 判断是否需要强制开辟新气泡组（角色变动 / 系统消息 / 明确的主动消息标记 / 时间间隔大于3分钟）
+      var isTimeGap = curGroup && curGroup.msgs.length && (m.ts - curGroup.msgs[curGroup.msgs.length - 1].msg.ts > 180000);
+      var needNewGroup = !curGroup || curGroup.isUser !== isUser || m.isSystem || m.isProactiveGroup || isTimeGap;
+
+      if (needNewGroup) {
         curGroup = { isUser: isUser, isSystem: !!m.isSystem, msgs: [] };
         groups.push(curGroup);
       }
@@ -911,12 +916,15 @@
 
       var parts = smartSplitMessages(content);
       var now = Date.now();
+
+      // 加入一条时间分割或确保与上一轮时间拉开（>60秒），从而在渲染时强制开辟带独立头像的新气泡组
       parts.forEach(function(p, idx) {
         chatMessages.push({
           role: 'assistant',
           sender: 'char',
           content: p,
-          ts: now + idx * 800
+          ts: now + idx * 800,
+          isProactiveGroup: (idx === 0) // 标记为新一轮主动发起的首条
         });
       });
 
@@ -1343,13 +1351,39 @@
       if (!bubble) return;
       var idx = parseInt(bubble.dataset.bubbleIdx, 10);
 
-      pressTimer = setTimeout(function () {
+            pressTimer = setTimeout(function () {
         currentCtxIdx = idx;
-        var rect = bubble.getBoundingClientRect();
-        var top = rect.top;
-        var left = rect.left + rect.width / 2;
+        var targetMsg = chatMessages[idx];
+        if (!targetMsg) return;
+
+        var isUser = (targetMsg.role === 'user' || targetMsg.sender === 'user');
+
+        // 动态拼装高定黑卡菜单项
+        var menuItemsHtml = ''
+          + '<div class="cr-ctx-item" data-ctx-act="quote"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>引用</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>编辑</span></div>';
+
+        // 角色的消息专属：收藏与转发
+        if (!isUser) {
+          menuItemsHtml += '<div class="cr-ctx-item" data-ctx-act="fav"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>收藏</span></div>'
+            + '<div class="cr-ctx-item" data-ctx-act="share"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>转发</span></div>';
+        }
+
+        // 重新生成/重发与删除功能
+        menuItemsHtml += '<div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>' + (isUser ? '重发' : '重现') + '</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg><span>删除</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="delFromHere"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><polyline points="8 21 12 17 16 21"/></svg><span>后面全删</span></div>';
 
         if (ctxMenu) {
+          ctxMenu.innerHTML = menuItemsHtml;
+          bindCtxItemClicks(); // 绑定各按钮点击事件
+
+          var rect = bubble.getBoundingClientRect();
+          var top = Math.max(70, rect.top);
+          // 防止右侧用户菜单超出屏幕右边界
+          var left = Math.min(window.innerWidth - 120, Math.max(120, rect.left + rect.width / 2));
+
           ctxMenu.style.top = top + 'px';
           ctxMenu.style.left = left + 'px';
           ctxMenu.style.display = 'flex';
@@ -1362,35 +1396,74 @@
       clearTimeout(pressTimer);
     });
 
-    stage.querySelectorAll('[data-ctx-act]').forEach(function(item) {
-      item.addEventListener('click', function() {
-        var act = this.dataset.ctxAct;
-        var targetMsg = chatMessages[currentCtxIdx];
-        dismissCtxMenu();
-        if (!targetMsg) return;
+    function bindCtxItemClicks() {
+      if (!ctxMenu) return;
+      ctxMenu.querySelectorAll('[data-ctx-act]').forEach(function(item) {
+        item.addEventListener('click', function() {
+          var act = this.dataset.ctxAct;
+          var targetMsg = chatMessages[currentCtxIdx];
+          dismissCtxMenu();
+          if (!targetMsg) return;
 
-        if (act === 'quote') {
-          replyingMsg = targetMsg;
-          input.placeholder = '回复 ' + (targetMsg.sender === 'user' ? '自己' : currentChatChar.name) + '...';
-          input.focus();
-        } else if (act === 'copy') {
-          var textToCopy = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(textToCopy);
+          if (act === 'quote') {
+            replyingMsg = targetMsg;
+            input.placeholder = '回复 ' + (targetMsg.sender === 'user' ? '自己' : currentChatChar.name) + '...';
+            input.focus();
+          } else if (act === 'copy') {
+            var textToCopy = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(textToCopy);
+            }
+            if (window.AppNav) window.AppNav.showToast('已复制到剪贴板');
+          } else if (act === 'edit') {
+            // 优雅编辑消息内容
+            var oldText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
+            var newText = prompt('编辑这条消息：', oldText);
+            if (newText !== null && newText.trim()) {
+              targetMsg.content = newText.trim();
+              targetMsg.cleanContent = newText.trim();
+              saveChatMessages(currentChatChar.id);
+              renderMessages();
+            }
+          } else if (act === 'fav') {
+            if (window.AppNav) window.AppNav.showToast('✦ 已加入我的微信收藏 ✦');
+          } else if (act === 'share') {
+            if (window.AppNav) window.AppNav.showToast('✦ 消息转发功能已就绪 ✦');
+          } else if (act === 'del') {
+            chatMessages.splice(currentCtxIdx, 1);
+            saveChatMessages(currentChatChar.id);
+            renderMessages();
+          } else if (act === 'delFromHere') {
+            if (confirm('确定删除此条及之后的所有消息吗？')) {
+              chatMessages.splice(currentCtxIdx);
+              saveChatMessages(currentChatChar.id);
+              renderMessages();
+              if (window.AppNav) window.AppNav.showToast('已删除后续所有消息');
+            }
+          } else if (act === 'resend') {
+            if (targetMsg.role === 'user' || targetMsg.sender === 'user') {
+              var userText = targetMsg.cleanContent || targetMsg.content || targetMsg.text;
+              chatMessages.splice(currentCtxIdx);
+              chatMessages.push({
+                role: 'user',
+                sender: 'user',
+                content: userText,
+                ts: Date.now()
+              });
+            } else {
+              var startIdx = currentCtxIdx;
+              while (startIdx > 0 && (chatMessages[startIdx - 1].role === 'assistant' || chatMessages[startIdx - 1].sender === 'char')) {
+                startIdx--;
+              }
+              chatMessages.splice(startIdx);
+            }
+            saveChatMessages(currentChatChar.id);
+            renderMessages();
+            requestAIStream();
           }
-          if (window.AppNav) window.AppNav.showToast('已复制到剪贴板');
-        } else if (act === 'resend') {
-          chatMessages.splice(currentCtxIdx);
-          saveChatMessages(currentChatChar.id);
-          renderMessages();
-          requestAIStream();
-        } else if (act === 'del') {
-          chatMessages.splice(currentCtxIdx, 1);
-          saveChatMessages(currentChatChar.id);
-          renderMessages();
-        }
+        });
       });
-    });
+    }
 
     // 托盘功能
     stage.querySelectorAll('[data-tray-act]').forEach(function(btn) {
@@ -1413,7 +1486,7 @@
           chatMessages.push({
             role: 'user',
             sender: 'user',
-            content: '🧧 [微信红包] 恭喜发财，大吉大利',
+            content: ' [微信红包] 恭喜发财，大吉大利',
             ts: Date.now()
           });
           saveChatMessages(currentChatChar.id);
@@ -1423,7 +1496,7 @@
           chatMessages.push({
             role: 'user',
             sender: 'user',
-            content: '💰 [转账] ￥520.00',
+            content: ' [转账] ￥520.00',
             ts: Date.now()
           });
           saveChatMessages(currentChatChar.id);
