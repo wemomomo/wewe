@@ -302,17 +302,17 @@
     var cfg = getCfg(currentChatChar.id);
 
     stage.innerHTML = ''
-      // 1. 顶栏 (精简大名居中)
+      // 1. 顶栏 (大名居中，右侧双图标)
       + '<div class="wx-cr-header">'
       + '  <div class="wx-cr-left-group">'
       + '    <button class="wx-cr-back-btn" id="wxCrBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-      + '    <div class="salon-avatar-badge">'
+      + '    <div class="salon-avatar-badge" id="wxCrCharHeadBtn" title="点击编辑角色档案">'
       + (avatarSrc ? '<img class="salon-avatar-img" src="' + esc(avatarSrc) + '" alt="">' : '<div class="salon-avatar-img">✦</div>')
       + '      <div class="salon-mini-wax">✦</div>'
       + '    </div>'
       + '  </div>'
 
-      // 中间：居中大名 + 故障撕裂动效 + 正在输入
+      // 中间正中：角色大名 + 正在输入
       + '  <div class="wx-cr-title-col">'
       + '    <span class="char-glitch-name-dark">' + esc(currentChatChar.name || 'Chat') + '</span>'
       + '    <div class="typing-status-bar" id="wxCrTypingIndicator">'
@@ -321,20 +321,29 @@
       + '    </div>'
       + '  </div>'
 
-      // 右侧：【纯粹星轨环 + 玄月】
-      + '  <button class="crescent-astrolabe-btn" id="wxCrMoreBtn" type="button" title="设置">'
-      + '    <svg viewBox="0 0 24 24" fill="none">'
-      + '      <circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.3"/>'
-      + '      <path d="M12 4.8A7.2 7.2 0 1 0 19.2 12A5.6 5.6 0 1 1 12 4.8Z" fill="currentColor"/>'
-      + '      <circle cx="12" cy="12" r="1.2" fill="#ffffff"/>'
-      + '    </svg>'
-      + '  </button>'
+      // 右侧：AI 生图图标 + 纯粹星轨玄月图标
+      + '  <div class="wx-cr-right-group">'
+      + '    <button class="cr-header-icon-btn" id="wxCrAiImgBtn" type="button" title="AI 生图">'
+      + '      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+      + '        <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"></path>'
+      + '        <circle cx="19" cy="5" r="1.3" fill="currentColor"></circle>'
+      + '        <circle cx="5" cy="19" r="1.3" fill="currentColor"></circle>'
+      + '      </svg>'
+      + '    </button>'
+      + '    <button class="cr-header-icon-btn" id="wxCrMoreBtn" type="button" title="设置">'
+      + '      <svg viewBox="0 0 24 24" fill="none">'
+      + '        <circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.3"/>'
+      + '        <path d="M12 4.8A7.2 7.2 0 1 0 19.2 12A5.6 5.6 0 1 1 12 4.8Z" fill="currentColor"/>'
+      + '        <circle cx="12" cy="12" r="1.2" fill="#ffffff"/>'
+      + '      </svg>'
+      + '    </button>'
+      + '  </div>'
       + '</div>'
 
       // 2. 聊天消息区 (纯白背景)
       + '<div class="wx-cr-body" id="wxCrBody"></div>'
 
-      // 3. 向上弹出的多功能菜单（完全透明无白色）
+      // 3. 向上弹出的多功能菜单（完全透明）
       + '<div class="upward-tray-overlay" id="wxCrUpwardTray">'
       + '  <div class="tray-slider-container" id="wxCrTraySlider">'
       + '    <div class="tray-page-grid">'
@@ -360,7 +369,7 @@
       + '  </div>'
       + '</div>'
 
-      // 4. 底部输入控制条 (输入框 #f8f8fa，语音带圆点，大加号)
+      // 4. 底部输入控制条 (白色镂空圆点 + 输入框 #f8f8fa + 大加号 28px)
       + '<div class="chat-footer-clean">'
       + '  <div class="input-bar-wrap">'
       + '    <div class="pure-voice-col">'
@@ -383,7 +392,7 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 角色专属全功能设置（正中心弹出卡片）
+      // 5. 角色专属全功能设置（正中间弹出卡片）
       + '<div class="wx-cr-settings-mask" id="wxCrSetMask">'
       + '  <div class="wx-cr-settings-card" id="wxCrSetCard">'
       + '    <div class="wx-cr-set-header">'
@@ -419,6 +428,15 @@
       + '      </div>'
       + '    </div>'
       + '  </div>'
+      + '</div>'
+
+      // 6. 长按消息黑色悬浮菜单
+      + '<div class="cr-ctx-menu-mask" id="wxCrCtxMask"></div>'
+      + '<div class="cr-ctx-menu" id="wxCrCtxMenu" style="display:none;">'
+      + '  <div class="cr-ctx-item" data-ctx-act="quote"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>引用</span></div>'
+      + '  <div class="cr-ctx-item" data-ctx-act="copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span></div>'
+      + '  <div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>重发</span></div>'
+      + '  <div class="cr-ctx-item" data-ctx-act="del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg><span>删除</span></div>'
       + '</div>';
 
     document.body.appendChild(stage);
@@ -482,7 +500,7 @@
       var quoteHtml = msg.quote ? '<div class="wx-msg-quote-bar">' + esc(msg.quote) + '</div>' : '';
 
       html += '<div class="wx-msg-row' + (isUser ? ' user-side' : '') + '" data-msg-idx="' + idx + '">'
-        + '<div class="wx-msg-avatar" data-avatar-click="' + (isUser ? 'user' : 'char') + '">'
+        + '<div class="wx-msg-avatar" data-avatar-side="' + (isUser ? 'user' : 'char') + '" title="点击编辑档案">'
         + (avatarSrc ? '<img src="' + esc(avatarSrc) + '">' : '✦')
         + '</div>'
         + '<div class="wx-msg-bubble-col">'
@@ -612,24 +630,67 @@
     renderMessages();
   }
 
-  // ============ 8. 交互事件与右滑返回手势绑定 ============
+  // ============ 8. 交互事件、直达档案与黑色菜单 ============
   function bindChatEvents(stage) {
-    function closeChatRoom() {
+    function closeChatRoom(callback) {
       if (abortCtrl) abortCtrl.abort();
       stage.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s';
       stage.style.transform = 'translateX(100%)';
       stage.style.opacity = '0';
-      setTimeout(function() { stage.remove(); }, 250);
+      setTimeout(function() { 
+        stage.remove(); 
+        if (callback) callback();
+      }, 250);
     }
 
     var backBtn = stage.querySelector('#wxCrBackBtn');
-    backBtn.addEventListener('click', closeChatRoom);
+    backBtn.addEventListener('click', function() { closeChatRoom(); });
+
+    // ── 直达档案编辑页 ──
+    function gotoArchiveEdit(targetType) {
+      closeChatRoom(function() {
+        if (window.AppNav) {
+          window.AppNav.showPage('archive');
+          // 触发档案页面对应的编辑状态
+          setTimeout(function() {
+            var tabBtn = document.getElementById(targetType === 'char' ? 'tabCharBtn' : 'tabUserBtn');
+            if (tabBtn) tabBtn.click();
+            var dockEditBtn = document.getElementById('dockEditBtn');
+            if (dockEditBtn) dockEditBtn.click();
+          }, 150);
+        }
+      });
+    }
+
+    var charHeadBtn = stage.querySelector('#wxCrCharHeadBtn');
+    if (charHeadBtn) {
+      charHeadBtn.addEventListener('click', function() {
+        gotoArchiveEdit('char');
+      });
+    }
+
+    // 点击消息流头像
+    stage.addEventListener('click', function(e) {
+      var avt = e.target.closest('[data-avatar-side]');
+      if (avt) {
+        var side = avt.dataset.avatarSide;
+        gotoArchiveEdit(side);
+      }
+    });
+
+    // AI 生图按钮
+    var aiImgBtn = stage.querySelector('#wxCrAiImgBtn');
+    if (aiImgBtn) {
+      aiImgBtn.addEventListener('click', function() {
+        if (window.AppNav) window.AppNav.showToast('✦ AI 生图工作室即将开放 ✦');
+      });
+    }
 
     // ── 核心右滑返回手势 ──
     var startX = 0, startY = 0, currentX = 0, isSwiping = false, isLocked = false, isHoriz = false;
 
     stage.addEventListener('touchstart', function(e) {
-      if (e.touches[0].clientX > 45) return; // 仅限屏幕左边缘触发
+      if (e.touches[0].clientX > 45) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       currentX = 0;
@@ -683,9 +744,10 @@
     chatBody.addEventListener('click', function () {
       upwardTray.classList.remove('show');
       plusBtn.classList.remove('open');
+      dismissCtxMenu();
     });
 
-    // 托盘横向翻页
+    // 托盘翻页
     var traySlider = stage.querySelector('#wxCrTraySlider');
     var dot0 = stage.querySelector('#wxCrDot0');
     var dot1 = stage.querySelector('#wxCrDot1');
@@ -828,22 +890,19 @@
       }
     });
 
-    // 拍一拍
-    stage.addEventListener('dblclick', function(e) {
-      var avt = e.target.closest('[data-avatar-click]');
-      if (avt) {
-        var who = avt.dataset.avatarClick === 'user' ? '自己' : currentChatChar.name;
-        chatMessages.push({
-          isSystem: true,
-          content: '你拍了拍「' + who + '」',
-          ts: Date.now()
-        });
-        saveChatMessages(currentChatChar.id);
-        renderMessages();
-      }
-    });
+    // ── 长按消息黑色悬浮菜单逻辑 ──
+    var ctxMenu = stage.querySelector('#wxCrCtxMenu');
+    var ctxMask = stage.querySelector('#wxCrCtxMask');
+    var currentCtxIdx = -1;
 
-    // 长按气泡功能
+    function dismissCtxMenu() {
+      if (ctxMenu) ctxMenu.style.display = 'none';
+      if (ctxMask) ctxMask.classList.remove('show');
+      currentCtxIdx = -1;
+    }
+
+    if (ctxMask) ctxMask.addEventListener('click', dismissCtxMenu);
+
     var pressTimer = null;
     stage.addEventListener('touchstart', function(e) {
       var bubble = e.target.closest('[data-bubble-idx]');
@@ -851,31 +910,55 @@
       var idx = parseInt(bubble.dataset.bubbleIdx, 10);
 
       pressTimer = setTimeout(function () {
-        var targetMsg = chatMessages[idx];
-        if (!targetMsg) return;
+        currentCtxIdx = idx;
+        var rect = bubble.getBoundingClientRect();
+        var top = rect.top;
+        var left = rect.left + rect.width / 2;
 
-        if (window.PhotoAction) {
-          window.PhotoAction.show(
-            function () { // 引用
-              replyingMsg = targetMsg;
-              input.placeholder = '回复 ' + (targetMsg.sender === 'user' ? '自己' : currentChatChar.name) + '...';
-              input.focus();
-            },
-            function () { // 撤回/删除
-              chatMessages.splice(idx, 1);
-              saveChatMessages(currentChatChar.id);
-              renderMessages();
-            }
-          );
+        if (ctxMenu) {
+          ctxMenu.style.top = top + 'px';
+          ctxMenu.style.left = left + 'px';
+          ctxMenu.style.display = 'flex';
         }
-      }, 500);
+        if (ctxMask) ctxMask.classList.add('show');
+      }, 450);
     });
 
     stage.addEventListener('touchend', function() {
       clearTimeout(pressTimer);
     });
 
-    // 托盘功能
+    stage.querySelectorAll('[data-ctx-act]').forEach(function(item) {
+      item.addEventListener('click', function() {
+        var act = this.dataset.ctxAct;
+        var targetMsg = chatMessages[currentCtxIdx];
+        dismissCtxMenu();
+        if (!targetMsg) return;
+
+        if (act === 'quote') {
+          replyingMsg = targetMsg;
+          input.placeholder = '回复 ' + (targetMsg.sender === 'user' ? '自己' : currentChatChar.name) + '...';
+          input.focus();
+        } else if (act === 'copy') {
+          var textToCopy = targetMsg.content || targetMsg.text || '';
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy);
+          }
+          if (window.AppNav) window.AppNav.showToast('已复制到剪贴板');
+        } else if (act === 'resend') {
+          chatMessages.splice(currentCtxIdx);
+          saveChatMessages(currentChatChar.id);
+          renderMessages();
+          requestAIStream();
+        } else if (act === 'del') {
+          chatMessages.splice(currentCtxIdx, 1);
+          saveChatMessages(currentChatChar.id);
+          renderMessages();
+        }
+      });
+    });
+
+    // 托盘功能点击
     stage.querySelectorAll('[data-tray-act]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var act = this.dataset.trayAct;
