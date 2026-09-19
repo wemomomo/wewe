@@ -1106,3 +1106,7 @@ input[type="checkbox"] {
 .wx-switch.on .wx-switch-knob {
   transform: translateX(14px);  /* 34 - 16 - 2×2 = 14 */
 }
+
+.salon-avatar-badge .salon-mini-wax {
+  display: none;
+}
