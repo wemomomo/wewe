@@ -124,20 +124,8 @@
   font-size: 13px;
   color: #8e8e93;
 }
-.salon-mini-wax {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 13px;
-  height: 13px;
-  background: #1a1c22;
-  border-radius: 50%;
-  color: #ffffff;
-  font-size: 7.5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.2px solid #ffffff;
+.salon-avatar-badge .salon-mini-wax {
+  display: none !important;
 }
 
 /* 标题绝对正中居中 */
@@ -267,7 +255,7 @@
   gap: 16px;
   position: relative;
   box-sizing: border-box;
-  background: #ffffff !important; /* 👈 纯白背景 */
+  background: #ffffff !important;
 }
 
 .wx-cr-body::-webkit-scrollbar {
@@ -298,7 +286,7 @@
   flex-direction: row-reverse;
 }
 
-/* 头像缩小至 38px */
+/* 头像 38px */
 .wx-msg-avatar {
   width: 38px !important;
   height: 38px !important;
@@ -403,7 +391,7 @@
 }
 
 /* =========================================================
-   3. 长按消息黑色悬浮菜单 (Bubble Context Menu)
+   3. 长按消息两行黑色悬浮菜单 (Bubble Context Menu)
 ========================================================= */
 .cr-ctx-menu-mask {
   position: fixed;
@@ -422,7 +410,7 @@
   border-radius: 14px;
   padding: 8px 10px;
   display: flex;
-  flex-direction: column; /* 👈 上下两行排列 */
+  flex-direction: column;
   gap: 6px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   z-index: 12001;
@@ -438,6 +426,7 @@
   justify-content: space-around;
   gap: 6px;
 }
+
 @keyframes ctxMenuPop {
   from { opacity: 0; transform: translate(-50%, -90%) scale(0.9); }
   to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
@@ -447,21 +436,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 10px;
+  gap: 3px;
+  padding: 4px 8px;
   color: #ffffff;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   border-radius: 6px;
   user-select: none;
+  min-width: 44px;
 }
 .cr-ctx-item:active {
   background: rgba(255, 255, 255, 0.15);
 }
 .cr-ctx-item svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   stroke: currentColor;
   stroke-width: 2;
   fill: none;
@@ -692,7 +682,7 @@
 }
 
 /* =========================================================
-   6. 【彻底无遮罩】双栏心声手账卡片 (支持左右翻页)
+   6. 【彻底无遮罩】双栏心声手账卡片 (动作 + 独立心愿)
 ========================================================= */
 .voice-transparent-wrap {
   position: absolute;
@@ -806,14 +796,20 @@
   border: 0.5px solid rgba(0, 0, 0, 0.04);
 }
 
-.col-action {
-  flex: 1.1;
+.col-action, .col-wish {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+.col-action {
   border-right: 1px dashed #e2e8f0;
   padding-right: 8px;
 }
+.col-wish {
+  padding-left: 2px;
+}
+
 .col-title {
   font-size: 9.5px;
   font-weight: 800;
@@ -832,44 +828,12 @@
   border-radius: 50%;
   background: #1a1c22;
 }
+
 .action-detail-text {
   font-size: 11.5px;
   color: #334155;
   line-height: 1.55;
   font-weight: 500;
-}
-
-.col-status {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding-left: 2px;
-}
-
-.stat-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.stat-label-bar {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  font-weight: 700;
-  color: #64748b;
-}
-.stat-progress-track {
-  width: 100%;
-  height: 4px;
-  background: #e2e8f0;
-  border-radius: 2px;
-  overflow: hidden;
-}
-.stat-progress-fill {
-  height: 100%;
-  background: #1a1c22;
-  border-radius: 2px;
 }
 
 .card-footer-sec {
@@ -1007,6 +971,20 @@
 .cr-set-label { font-size: 13.5px; font-weight: 600; color: #1a1c22; }
 .cr-set-desc { font-size: 10.5px; color: #8e8e93; font-weight: normal; margin-top: 1px; }
 
+.cr-set-textarea {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: #1a1c22;
+  outline: none;
+  font-family: inherit;
+  resize: none;
+  box-sizing: border-box;
+}
+
 .cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input {
   border: 1px solid rgba(0,0,0,0.08);
   background: #ffffff;
@@ -1021,13 +999,25 @@
 .cr-set-time-input { width: 85px; text-align: center; }
 .cr-set-input { text-align: right; max-width: 140px; }
 
+.cr-range-slider {
+  width: 90px;
+  accent-color: #1a1c22;
+}
+.cr-range-val-text {
+  font-size: 11px;
+  color: #1a1c22;
+  font-weight: 700;
+  min-width: 48px;
+  text-align: right;
+}
+
 .cr-fetch-btn {
   width: 26px;
   height: 26px;
   background: #1a1c22;
   color: #ffffff;
   border: none;
-  border-radius: 50%;          /* 👈 圆形 */
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1077,10 +1067,10 @@
 
 .wx-switch {
   position: relative;
-  width: 34px;          /* 44 → 34 */
-  height: 20px;         /* 26 → 20 */
+  width: 34px;
+  height: 20px;
   background: #e5e5ea;
-  border-radius: 10px;  /* height 的一半 */
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.25s;
   flex-shrink: 0;
@@ -1092,62 +1082,61 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;          /* 22 → 16 */
-  height: 16px;         /* 22 → 16 */
+  width: 16px;
+  height: 16px;
   background: #ffffff;
   border-radius: 50%;
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .wx-switch.on .wx-switch-knob {
-  transform: translateX(14px);  /* 34 - 16 - 2×2 = 14 */
-}
-
-.salon-avatar-badge .salon-mini-wax {
-  display: none;
+  transform: translateX(14px);
 }
 
 /* =========================================================
-   高定黑线白底 · 黑色镂空单选框
+   高定黑线白底 · 黑色镂空单选框 (彻底强制去蓝)
 ========================================================= */
 .cr-custom-radio {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #1a1c22;
-  font-weight: 600;
-  user-select: none;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  font-size: 12.5px !important;
+  color: #1a1c22 !important;
+  font-weight: 600 !important;
+  user-select: none !important;
 }
 
 .cr-custom-radio input[type="radio"] {
-  display: none; /* 隐藏浏览器原生丑丑的圆点 */
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
 }
 
 /* 黑色线条 + 白色填充的外圈 */
 .cr-radio-circle {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1.5px solid #1a1c22;
-  background: #ffffff;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid #1a1c22 !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
 }
 
-/* 选中状态：中间浮现出精致的黑色镂空环/小圆环 */
+/* 选中状态：中间浮现出精致的黑色镂空环 */
 .cr-custom-radio input[type="radio"]:checked + .cr-radio-circle::after {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #1a1c22;
-  box-shadow: 0 0 0 1.5px #ffffff, 0 0 0 3px #1a1c22; /* 黑色镂空层叠质感 */
+  content: '' !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #1a1c22 !important;
+  box-shadow: 0 0 0 1.5px #ffffff, 0 0 0 3px #1a1c22 !important;
 }
-
-
