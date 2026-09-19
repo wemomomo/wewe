@@ -11,7 +11,7 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  /* 要求 9：白色半透明毛玻璃背景 */
+  /* 墨墨要求 9：白色半透明毛玻璃背景 */
   background: rgba(255, 255, 255, 0.75) !important;
   backdrop-filter: blur(25px) !important;
   -webkit-backdrop-filter: blur(25px) !important;
@@ -60,7 +60,7 @@
   height: calc(58px + var(--safe-top));
   padding-top: var(--safe-top);
   background: transparent !important;
-  /* 要求 10：彻底删除顶部横线 */
+  /* 墨墨要求 10：彻底删除顶部横线 */
   border-bottom: none !important;
   display: flex;
   align-items: center;
@@ -139,7 +139,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* 要求 11：名字与签名拉开舒适距离 */
+  /* 墨墨要求 11：名字与签名拉开舒适距离 */
   gap: 4px !important;
   text-align: center;
   max-width: 55%;
@@ -325,7 +325,7 @@
   align-items: flex-end;
 }
 
-/* 要求 15：恢复最初最经典的尖角统一朝上气泡 (角色左上尖角，用户右上尖角) */
+/* 墨墨要求 15：恢复最初最经典的尖角统一朝上气泡 (角色左上尖角，用户右上尖角) */
 .wx-msg-bubble-item {
   position: relative;
   padding: 10px 13px;
@@ -348,7 +348,7 @@
   border-radius: 14px 2px 14px 14px !important; /* 👈 用户尖角统一朝上 */
 }
 
-/* 要求 13：每轮最后一条气泡尾巴下方的精巧时间戳 */
+/* 墨墨要求 13：每轮最后一条气泡尾巴下方的精巧时间戳 */
 .bubble-tail-timestamp {
   font-size: 9.5px;
   font-family: monospace;
@@ -548,7 +548,7 @@
 }
 
 .tray-label-text {
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 600;
   color: #4a5568;
   letter-spacing: 0.2px;
@@ -906,11 +906,9 @@
   width: 100%;
   max-width: 340px;
   max-height: 78vh;
-  background: rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(6px) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
+  background: #ffffff;
   border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 0.7px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -923,29 +921,20 @@
 }
 
 .wx-cr-set-header {
-  position: relative;
   height: 52px;
-  background: transparent;
+  background: #ffffff;
   display: flex;
   align-items: center;
-  justify-content: flex-start;   /* 左对齐 */
+  justify-content: space-between;
   padding: 0 18px;
-  font-size: 17.5px;
+  font-size: 15.5px;
   font-weight: 800;
   color: #1a1c22;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
 }
 
-.wx-cr-set-title {
-  text-align: left;
-}
-
 .wx-cr-set-close {
-  position: absolute;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
   background: none;
   border: none;
   font-size: 16px;
@@ -965,33 +954,21 @@
 }
 .wx-cr-set-body::-webkit-scrollbar { display: none; }
 
-/* 卡组本体：预留顶部空间给骑线标题 */
 .cr-set-card-group {
-  position: relative;
-  margin-top: 10px;                  /* 给骑出去的标题留上方空间 */
-  padding: 18px 12px 10px;           /* 顶部加大，容纳标题 */
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: #f8f8fa;
   border-radius: 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-/* 标题：绝对定位，骑在顶部边框上 */
+/* 墨墨要求 1：分类标题字号加大 */
 .cr-set-card-title {
-  position: absolute;
-  top: 0;
-  left: 16px;
-  transform: translateY(-50%);       /* 向上移一半，正好压线 */
-  background: rgba(255, 255, 255, 0.75);
-  padding: 0 6px;
-  font-size: 16px;
-  font-weight: 900;
-  color: #1a1c22;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  color: #1a1c22 !important;
   letter-spacing: 0.5px;
-  line-height: 1.2;
-  border-radius: 4px;
 }
 
 .cr-set-card-row {
@@ -1003,15 +980,15 @@
   color: #1a1c22;
   font-weight: 600;
 }
-.cr-set-label { font-size: 14.5px; font-weight: 600; color: #1a1c22; }
-.cr-set-desc { font-size: 12.5px; color: #8e8e93; font-weight: normal; margin-top: 1px; }
+.cr-set-label { font-size: 13.5px; font-weight: 600; color: #1a1c22; }
+.cr-set-desc { font-size: 10.5px; color: #8e8e93; font-weight: normal; margin-top: 1px; }
 
-/* 2：场景多行文本框扩大到 4 行 */
+/* 墨墨要求 2：场景多行文本框扩大到 4 行 */
 .cr-set-textarea {
   width: 100%;
-  min-height: 120px !important;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  min-height: 84px !important;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 12.5px;
@@ -1035,15 +1012,12 @@
 }
 .cr-expand-icon-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.2; fill: none; }
 
-.cr-set-select,
-.cr-set-input,
-.cr-set-num-input,
-.cr-set-time-input {
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+.cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input {
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #ffffff;
   border-radius: 6px;
   padding: 4px 8px;
-  font-size: 14.5px;
+  font-size: 12.5px;
   color: #1a1c22;
   outline: none;
   font-family: inherit;
@@ -1051,10 +1025,10 @@
 .cr-set-num-input { width: 55px; text-align: center; }
 .cr-set-time-input { width: 85px; text-align: center; }
 
-/* 要求 7：真实城市输入框缩窄 */
+/* 墨墨要求 7：真实城市输入框缩窄 */
 .cr-set-input { text-align: right; max-width: 110px !important; }
 
-/* 要求 3 & 6：大模型参数与历史轮数滑块卡片 */
+/* 墨墨要求 3 & 6：大模型参数与历史轮数滑块卡片 */
 .cr-param-box {
   display: flex;
   flex-direction: column;
@@ -1167,7 +1141,7 @@
 }
 
 /* =========================================================
-   要求 5：单选框精修（黑线白底圆圈 + 选中时内嵌黑色圆点）
+   墨墨要求 5：单选框精修（黑线白底圆圈 + 选中时内嵌黑色圆点）
 ========================================================= */
 .cr-custom-radio {
   display: inline-flex !important;
