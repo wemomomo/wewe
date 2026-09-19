@@ -240,7 +240,7 @@
 }
 
 /* =========================================================
-   2. 聊天消息区
+   2. 聊天消息区 (纯白背景，无灰色波点)
 ========================================================= */
 .wx-cr-body {
   flex: 1;
@@ -272,12 +272,12 @@
   user-select: none;
 }
 
-.wx-msg-row {
+.wx-msg-group {
   display: flex;
   gap: 10px;
   width: 100%;
 }
-.wx-msg-row.user-side {
+.wx-msg-group.user-side {
   flex-direction: row-reverse;
 }
 
@@ -304,35 +304,44 @@
   object-fit: cover;
 }
 
-.wx-msg-bubble-col {
-  max-width: calc(100% - 106px);
+.wx-msg-bubbles-col {
+  max-width: calc(100% - 90px);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
-.wx-msg-row.user-side .wx-msg-bubble-col {
+.wx-msg-group.user-side .wx-msg-bubbles-col {
   align-items: flex-end;
 }
 
-.wx-msg-bubble {
+.wx-msg-bubble-item {
   position: relative;
-  padding: 11px 13px;
+  padding: 10px 13px;
   font-size: 14.5px;
-  line-height: 1.5;
+  line-height: 1.45;
   color: #1a1c22;
-  border-radius: 2px 14px 14px 14px;
   word-break: break-word;
   background: #f8f8fa;
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-.wx-msg-row.user-side .wx-msg-bubble {
+/* 角色气泡圆润连缀规则（外侧尾巴饱满大圆角 14px） */
+.wx-msg-bubble-item.char-top { border-radius: 14px 14px 14px 2px !important; }
+.wx-msg-bubble-item.char-mid { border-radius: 4px 14px 14px 4px !important; }
+.wx-msg-bubble-item.char-bot { border-radius: 2px 14px 14px 14px !important; }
+.wx-msg-bubble-item.char-single { border-radius: 14px 14px 14px 2px !important; }
+
+/* 用户气泡圆润连缀规则 */
+.wx-msg-group.user-side .wx-msg-bubble-item {
   background: #141619;
-  border-radius: 14px 2px 14px 14px;
   color: #ffffff;
   border: none;
   box-shadow: 0 3px 12px rgba(20, 22, 25, 0.12);
 }
+.wx-msg-bubble-item.user-top { border-radius: 14px 14px 2px 14px !important; }
+.wx-msg-bubble-item.user-mid { border-radius: 14px 4px 4px 14px !important; }
+.wx-msg-bubble-item.user-bot { border-radius: 14px 2px 14px 14px !important; }
+.wx-msg-bubble-item.user-single { border-radius: 14px 14px 2px 14px !important; }
 
 .wx-msg-quote-bar {
   font-size: 11.5px;
@@ -343,22 +352,34 @@
   border-radius: 2px;
   margin-bottom: 3px;
 }
-.wx-msg-row.user-side .wx-msg-quote-bar {
+.wx-msg-group.user-side .wx-msg-quote-bar {
   border-left-color: rgba(255, 255, 255, 0.75);
   color: #a0aec0;
   background: rgba(255, 255, 255, 0.08);
 }
 
-.wx-msg-inner-voice {
-  font-size: 12px;
-  color: #718096;
-  background: #f8f8fa;
-  border: 1px dashed #cbd5e1;
-  padding: 6px 10px;
-  border-radius: 8px;
-  margin-top: 3px;
-  line-height: 1.4;
-  font-style: italic;
+/* 实心黑小爱心 (垂直居中悬浮在气泡外侧) */
+.voice-heart-trigger {
+  position: absolute;
+  right: -26px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #1a1c22;
+  transition: transform 0.18s ease;
+}
+.voice-heart-trigger:active {
+  transform: translateY(-50%) scale(1.3);
+}
+.voice-heart-trigger svg {
+  width: 14px;
+  height: 14px;
+  fill: #1a1c22;
 }
 
 /* =========================================================
@@ -523,7 +544,7 @@
 }
 
 /* =========================================================
-   5. 底部栏 (白色镂空圆点 + 输入框 #f8f8fa + 大加号)
+   5. 底部栏 (输入框 #f8f8fa + 大加号 28px)
 ========================================================= */
 .chat-footer-clean {
   background: transparent !important;
@@ -544,17 +565,9 @@
   background: transparent;
 }
 
-.pure-voice-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
 .pure-icon-btn {
   width: 32px;
-  height: 30px;
+  height: 32px;
   background: transparent;
   border: none;
   display: flex;
@@ -563,6 +576,7 @@
   color: #2a2a2a;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
 }
 .pure-icon-btn:active {
   opacity: 0.4;
@@ -571,18 +585,8 @@
   width: 22px;
   height: 22px;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 1.8;
   fill: none;
-}
-
-/* 白色镂空圆点 */
-.pure-voice-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 1px solid #2a2a2a;
-  box-sizing: border-box;
 }
 
 .input-capsule-glass {
@@ -660,14 +664,294 @@
 }
 
 /* =========================================================
-   6. 角色专属全功能设置 (正中间弹出卡片)
+   6. 【彻底无遮罩】双栏心声手账卡片
+========================================================= */
+.voice-transparent-wrap {
+  position: absolute;
+  inset: 0;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.voice-transparent-wrap.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.voice-dossier-card {
+  width: 100%;
+  max-width: 326px;
+  background: #ffffff;
+  border-radius: 26px;
+  padding: 22px 18px 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  position: relative;
+  transform: scale(0.92);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.voice-transparent-wrap.show .voice-dossier-card { transform: scale(1); }
+
+.card-tape-deco {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46px;
+  height: 12px;
+  background: #f1f3f5;
+  border: 1px dashed #d1d5db;
+  border-radius: 2px;
+}
+
+.card-header-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+.card-serial-code { font-size: 10px; font-weight: 800; color: #1a1c22; letter-spacing: 1.5px; font-family: monospace; }
+.card-close-btn { background: none; border: none; font-size: 15px; color: #9ca3af; cursor: pointer; padding: 2px; }
+
+.voice-monologue-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+.voice-quote-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1c22;
+  line-height: 1.6;
+  letter-spacing: 0.5px;
+  font-style: italic;
+  padding: 2px 4px;
+}
+.voice-heart-pulse-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  color: #d1d5db;
+  margin-top: 2px;
+}
+.voice-heart-pulse-bar .line { flex: 1; height: 1px; background: #f0f2f5; }
+.voice-heart-pulse-bar svg { width: 12px; height: 12px; fill: #1a1c22; flex-shrink: 0; }
+
+.voice-lower-columns {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  background: #f8f9fb;
+  border-radius: 16px;
+  padding: 12px 10px;
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+}
+
+.col-action {
+  flex: 1.1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-right: 1px dashed #e2e8f0;
+  padding-right: 8px;
+}
+.col-title {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #8e8e93;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: monospace;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.col-title::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #1a1c22;
+}
+.action-detail-text {
+  font-size: 11.5px;
+  color: #334155;
+  line-height: 1.55;
+  font-weight: 500;
+}
+.action-sub-wish {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: #64748b;
+  line-height: 1.4;
+  border-top: 0.5px dashed #e2e8f0;
+  padding-top: 4px;
+}
+
+.col-status {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-left: 2px;
+}
+
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat-label-bar {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+}
+.stat-progress-track {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stat-progress-fill {
+  height: 100%;
+  background: #1a1c22;
+  border-radius: 2px;
+}
+
+.card-footer-sec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 2px;
+}
+.card-timestamp-sub {
+  font-size: 9px;
+  color: #9ca3af;
+  font-family: monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.card-motto-sub {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #1a1c22;
+  letter-spacing: 2.5px;
+  text-indent: 2.5px;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Songti SC", serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-motto-sub::before,
+.card-motto-sub::after {
+  content: '✦';
+  font-size: 8px;
+  color: #8e8e93;
+}
+
+/* =========================================================
+   7. 历史心声留存馆 (Timeline Modal)
+========================================================= */
+.history-voice-mask {
+  position: fixed;
+  inset: 0;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.history-voice-mask.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.history-voice-modal {
+  width: 100%;
+  max-width: 330px;
+  max-height: 75vh;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.history-voice-mask.show .history-voice-modal { transform: scale(1); }
+
+.history-modal-header {
+  height: 52px;
+  padding: 0 18px;
+  background: #ffffff;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.history-modal-title { font-size: 14.5px; font-weight: 800; color: #1a1c22; letter-spacing: 0.5px; }
+.history-close-btn { background: none; border: none; font-size: 16px; color: #9ca3af; cursor: pointer; }
+
+.history-modal-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.history-modal-list::-webkit-scrollbar { display: none; }
+
+.history-item-card {
+  background: #f8f8fa;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+}
+.history-item-top { display: flex; justify-content: space-between; align-items: center; }
+.history-item-time { font-size: 10px; font-weight: 700; color: #9ca3af; font-family: monospace; }
+.history-item-heart { width: 10px; height: 10px; fill: #1a1c22; }
+.history-item-text { font-size: 13.5px; font-weight: 600; color: #1a1c22; line-height: 1.45; font-style: italic; }
+.history-item-context { font-size: 11px; color: #6b7280; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px; }
+.cr-voice-empty { padding: 30px 10px; text-align: center; color: #9ca3af; font-size: 12.5px; font-weight: 500; }
+
+/* =========================================================
+   8. 角色专属全功能设置 (正中间弹出卡片)
 ========================================================= */
 .wx-cr-settings-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   z-index: 15000;
   display: flex;
   align-items: center;
@@ -688,7 +972,7 @@
   max-height: 75vh;
   background: #ffffff;
   border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -732,36 +1016,73 @@
   flex-direction: column;
   gap: 12px;
 }
+.wx-cr-set-body::-webkit-scrollbar { display: none; }
 
-.wx-cr-set-group {
+.cr-set-card-group {
   background: #f8f8fa;
   border-radius: 14px;
-  padding: 4px 14px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+.cr-set-card-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #8e8e93;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
-.wx-cr-set-row {
+.cr-set-card-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
-}
-.wx-cr-set-row:last-child {
-  border-bottom: none;
-}
-
-.wx-cr-set-label {
+  padding: 6px 0;
   font-size: 13.5px;
-  font-weight: 600;
   color: #1a1c22;
+  font-weight: 600;
 }
+.cr-set-label { font-size: 13.5px; font-weight: 600; color: #1a1c22; }
+.cr-set-desc { font-size: 10.5px; color: #8e8e93; font-weight: normal; margin-top: 1px; }
 
-.wx-cr-set-desc {
-  font-size: 10.5px;
-  color: #8e8e93;
-  margin-top: 2px;
+.cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input {
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+  color: #1a1c22;
+  outline: none;
+  font-family: inherit;
+}
+.cr-set-num-input { width: 60px; text-align: center; }
+.cr-set-time-input { width: 90px; text-align: center; }
+.cr-set-input { text-align: right; max-width: 140px; }
+
+.cr-set-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cr-set-chip {
+  cursor: pointer;
+}
+.cr-set-chip input { display: none; }
+.cr-set-chip span {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  color: #64748b;
+  font-weight: 600;
+}
+.cr-set-chip input:checked + span {
+  background: #1a1c22;
+  color: #ffffff;
+  border-color: #1a1c22;
 }
 
 .wx-switch {
@@ -772,6 +1093,7 @@
   border-radius: 13px;
   cursor: pointer;
   transition: background 0.25s;
+  flex-shrink: 0;
 }
 .wx-switch.on {
   background: #1a1c22;
@@ -789,18 +1111,4 @@
 }
 .wx-switch.on .wx-switch-knob {
   transform: translateX(18px);
-}
-
-.wx-cr-set-input {
-  border: none;
-  background: transparent;
-  text-align: right;
-  font-size: 13px;
-  font-weight: 500;
-  color: #1a1c22;
-  outline: none;
-  font-family: inherit;
-}
-.wx-cr-set-input::placeholder {
-  color: #9aa8b8;
 }
