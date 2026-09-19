@@ -570,7 +570,8 @@
       + '<div class="cr-set-card-group">'
       + '  <div class="cr-set-card-title">情境与天气感知</div>'
       + '  <div class="cr-set-card-row"><div><div class="cr-set-label">时间 & 天气感知</div><div class="cr-set-desc">让角色获知当前真实时间与天气</div></div><div class="wx-switch' + (cfg.timeWeather ? ' on' : '') + '" id="swTimeWeather"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row"><span>真实城市 (抓取天气)</span><div style="display:flex;gap:4px;"><input class="cr-set-input" id="cfgCharRealCity" placeholder="如: Tokyo, Paris, 上海" value="' + esc(cfg.charRealCity || '') + '"><button class="cr-fetch-btn" id="btnFetchWeather" type="button">抓取</button></div></div>'
++ '  <div class="cr-set-card-row"><span>真实城市 (抓取天气)</span><div style="display:flex;gap:4px;align-items:center;"><input class="cr-set-input" id="cfgCharRealCity" placeholder="" value="' + esc(cfg.charRealCity || '') + '"><button class="cr-fetch-btn" id="btnFetchWeather" type="button" title="抓取天气">'
++ '    <svg viewBox="0 0 24 24" fill="none"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button></div></div>'
       + '  <div class="cr-set-card-row"><span>虚拟地名 (设定城市)</span><input class="cr-set-input" id="cfgCharCity" placeholder="留空则使用真实城市" value="' + esc(cfg.charCity || '') + '"></div>'
       + '</div>'
 
@@ -1352,12 +1353,6 @@
       var idx = parseInt(bubble.dataset.bubbleIdx, 10);
 
             pressTimer = setTimeout(function () {
-        currentCtxIdx = idx;
-        var targetMsg = chatMessages[idx];
-        if (!targetMsg) return;
-
-        
-                pressTimer = setTimeout(function () {
         currentCtxIdx = idx;
         var targetMsg = chatMessages[idx];
         if (!targetMsg) return;
