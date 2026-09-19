@@ -56,7 +56,9 @@
   position: relative;
   height: calc(56px + var(--safe-top));
   padding-top: var(--safe-top);
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
@@ -104,8 +106,8 @@
 
 .salon-avatar-badge {
   position: relative;
-  width: 42px !important;
-  height: 42px !important;
+  width: 38px !important;
+  height: 38px !important;
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -126,19 +128,19 @@
   position: absolute;
   bottom: -2px;
   right: -2px;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   background: #1a1c22;
   border-radius: 50%;
   color: #ffffff;
-  font-size: 8px;
+  font-size: 7.5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #ffffff;
+  border: 1.2px solid #ffffff;
 }
 
-/* 标题绝对居中 */
+/* 标题绝对正中居中 */
 .wx-cr-title-col {
   position: absolute;
   left: 50%;
@@ -147,14 +149,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   text-align: center;
   max-width: 55%;
   z-index: 1;
 }
 
 .char-glitch-name-dark {
-  font-size: 18px;
+  font-size: 17.5px;
   font-weight: 900;
   color: #101622;
   letter-spacing: 1.2px;
@@ -165,6 +167,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+.char-signature-sub {
+  font-size: 10px;
+  color: #8e8e93;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.2;
 }
 
 .typing-status-bar {
@@ -240,7 +254,7 @@
 }
 
 /* =========================================================
-   2. 聊天消息区 (纯白背景，无灰色波点)
+   2. 聊天消息区 (哥特洛丽塔 · 棋盘菱格点阵底纹)
 ========================================================= */
 .wx-cr-body {
   flex: 1;
@@ -251,9 +265,37 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: #ffffff !important;
+  position: relative;
   box-sizing: border-box;
+
+  /* 墨墨定制：三层微雕纹理（点阵 + 45°菱格 + -45°菱格） */
+  background-color: #ffffff !important;
+  background-image: 
+    radial-gradient(circle, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
+    linear-gradient(45deg, rgba(0, 0, 0, 0.02) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(0, 0, 0, 0.02) 25%, transparent 25%) !important;
+  background-size: 8px 8px, 12px 12px, 12px 12px !important;
 }
+
+/* 顶部蕾丝虚线齿边 */
+.wx-cr-body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg, 
+    #1c1c1e 0, 
+    #1c1c1e 3px, 
+    transparent 3px, 
+    transparent 6px
+  );
+  opacity: 0.22;
+  pointer-events: none;
+}
+
 .wx-cr-body::-webkit-scrollbar {
   display: none;
 }
@@ -265,26 +307,28 @@
   font-weight: 700;
   font-family: monospace;
   color: #8e8e93;
-  background: #f8f8fa;
+  background: rgba(255, 255, 255, 0.9);
   padding: 3px 10px;
   border-radius: 10px;
   line-height: 1.2;
   user-select: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .wx-msg-group {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 .wx-msg-group.user-side {
   flex-direction: row-reverse;
 }
 
+/* 头像缩小至 38px */
 .wx-msg-avatar {
-  width: 46px !important;
-  height: 46px !important;
-  border-radius: 12px;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 10px;
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
@@ -293,7 +337,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   color: #141619;
   cursor: pointer;
@@ -304,8 +348,9 @@
   object-fit: cover;
 }
 
+/* 气泡列严格受控在对方头像范围之内 */
 .wx-msg-bubbles-col {
-  max-width: calc(100% - 90px);
+  max-width: 68% !important;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -321,8 +366,9 @@
   line-height: 1.45;
   color: #1a1c22;
   word-break: break-word;
-  background: #f8f8fa;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
 }
 
 /* 角色气泡圆润连缀规则（外侧尾巴饱满大圆角 14px） */
@@ -361,11 +407,11 @@
 /* 实心黑小爱心 (垂直居中悬浮在气泡外侧) */
 .voice-heart-trigger {
   position: absolute;
-  right: -26px;
+  right: -24px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -377,8 +423,8 @@
   transform: translateY(-50%) scale(1.3);
 }
 .voice-heart-trigger svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   fill: #1a1c22;
 }
 
@@ -664,7 +710,7 @@
 }
 
 /* =========================================================
-   6. 【彻底无遮罩】双栏心声手账卡片
+   6. 【彻底无遮罩】双栏心声手账卡片 (支持左右翻页)
 ========================================================= */
 .voice-transparent-wrap {
   position: absolute;
@@ -721,7 +767,21 @@
   padding-bottom: 6px;
   border-bottom: 1px dashed #e5e7eb;
 }
-.card-serial-code { font-size: 10px; font-weight: 800; color: #1a1c22; letter-spacing: 1.5px; font-family: monospace; }
+
+.card-page-arrow {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #1a1c22;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-weight: bold;
+}
+.card-page-arrow:active {
+  opacity: 0.5;
+}
+
+.card-serial-code { font-size: 10px; font-weight: 800; color: #1a1c22; letter-spacing: 1px; font-family: monospace; }
 .card-close-btn { background: none; border: none; font-size: 15px; color: #9ca3af; cursor: pointer; padding: 2px; }
 
 .voice-monologue-sec {
@@ -738,6 +798,10 @@
   letter-spacing: 0.5px;
   font-style: italic;
   padding: 2px 4px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .voice-heart-pulse-bar {
   display: flex;
@@ -791,14 +855,6 @@
   color: #334155;
   line-height: 1.55;
   font-weight: 500;
-}
-.action-sub-wish {
-  margin-top: 3px;
-  font-size: 10.5px;
-  color: #64748b;
-  line-height: 1.4;
-  border-top: 0.5px dashed #e2e8f0;
-  padding-top: 4px;
 }
 
 .col-status {
@@ -867,84 +923,7 @@
 }
 
 /* =========================================================
-   7. 历史心声留存馆 (Timeline Modal)
-========================================================= */
-.history-voice-mask {
-  position: fixed;
-  inset: 0;
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  z-index: 12000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.history-voice-mask.show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.history-voice-modal {
-  width: 100%;
-  max-width: 330px;
-  max-height: 75vh;
-  background: #ffffff;
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.06);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transform: scale(0.9);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.history-voice-mask.show .history-voice-modal { transform: scale(1); }
-
-.history-modal-header {
-  height: 52px;
-  padding: 0 18px;
-  background: #ffffff;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-.history-modal-title { font-size: 14.5px; font-weight: 800; color: #1a1c22; letter-spacing: 0.5px; }
-.history-close-btn { background: none; border: none; font-size: 16px; color: #9ca3af; cursor: pointer; }
-
-.history-modal-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.history-modal-list::-webkit-scrollbar { display: none; }
-
-.history-item-card {
-  background: #f8f8fa;
-  border-radius: 14px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border: 0.5px solid rgba(0, 0, 0, 0.04);
-}
-.history-item-top { display: flex; justify-content: space-between; align-items: center; }
-.history-item-time { font-size: 10px; font-weight: 700; color: #9ca3af; font-family: monospace; }
-.history-item-heart { width: 10px; height: 10px; fill: #1a1c22; }
-.history-item-text { font-size: 13.5px; font-weight: 600; color: #1a1c22; line-height: 1.45; font-style: italic; }
-.history-item-context { font-size: 11px; color: #6b7280; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px; }
-.cr-voice-empty { padding: 30px 10px; text-align: center; color: #9ca3af; font-size: 12.5px; font-weight: 500; }
-
-/* =========================================================
-   8. 角色专属全功能设置 (正中间弹出卡片)
+   7. 角色专属全功能设置 (正中间弹出卡片)
 ========================================================= */
 .wx-cr-settings-mask {
   position: fixed;
@@ -1056,9 +1035,23 @@
   outline: none;
   font-family: inherit;
 }
-.cr-set-num-input { width: 60px; text-align: center; }
-.cr-set-time-input { width: 90px; text-align: center; }
+.cr-set-num-input { width: 55px; text-align: center; }
+.cr-set-time-input { width: 85px; text-align: center; }
 .cr-set-input { text-align: right; max-width: 140px; }
+
+.cr-fetch-btn {
+  background: #1a1c22;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cr-fetch-btn:active {
+  opacity: 0.7;
+}
 
 .cr-set-chips-wrap {
   display: flex;
