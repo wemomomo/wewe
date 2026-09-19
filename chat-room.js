@@ -20,39 +20,15 @@
 
   // 辅助函数
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-  function fmtTime(ts) { var d = new Date(ts); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
   function esc(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
 
-  function getCharEnName(charObj) {
-    if (!charObj) return 'NIVEOUS';
-    if (charObj.enName && charObj.enName.trim()) return charObj.enName.trim().toUpperCase();
-    if (charObj.tagRomaji && charObj.tagRomaji.trim()) {
-      var clean = charObj.tagRomaji.replace(/[^a-zA-Z]/g, '').trim();
-      if (clean) return clean.toUpperCase();
-    }
-    var rawName = charObj.name || '';
-    var enOnly = rawName.replace(/[^a-zA-Z]/g, '').trim();
-    if (enOnly) return enOnly.toUpperCase();
-    var pMap = { '冥夜': 'MINGYE', '冥': 'MING', '夜': 'YE', '墨墨': 'MOMO', '墨': 'MO' };
-    return pMap[rawName] || 'CHARACTER';
-  }
-
-  // ============ 1. 角色独立配置与全局 API 获取 ============
+  // ============ 1. 角色配置与全局 API 获取 ============
   function getCfg(charId) {
     var defaultCfg = {
       mainLang: '简体中文',
-      bilingual: false,
-      biLang: 'English',
-      biStyle: 'bracket',
       proactive: false,
       proMinInterval: 15,
       proMaxInterval: 120,
-      proActiveStart: '00:00',
-      proActiveEnd: '23:59',
-      proMode: 'manual',
-      proLevel: 3,
-      replySpeed: '正常（3-8秒）',
-      showTyping: true,
       minMsgs: 1,
       maxMsgs: 3,
       timeWeather: true,
@@ -142,7 +118,7 @@
     else if (hour >= 19 && hour < 23) period = '晚上';
 
     var timeStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()] + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ' (' + period + ')';
-    var info = '【当前真实时间】：' + timeStr;
+    var info = '【当前时间】：' + timeStr;
 
     var city = cfg.charCity || (currentChatChar ? currentChatChar.location : '') || '';
     if (city) {
@@ -183,7 +159,7 @@
     return '网络异常：' + msg;
   }
 
-  // ============ 4. 世界书条目检索与上下文装配 ============
+  // ============ 4. 世界书与双模式智能系统提示词 ============
   function collectWorldBookEntries(charId, chatHistory) {
     var result = { before: [], after: [], depth: [] };
     var wbData = [];
@@ -229,30 +205,36 @@
 
     var parts = [];
     parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。');
-    parts.push('【世界观与交流规范】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由微信短句组成，简短、口语化、有温度。不要写长篇大论。');
-    
-    if (charData) {
-      if (charData.personality) parts.push('【性格特质与言行语气】：\n' + charData.personality);
-      if (charData.appearance) parts.push('【外貌长相与气质】：\n' + charData.appearance);
-      if (charData.background) parts.push('【深度背景渊源】：\n' + charData.background);
-      if (charData.hobbies) parts.push('【喜好偏好】：\n' + charData.hobbies);
-      if (charData.relation) parts.push('【与' + userName + '的关系】：\n' + charData.relation);
-      if (charData.callName) parts.push('【对' + userName + '的称呼】：\n' + charData.callName);
+    parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实温度。不要写长篇大论。');
+
+    // 智能两段式判断
+    var hasCustomProfile = !!(charData && (charData.personality || charData.appearance || charData.background || charData.hobbies));
+
+    if (hasCustomProfile) {
+      parts.push('【专属人设铁律 - 严格执行】：\n你拥有完整清晰的人格设定，必须100%严格遵循以下人设风格，绝不脱离人设(OOC)：');
+      if (charData.personality) parts.push('· 性格特质与语气：\n' + charData.personality);
+      if (charData.appearance) parts.push('· 外貌长相与气质：\n' + charData.appearance);
+      if (charData.background) parts.push('· 深度背景与经历：\n' + charData.background);
+      if (charData.hobbies) parts.push('· 喜好与习惯：\n' + charData.hobbies);
+      if (charData.relation) parts.push('· 与' + userName + '的关系：\n' + charData.relation);
+      if (charData.callName) parts.push('· 对' + userName + '的称呼：\n' + charData.callName);
+    } else {
+      parts.push('【自由人设铁律 - 严禁冷落】：\n当前未给定固定人设，你可以按照自己的想法和偏好展现独特的灵魂与个性，自由做自己。但下达绝对铁律：严禁冷落「' + callName + '」，必须主动、真诚、充满陪伴感与互动感。');
     }
 
-    // 时间与天气感知
+    // 时间天气
     var tw = buildTimeWeather(cfg);
     if (tw) parts.push(tw);
 
-    // 心声流露规范
+    // 心声规范
     if (cfg.innerVoice) {
-      parts.push('【心声流露规范】：你可以在某句回复的开头或结尾用括号包含你的心理活动或小动作，如：（心跳微微加速）或（忍不住扬起嘴角）。');
+      parts.push('【心声流露规范】：你可以在某句回复的开头或结尾用括号写出你当下的心理活动或内心独白，如：（忍不住微微扬起嘴角）或（心里悄悄松了一口气）。');
     }
 
-    // 智能消息条数切分指令
-    parts.push('【回复条数与切分铁律 - 严格遵守】：\n每次回复必须发送 ' + minM + ' 到 ' + maxM + ' 条独立消息，各条消息之间务必使用 ' + SPLIT + ' 符号进行分隔。例如：第一条消息' + SPLIT + '第二条消息');
+    // 切分规范
+    parts.push('【回复条数与切分铁律 - 严格遵守】：\n每次回复必须发送 ' + minM + ' 到 ' + maxM + ' 条独立短消息，各条消息之间务必使用 ' + SPLIT + ' 符号进行分隔。例如：第一条消息' + SPLIT + '第二条消息');
 
-    // 世界书条目注入
+    // 世界书
     var wb = collectWorldBookEntries(charData ? charData.id : null, history);
     if (wb.before.length) parts.push('【核心世界书条目】：\n' + wb.before.join('\n'));
 
@@ -285,20 +267,19 @@
     histMsgs.forEach(function(m) { apiMsgs.push(m); });
 
     if (isProactive && proPrompt) {
-      apiMsgs.push({ role: 'user', content: '[系统指令，请勿当作对方发言，请以你的身份主动发来消息]\n' + proPrompt });
+      apiMsgs.push({ role: 'user', content: '[系统指令，请以你的身份主动发来消息]\n' + proPrompt });
     }
 
     return apiMsgs;
   }
 
-  // ============ 5. 渲染单聊总界面 (方案 B 高定) ============
+  // ============ 5. 渲染单聊总界面 ============
   function openChatRoom(charObj, userObj) {
     currentChatChar = charObj;
     currentChatUser = userObj;
     replyingMsg = null;
     isStreaming = false;
 
-    // 预取城市天气
     var cfg = getCfg(charObj.id);
     if (cfg.timeWeather && (cfg.charCity || charObj.location)) {
       fetchCharWeather(cfg.charCity || charObj.location, function() {});
@@ -317,12 +298,11 @@
     stage.className = 'wx-chat-room-stage';
     stage.id = 'wxChatRoomStage';
 
-    var charEnName = getCharEnName(currentChatChar);
     var avatarSrc = currentChatChar.photo || '';
     var cfg = getCfg(currentChatChar.id);
 
     stage.innerHTML = ''
-      // 1. 顶栏 (方案 B 典藏顶栏)
+      // 1. 顶栏 (精简大名居中)
       + '<div class="wx-cr-header">'
       + '  <div class="wx-cr-left-group">'
       + '    <button class="wx-cr-back-btn" id="wxCrBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
@@ -332,19 +312,16 @@
       + '    </div>'
       + '  </div>'
 
-      // 中间：中英文等大并列 + 故障撕裂动效 + 正在输入指示器
+      // 中间：居中大名 + 故障撕裂动效 + 正在输入
       + '  <div class="wx-cr-title-col">'
-      + '    <div class="wx-cr-name-row">'
-      + '      <span class="char-glitch-name-dark">' + esc(currentChatChar.name || 'Chat') + '</span>'
-      + '      <span class="char-name-en-sub">' + esc(charEnName) + '</span>'
-      + '    </div>'
+      + '    <span class="char-glitch-name-dark">' + esc(currentChatChar.name || 'Chat') + '</span>'
       + '    <div class="typing-status-bar" id="wxCrTypingIndicator">'
       + '      <span class="typing-dots"><span></span><span></span><span></span></span>'
       + '      <span>TYPING... 正在输入中</span>'
       + '    </div>'
       + '  </div>'
 
-      // 右侧：【纯粹星轨环 + 玄月】无边框悬浮图标
+      // 右侧：【纯粹星轨环 + 玄月】
       + '  <button class="crescent-astrolabe-btn" id="wxCrMoreBtn" type="button" title="设置">'
       + '    <svg viewBox="0 0 24 24" fill="none">'
       + '      <circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.3"/>'
@@ -354,10 +331,10 @@
       + '  </button>'
       + '</div>'
 
-      // 2. 聊天消息区
+      // 2. 聊天消息区 (纯白背景)
       + '<div class="wx-cr-body" id="wxCrBody"></div>'
 
-      // 3. 向上悬浮弹出的透明多功能菜单 (Upward Tray)
+      // 3. 向上弹出的多功能菜单（完全透明无白色）
       + '<div class="upward-tray-overlay" id="wxCrUpwardTray">'
       + '  <div class="tray-slider-container" id="wxCrTraySlider">'
       + '    <div class="tray-page-grid">'
@@ -374,7 +351,6 @@
       + renderTrayItem('coupon', '卡券', '<rect x="3" y="6" width="18" height="12" rx="2"/><line x1="9" y1="6" x2="9" y2="18" stroke-dasharray="2 2"/>')
       + renderTrayItem('music', '音乐', '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>')
       + renderTrayItem('file', '文件', '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>')
-      + renderTrayItem('link', '分享链接', '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>')
       + renderTrayItem('watch', '一起看', '<polygon points="5 3 19 12 5 21 5 3"/>')
       + '    </div>'
       + '  </div>'
@@ -384,12 +360,15 @@
       + '  </div>'
       + '</div>'
 
-      // 4. 底部输入控制条 (完全透明无横线)
+      // 4. 底部输入控制条 (输入框 #f8f8fa，语音带圆点，大加号)
       + '<div class="chat-footer-clean">'
       + '  <div class="input-bar-wrap">'
-      + '    <button class="pure-icon-btn" id="wxCrVoiceBtn" type="button" title="语音输入">'
-      + '      <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>'
-      + '    </button>'
+      + '    <div class="pure-voice-col">'
+      + '      <button class="pure-icon-btn" id="wxCrVoiceBtn" type="button" title="语音输入">'
+      + '        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>'
+      + '      </button>'
+      + '      <div class="pure-voice-dot"></div>'
+      + '    </div>'
       + '    <div class="input-capsule-glass">'
       + '      <input class="input-field-inner" id="wxCrInput" type="text" placeholder="与 ' + esc(currentChatChar.name || 'Ta') + ' 私语...">'
       + '    </div>'
@@ -404,38 +383,39 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 角色专属全功能参数抽屉
-      + '<div class="wx-cr-settings-mask" id="wxCrSetMask"></div>'
-      + '<div class="wx-cr-settings-panel" id="wxCrSetPanel">'
-      + '  <div class="wx-cr-set-header">'
-      + '    <span>' + esc(currentChatChar.name || '角色') + ' · 设定与参数</span>'
-      + '    <button class="wx-cr-set-close" id="wxCrSetCloseBtn" type="button">✕</button>'
-      + '  </div>'
-      + '  <div class="wx-cr-set-body">'
-      + '    <div class="wx-cr-set-group">'
-      + '      <div class="wx-cr-set-row">'
-      + '        <div><div class="wx-cr-set-label">心声流露</div><div class="wx-cr-set-desc">开启后角色回复中将包含内心独白与心声</div></div>'
-      + '        <div class="wx-switch' + (cfg.innerVoice ? ' on' : '') + '" id="swInnerVoice"><div class="wx-switch-knob"></div></div>'
-      + '      </div>'
-      + '      <div class="wx-cr-set-row">'
-      + '        <div><div class="wx-cr-set-label">主动发消息</div><div class="wx-cr-set-desc">根据时间与离线状态自主发起话题</div></div>'
-      + '        <div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swAutoMsg"><div class="wx-switch-knob"></div></div>'
-      + '      </div>'
+      // 5. 角色专属全功能设置（正中心弹出卡片）
+      + '<div class="wx-cr-settings-mask" id="wxCrSetMask">'
+      + '  <div class="wx-cr-settings-card" id="wxCrSetCard">'
+      + '    <div class="wx-cr-set-header">'
+      + '      <span>' + esc(currentChatChar.name || '角色') + ' · 设定与参数</span>'
+      + '      <button class="wx-cr-set-close" id="wxCrSetCloseBtn" type="button">✕</button>'
       + '    </div>'
-      + '    <div class="wx-cr-set-group">'
-      + '      <div class="wx-cr-set-row">'
-      + '        <div class="wx-cr-set-label">城市地点感知</div>'
-      + '        <input class="wx-cr-set-input" id="iptCharCity" value="' + esc(cfg.charCity || currentChatChar.location || '') + '" placeholder="如: 枫丹·沫芒宫 / 巴黎">'
+      + '    <div class="wx-cr-set-body">'
+      + '      <div class="wx-cr-set-group">'
+      + '        <div class="wx-cr-set-row">'
+      + '          <div><div class="wx-cr-set-label">心声流露</div><div class="wx-cr-set-desc">开启后角色回复包含内心独白</div></div>'
+      + '          <div class="wx-switch' + (cfg.innerVoice ? ' on' : '') + '" id="swInnerVoice"><div class="wx-switch-knob"></div></div>'
+      + '        </div>'
+      + '        <div class="wx-cr-set-row">'
+      + '          <div><div class="wx-cr-set-label">主动发消息</div><div class="wx-cr-set-desc">根据时间状态自主发起话题</div></div>'
+      + '          <div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swAutoMsg"><div class="wx-switch-knob"></div></div>'
+      + '        </div>'
       + '      </div>'
-      + '      <div class="wx-cr-set-row">'
-      + '        <div class="wx-cr-set-label">API 创造温度</div>'
-      + '        <input class="wx-cr-set-input" id="iptApiTemp" type="number" step="0.05" min="0.1" max="1.5" value="' + (cfg.temperature || 0.85) + '">'
+      + '      <div class="wx-cr-set-group">'
+      + '        <div class="wx-cr-set-row">'
+      + '          <div class="wx-cr-set-label">城市地点感知</div>'
+      + '          <input class="wx-cr-set-input" id="iptCharCity" value="' + esc(cfg.charCity || currentChatChar.location || '') + '" placeholder="如: 枫丹·沫芒宫">'
+      + '        </div>'
+      + '        <div class="wx-cr-set-row">'
+      + '          <div class="wx-cr-set-label">API 创造温度</div>'
+      + '          <input class="wx-cr-set-input" id="iptApiTemp" type="number" step="0.05" min="0.1" max="1.5" value="' + (cfg.temperature || 0.85) + '">'
+      + '        </div>'
       + '      </div>'
-      + '    </div>'
-      + '    <div class="wx-cr-set-group">'
-      + '      <div class="wx-cr-set-row">'
-      + '        <div class="wx-cr-set-label">接口模式</div>'
-      + '        <input class="wx-cr-set-input" id="iptApiMode" value="' + (cfg.apiMode === 'individual' ? '独立角色配置' : '跟随全局设置') + '" readonly>'
+      + '      <div class="wx-cr-set-group">'
+      + '        <div class="wx-cr-set-row">'
+      + '          <div class="wx-cr-set-label">接口模式</div>'
+      + '          <input class="wx-cr-set-input" id="iptApiMode" value="' + (cfg.apiMode === 'individual' ? '独立角色配置' : '跟随全局设置') + '" readonly>'
+      + '        </div>'
       + '      </div>'
       + '    </div>'
       + '  </div>'
@@ -525,7 +505,7 @@
     }
   }
 
-  // ============ 7. 真实流式 Stream 发送与请求 ============
+  // ============ 7. 流式 Stream 请求 ============
   function requestAIStream() {
     var cfg = getCfg(currentChatChar.id);
     var api = getActiveApi(currentChatChar.id);
@@ -617,7 +597,6 @@
     var rawText = (text || '').trim();
     if (!rawText) return;
 
-    // 智能多条拆分存储
     var parts = smartSplitMessages(rawText);
     var now = Date.now();
     parts.forEach(function(p, idx) {
@@ -633,12 +612,61 @@
     renderMessages();
   }
 
-  // ============ 8. 交互事件绑定 ============
+  // ============ 8. 交互事件与右滑返回手势绑定 ============
   function bindChatEvents(stage) {
-    var backBtn = stage.querySelector('#wxCrBackBtn');
-    backBtn.addEventListener('click', function () {
+    function closeChatRoom() {
       if (abortCtrl) abortCtrl.abort();
-      stage.remove();
+      stage.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s';
+      stage.style.transform = 'translateX(100%)';
+      stage.style.opacity = '0';
+      setTimeout(function() { stage.remove(); }, 250);
+    }
+
+    var backBtn = stage.querySelector('#wxCrBackBtn');
+    backBtn.addEventListener('click', closeChatRoom);
+
+    // ── 核心右滑返回手势 ──
+    var startX = 0, startY = 0, currentX = 0, isSwiping = false, isLocked = false, isHoriz = false;
+
+    stage.addEventListener('touchstart', function(e) {
+      if (e.touches[0].clientX > 45) return; // 仅限屏幕左边缘触发
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      currentX = 0;
+      isSwiping = true;
+      isLocked = false;
+      isHoriz = false;
+      stage.style.transition = 'none';
+    }, { passive: true });
+
+    stage.addEventListener('touchmove', function(e) {
+      if (!isSwiping) return;
+      var diffX = e.touches[0].clientX - startX;
+      var diffY = e.touches[0].clientY - startY;
+
+      if (!isLocked && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
+        isLocked = true;
+        isHoriz = Math.abs(diffX) > Math.abs(diffY);
+      }
+
+      if (!isHoriz) return;
+
+      if (diffX > 0) {
+        currentX = diffX;
+        stage.style.transform = 'translateX(' + currentX + 'px)';
+      }
+    }, { passive: true });
+
+    stage.addEventListener('touchend', function() {
+      if (!isSwiping || !isHoriz) { isSwiping = false; return; }
+      isSwiping = false;
+
+      if (currentX > window.innerWidth * 0.28) {
+        closeChatRoom();
+      } else {
+        stage.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+        stage.style.transform = 'translateX(0)';
+      }
     });
 
     // 向上弹出托盘控制
@@ -676,28 +704,27 @@
       });
     }
 
-    // 设置抽屉
+    // 正中心弹出式设置卡片
     var moreBtn = stage.querySelector('#wxCrMoreBtn');
     var mask = stage.querySelector('#wxCrSetMask');
-    var panel = stage.querySelector('#wxCrSetPanel');
     var closeSetBtn = stage.querySelector('#wxCrSetCloseBtn');
 
     function openSettings() {
       mask.classList.add('show');
-      panel.classList.add('open');
       upwardTray.classList.remove('show');
       plusBtn.classList.remove('open');
     }
     function closeSettings() {
       mask.classList.remove('show');
-      panel.classList.remove('open');
     }
 
     moreBtn.addEventListener('click', openSettings);
-    mask.addEventListener('click', closeSettings);
+    mask.addEventListener('click', function(e) {
+      if (e.target === mask) closeSettings();
+    });
     closeSetBtn.addEventListener('click', closeSettings);
 
-    // 参数开关监听与同步
+    // 参数开关与同步
     var cfg = getCfg(currentChatChar.id);
     var swVoice = stage.querySelector('#swInnerVoice');
     if (swVoice) {
@@ -823,7 +850,7 @@
       if (!bubble) return;
       var idx = parseInt(bubble.dataset.bubbleIdx, 10);
 
-      pressTimer = setTimeout(function() {
+      pressTimer = setTimeout(function () {
         var targetMsg = chatMessages[idx];
         if (!targetMsg) return;
 
