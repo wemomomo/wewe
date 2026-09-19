@@ -3,7 +3,6 @@
 /* Chat 单聊高定顶栏与手账对话区 (Chat Room Core)            */
 /* ======================================================== */
 
-/* 彻底绝杀外层穿透，满屏纯白独占 */
 .wx-chat-room-stage {
   position: fixed !important;
   top: 0 !important;
@@ -12,7 +11,7 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: #ffffff !important; /* 彻底纯白，无杂色无波点 */
+  background: #ffffff !important;
   z-index: 10000 !important;
   display: flex;
   flex-direction: column;
@@ -21,7 +20,7 @@
   touch-action: pan-y;
 }
 
-/* ── 黑色字体的瞬间幻影/故障撕裂动效 ── */
+/* 黑色字体的瞬间幻影/故障撕裂动效 */
 @keyframes darkGlitchGlow {
   0%, 100% {
     color: #101622;
@@ -54,6 +53,7 @@
    1. 纯白极简顶栏
 ========================================================= */
 .wx-cr-header {
+  position: relative;
   height: calc(56px + var(--safe-top));
   padding-top: var(--safe-top);
   background: #ffffff;
@@ -73,6 +73,7 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  z-index: 2;
 }
 
 .wx-cr-back-btn {
@@ -101,12 +102,12 @@
   stroke-linejoin: round;
 }
 
-/* 顶栏左侧头像加大到 42px */
 .salon-avatar-badge {
   position: relative;
   width: 42px !important;
   height: 42px !important;
   flex-shrink: 0;
+  cursor: pointer;
 }
 .salon-avatar-img {
   width: 100%;
@@ -137,21 +138,23 @@
   border: 1.5px solid #ffffff;
 }
 
-/* 中间正中角色名称（英文已删除，名字加大到 19px） */
+/* 标题绝对居中 */
 .wx-cr-title-col {
-  flex: 1;
-  min-width: 0;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 0 8px;
   text-align: center;
+  max-width: 55%;
+  z-index: 1;
 }
 
 .char-glitch-name-dark {
-  font-size: 19px !important; /* 加大名字 */
+  font-size: 18px;
   font-weight: 900;
   color: #101622;
   letter-spacing: 1.2px;
@@ -161,10 +164,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
+  max-width: 100%;
 }
 
-/* 正在输入指示器 */
 .typing-status-bar {
   display: none;
   align-items: center;
@@ -206,8 +208,16 @@
   40% { opacity: 1; transform: scale(1.1); }
 }
 
-/* 右侧无框星轨玄月按钮 */
-.crescent-astrolabe-btn {
+/* 顶栏右侧按钮组 */
+.wx-cr-right-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.cr-header-icon-btn {
   width: 34px;
   height: 34px;
   border: none;
@@ -217,21 +227,20 @@
   justify-content: center;
   color: #1a1c22;
   cursor: pointer;
-  flex-shrink: 0;
   padding: 0;
   transition: transform 0.18s ease, opacity 0.18s ease;
 }
-.crescent-astrolabe-btn:active {
+.cr-header-icon-btn:active {
   transform: scale(0.88);
   opacity: 0.5;
 }
-.crescent-astrolabe-btn svg {
-  width: 22px;
-  height: 22px;
+.cr-header-icon-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
 /* =========================================================
-   2. 聊天消息区 (纯白背景，无灰色波点)
+   2. 聊天消息区
 ========================================================= */
 .wx-cr-body {
   flex: 1;
@@ -242,7 +251,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: #ffffff !important; /* 彻底纯白，无杂色无波点 */
+  background: #ffffff !important;
   box-sizing: border-box;
 }
 .wx-cr-body::-webkit-scrollbar {
@@ -263,13 +272,6 @@
   user-select: none;
 }
 
-.wx-msg-system-pill span {
-  color: #1a1c22;
-  font-weight: 700;
-  cursor: pointer;
-  margin-left: 4px;
-}
-
 .wx-msg-row {
   display: flex;
   gap: 10px;
@@ -279,7 +281,6 @@
   flex-direction: row-reverse;
 }
 
-/* 聊天头像加大到 46px */
 .wx-msg-avatar {
   width: 46px !important;
   height: 46px !important;
@@ -321,7 +322,7 @@
   color: #1a1c22;
   border-radius: 2px 14px 14px 14px;
   word-break: break-word;
-  background: #f8f8fa; /* 优雅微灰气泡，与纯白背景形成对比 */
+  background: #f8f8fa;
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
@@ -361,14 +362,71 @@
 }
 
 /* =========================================================
-   3. 向上弹出的多功能菜单（完全透明无白色遮罩）
+   3. 长按消息黑色悬浮菜单 (Bubble Context Menu)
+========================================================= */
+.cr-ctx-menu-mask {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 12000;
+  display: none;
+}
+.cr-ctx-menu-mask.show {
+  display: block;
+}
+
+.cr-ctx-menu {
+  position: fixed;
+  background: #1e1e20;
+  border-radius: 12px;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 12001;
+  transform: translate(-50%, -100%);
+  margin-top: -10px;
+  animation: ctxMenuPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes ctxMenuPop {
+  from { opacity: 0; transform: translate(-50%, -90%) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+}
+
+.cr-ctx-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  user-select: none;
+}
+.cr-ctx-item:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+.cr-ctx-item svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* =========================================================
+   4. 向上弹出的多功能菜单（完全透明）
 ========================================================= */
 .upward-tray-overlay {
   position: absolute;
   bottom: calc(58px + var(--safe-bottom));
   left: 10px;
   right: 10px;
-  background: transparent !important; /* 彻底透明，不要白色 */
+  background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   border-radius: 20px;
@@ -403,7 +461,7 @@
   flex: 0 0 100%;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, auto); /* 2 行 × 4 列 = 8 个一页 */
+  grid-template-rows: repeat(2, auto);
   gap: 14px 6px;
   scroll-snap-align: start;
 }
@@ -465,7 +523,7 @@
 }
 
 /* =========================================================
-   4. 底部栏 (输入框改为 #f8f8fa，语音加圆点，加号加大)
+   5. 底部栏 (白色镂空圆点 + 输入框 #f8f8fa + 大加号)
 ========================================================= */
 .chat-footer-clean {
   background: transparent !important;
@@ -486,7 +544,6 @@
   background: transparent;
 }
 
-/* 底部左侧语音键 + 正下方小圆点 */
 .pure-voice-col {
   display: flex;
   flex-direction: column;
@@ -518,14 +575,16 @@
   fill: none;
 }
 
+/* 白色镂空圆点 */
 .pure-voice-dot {
-  width: 3.5px;
-  height: 3.5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: #2a2a2a;
+  background: #ffffff;
+  border: 1px solid #2a2a2a;
+  box-sizing: border-box;
 }
 
-/* 输入框改为 #f8f8fa */
 .input-capsule-glass {
   flex: 1;
   min-height: 40px;
@@ -554,7 +613,6 @@
   color: #a0aec0;
 }
 
-/* 加号加大到 28px */
 .pure-plus-trigger {
   width: 34px;
   height: 34px;
@@ -573,7 +631,7 @@
   transform: rotate(45deg);
 }
 .pure-plus-trigger svg {
-  width: 28px !important; /* 加号改大 */
+  width: 28px !important;
   height: 28px !important;
   stroke: currentColor;
   stroke-width: 2.2;
@@ -602,7 +660,7 @@
 }
 
 /* =========================================================
-   5. 角色专属设置（屏幕正中间弹出小卡片，不占满全屏）
+   6. 角色专属全功能设置 (正中间弹出卡片)
 ========================================================= */
 .wx-cr-settings-mask {
   position: fixed;
@@ -627,7 +685,7 @@
 .wx-cr-settings-card {
   width: 100%;
   max-width: 330px;
-  max-height: 72vh;
+  max-height: 75vh;
   background: #ffffff;
   border-radius: 24px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
