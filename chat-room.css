@@ -1,3 +1,7 @@
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: #1a1c22;   /* 改成黑色，跟随你的开关风格 */
+}
 
 /* ======================================================== */
 /* Chat 单聊高定顶栏与手账对话区 (Chat Room Core)            */
@@ -1022,17 +1026,32 @@
 .cr-set-input { text-align: right; max-width: 140px; }
 
 .cr-fetch-btn {
+  width: 26px;
+  height: 26px;
   background: #1a1c22;
   color: #ffffff;
   border: none;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11.5px;
-  font-weight: 600;
+  border-radius: 50%;          /* 👈 圆形 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 0.18s ease, opacity 0.18s ease;
 }
 .cr-fetch-btn:active {
+  transform: scale(0.88);
   opacity: 0.7;
+}
+.cr-fetch-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .cr-set-chips-wrap {
@@ -1062,10 +1081,10 @@
 
 .wx-switch {
   position: relative;
-  width: 44px;
-  height: 26px;
+  width: 34px;          /* 44 → 34 */
+  height: 20px;         /* 26 → 20 */
   background: #e5e5ea;
-  border-radius: 13px;
+  border-radius: 10px;  /* height 的一半 */
   cursor: pointer;
   transition: background 0.25s;
   flex-shrink: 0;
@@ -1077,13 +1096,13 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 22px;
-  height: 22px;
+  width: 16px;          /* 22 → 16 */
+  height: 16px;         /* 22 → 16 */
   background: #ffffff;
   border-radius: 50%;
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .wx-switch.on .wx-switch-knob {
-  transform: translateX(18px);
+  transform: translateX(14px);  /* 34 - 16 - 2×2 = 14 */
 }
