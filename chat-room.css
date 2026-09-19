@@ -254,7 +254,7 @@
 }
 
 /* =========================================================
-   2. 聊天消息区 (哥特洛丽塔 · 棋盘菱格点阵底纹)
+   2. 聊天消息区 
 ========================================================= */
 .wx-cr-body {
   flex: 1;
@@ -267,33 +267,7 @@
   gap: 16px;
   position: relative;
   box-sizing: border-box;
-
-  /* 墨墨定制：三层微雕纹理（点阵 + 45°菱格 + -45°菱格） */
-  background-color: #ffffff !important;
-  background-image: 
-    radial-gradient(circle, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
-    linear-gradient(45deg, rgba(0, 0, 0, 0.02) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(0, 0, 0, 0.02) 25%, transparent 25%) !important;
-  background-size: 8px 8px, 12px 12px, 12px 12px !important;
-}
-
-/* 顶部蕾丝虚线齿边 */
-.wx-cr-body::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: repeating-linear-gradient(
-    90deg, 
-    #1c1c1e 0, 
-    #1c1c1e 3px, 
-    transparent 3px, 
-    transparent 6px
-  );
-  opacity: 0.22;
-  pointer-events: none;
+  background: #ffffff !important; /* 👈 纯白背景 */
 }
 
 .wx-cr-body::-webkit-scrollbar {
@@ -454,6 +428,9 @@
   z-index: 12001;
   transform: translate(-50%, -100%);
   margin-top: -10px;
+  white-space: nowrap !important; /* 👈 核心：绝对禁止文字上下挤成竖排！ */
+  max-width: 90vw;
+  overflow-x: auto;
   animation: ctxMenuPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes ctxMenuPop {
