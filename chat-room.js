@@ -18,21 +18,38 @@
   var isInputIdle = true;
   var isWaitingForIdle = false;
 
-  // 辅助函数
+  window._returnToChatFromArchive = false;
+
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtTime(ts) { var d = new Date(ts); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
   function esc(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
 
-  // ============ 1. 角色配置与全局 API 获取 ============
+  // ============ 1. 角色独立配置与 API 获取 ============
   function getCfg(charId) {
     var defaultCfg = {
       mainLang: '简体中文',
+      bilingual: false,
+      biLang: 'English',
+      biStyle: 'bracket',
+      minimax: false,
       proactive: false,
       proMinInterval: 15,
       proMaxInterval: 120,
+      proActiveStart: '08:00',
+      proActiveEnd: '23:30',
+      proMode: 'manual',
+      proLevel: 3,
+      replySpeed: '正常（3-8秒）',
+      showTyping: true,
       minMsgs: 1,
       maxMsgs: 3,
+      msgTypes: ['文字','表情','图片','语音','语音通话','视频通话','红包','转账','位置','音乐'],
+      stickerGen: false,
+      stickerStyles: ['可爱卡通'],
+      stickerFreq: 2,
       timeWeather: true,
       charCity: '',
+      charRealCity: '',
       apiMode: 'global',
       apiSelect: '',
       temperature: 0.85,
@@ -207,7 +224,6 @@
     parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。');
     parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实温度。不要写长篇大论。');
 
-    // 智能两段式判断
     var hasCustomProfile = !!(charData && (charData.personality || charData.appearance || charData.background || charData.hobbies));
 
     if (hasCustomProfile) {
@@ -222,19 +238,15 @@
       parts.push('【自由人设铁律 - 严禁冷落】：\n当前未给定固定人设，你可以按照自己的想法和偏好展现独特的灵魂与个性，自由做自己。但下达绝对铁律：严禁冷落「' + callName + '」，必须主动、真诚、充满陪伴感与互动感。');
     }
 
-    // 时间天气
     var tw = buildTimeWeather(cfg);
     if (tw) parts.push(tw);
 
-    // 心声规范
     if (cfg.innerVoice) {
-      parts.push('【心声流露规范】：你可以在某句回复的开头或结尾用括号写出你当下的心理活动或内心独白，如：（忍不住微微扬起嘴角）或（心里悄悄松了一口气）。');
+      parts.push('【心声与动态流露规范】：\n你拥有独立丰富的生活与真实内心。在每轮回复的末尾，你可以附带一个专属括号格式，记录你此刻的真实心声、当下动作与身心状态，格式如下：\n[心声: 你的内心独白 | 动作: 你正在做的事或小举止 | 心情: 当前情绪 | 体力: 当前体力状态]');
     }
 
-    // 切分规范
     parts.push('【回复条数与切分铁律 - 严格遵守】：\n每次回复必须发送 ' + minM + ' 到 ' + maxM + ' 条独立短消息，各条消息之间务必使用 ' + SPLIT + ' 符号进行分隔。例如：第一条消息' + SPLIT + '第二条消息');
 
-    // 世界书
     var wb = collectWorldBookEntries(charData ? charData.id : null, history);
     if (wb.before.length) parts.push('【核心世界书条目】：\n' + wb.before.join('\n'));
 
@@ -302,11 +314,11 @@
     var cfg = getCfg(currentChatChar.id);
 
     stage.innerHTML = ''
-      // 1. 顶栏 (大名居中，右侧双图标)
+      // 1. 顶栏 (大名居中，左侧头像点击查看历史心声，右侧双图标)
       + '<div class="wx-cr-header">'
       + '  <div class="wx-cr-left-group">'
       + '    <button class="wx-cr-back-btn" id="wxCrBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-      + '    <div class="salon-avatar-badge" id="wxCrCharHeadBtn" title="点击编辑角色档案">'
+      + '    <div class="salon-avatar-badge" id="wxCrCharHeadBtn" title="点击查看历史心声">'
       + (avatarSrc ? '<img class="salon-avatar-img" src="' + esc(avatarSrc) + '" alt="">' : '<div class="salon-avatar-img">✦</div>')
       + '      <div class="salon-mini-wax">✦</div>'
       + '    </div>'
@@ -321,19 +333,19 @@
       + '    </div>'
       + '  </div>'
 
-      // 右侧：AI 生图图标 + 纯粹星轨玄月图标
+      // 右侧：AI 生图图标 (实心黑四角星+微星) + 纯粹星轨玄月图标
       + '  <div class="wx-cr-right-group">'
-      + '    <button class="cr-header-icon-btn" id="wxCrAiImgBtn" type="button" title="AI 生图">'
-      + '      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
-      + '        <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"></path>'
-      + '        <circle cx="19" cy="5" r="1.3" fill="currentColor"></circle>'
-      + '        <circle cx="5" cy="19" r="1.3" fill="currentColor"></circle>'
+      + '    <button class="cr-header-icon-btn" id="wxCrAiImgBtn" type="button" title="AI 生图" data-action="ai-image">'
+      + '      <svg viewBox="0 0 24 24" fill="none">'
+      + '        <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" fill="#1a1c22"></path>'
+      + '        <path d="M19.5 3.5l0.6 1.8 1.9 0.7-1.9 0.7-0.6 1.8-0.6-1.8-1.9-0.7 1.9-0.7z" fill="#1a1c22"></path>'
+      + '        <path d="M4.5 17.5l0.6 1.8 1.9 0.7-1.9 0.7-0.6 1.8-0.6-1.8-1.9-0.7 1.9-0.7z" fill="#1a1c22"></path>'
       + '      </svg>'
       + '    </button>'
       + '    <button class="cr-header-icon-btn" id="wxCrMoreBtn" type="button" title="设置">'
       + '      <svg viewBox="0 0 24 24" fill="none">'
-      + '        <circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.3"/>'
-      + '        <path d="M12 4.8A7.2 7.2 0 1 0 19.2 12A5.6 5.6 0 1 1 12 4.8Z" fill="currentColor"/>'
+      + '        <circle cx="12" cy="12" r="9.2" stroke="#1a1c22" stroke-width="1.3"/>'
+      + '        <path d="M12 4.8A7.2 7.2 0 1 0 19.2 12A5.6 5.6 0 1 1 12 4.8Z" fill="#1a1c22"/>'
       + '        <circle cx="12" cy="12" r="1.2" fill="#ffffff"/>'
       + '      </svg>'
       + '    </button>'
@@ -343,10 +355,11 @@
       // 2. 聊天消息区 (纯白背景)
       + '<div class="wx-cr-body" id="wxCrBody"></div>'
 
-      // 3. 向上弹出的多功能菜单（完全透明）
+      // 3. 向上弹出的多功能菜单（完全透明，表情包排在第一位）
       + '<div class="upward-tray-overlay" id="wxCrUpwardTray">'
       + '  <div class="tray-slider-container" id="wxCrTraySlider">'
       + '    <div class="tray-page-grid">'
+      + renderTrayItem('sticker', '表情包', '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>')
       + renderTrayItem('album', '照片', '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>')
       + renderTrayItem('camera', '拍摄', '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>')
       + renderTrayItem('call', '通话', '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>')
@@ -354,12 +367,13 @@
       + renderTrayItem('redpack', '红包', '<rect x="4" y="2" width="16" height="20" rx="3"/><circle cx="12" cy="10" r="3"/><line x1="4" y1="8" x2="20" y2="8"/>')
       + renderTrayItem('transfer', '转账', '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>')
       + renderTrayItem('favorite', '收藏', '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>')
-      + renderTrayItem('card', '名片', '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>')
       + '    </div>'
       + '    <div class="tray-page-grid">'
+      + renderTrayItem('card', '名片', '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>')
       + renderTrayItem('coupon', '卡券', '<rect x="3" y="6" width="18" height="12" rx="2"/><line x1="9" y1="6" x2="9" y2="18" stroke-dasharray="2 2"/>')
       + renderTrayItem('music', '音乐', '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>')
       + renderTrayItem('file', '文件', '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>')
+      + renderTrayItem('link', '分享链接', '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>')
       + renderTrayItem('watch', '一起看', '<polygon points="5 3 19 12 5 21 5 3"/>')
       + '    </div>'
       + '  </div>'
@@ -369,15 +383,12 @@
       + '  </div>'
       + '</div>'
 
-      // 4. 底部输入控制条 (白色镂空圆点 + 输入框 #f8f8fa + 大加号 28px)
+      // 4. 底部输入控制条 (输入框 #f8f8fa + 大加号 28px)
       + '<div class="chat-footer-clean">'
       + '  <div class="input-bar-wrap">'
-      + '    <div class="pure-voice-col">'
-      + '      <button class="pure-icon-btn" id="wxCrVoiceBtn" type="button" title="语音输入">'
-      + '        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>'
-      + '      </button>'
-      + '      <div class="pure-voice-dot"></div>'
-      + '    </div>'
+      + '    <button class="pure-icon-btn" id="wxCrVoiceBtn" type="button" title="语音输入">'
+      + '      <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="18" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>'
+      + '    </button>'
       + '    <div class="input-capsule-glass">'
       + '      <input class="input-field-inner" id="wxCrInput" type="text" placeholder="与 ' + esc(currentChatChar.name || 'Ta') + ' 私语...">'
       + '    </div>'
@@ -392,45 +403,74 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 角色专属全功能设置（正中间弹出卡片）
+      // 5. 【彻底无遮罩】双栏心声手账卡片
+      + '<div class="voice-transparent-wrap" id="wxCrVoiceModalWrap">'
+      + '  <div class="voice-dossier-card" id="wxCrVoiceCard">'
+      + '    <div class="card-tape-deco"></div>'
+      + '    <div class="card-header-line">'
+      + '      <span class="card-serial-code">' + esc(currentChatChar.name || 'CHAR') + ' · VITAL DOSSIER</span>'
+      + '      <button class="card-close-btn" id="wxCrCloseVoiceBtn" type="button">✕</button>'
+      + '    </div>'
+      + '    <div class="voice-monologue-sec">'
+      + '      <div class="voice-quote-text" id="wxCrVoiceMonologueText">“ 想要立刻飞奔到墨墨身边... ”</div>'
+      + '      <div class="voice-heart-pulse-bar">'
+      + '        <div class="line"></div>'
+      + '        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>'
+      + '        <div class="line"></div>'
+      + '      </div>'
+      + '    </div>'
+      + '    <div class="voice-lower-columns">'
+      + '      <div class="col-action">'
+      + '        <span class="col-title">当前行止 ACTION</span>'
+      + '        <div class="action-detail-text" id="wxCrVoiceActionText">正靠在窗边喝红茶，看着窗外的风景。</div>'
+      + '        <div class="action-sub-wish" id="wxCrVoiceWishText">☕ 想吃城南现烤的栗子糕。</div>'
+      + '      </div>'
+      + '      <div class="col-status">'
+      + '        <span class="col-title">状态 VITAL</span>'
+      + '        <div class="stat-row">'
+      + '          <div class="stat-label-bar"><span>心情状态</span><span id="wxCrVoiceMoodLabel">欣悦</span></div>'
+      + '          <div class="stat-progress-track"><div class="stat-progress-fill" id="wxCrVoiceMoodFill" style="width: 90%;"></div></div>'
+      + '        </div>'
+      + '        <div class="stat-row">'
+      + '          <div class="stat-label-bar"><span>当前体力</span><span id="wxCrVoiceEnergyLabel">75%</span></div>'
+      + '          <div class="stat-progress-track"><div class="stat-progress-fill" id="wxCrVoiceEnergyFill" style="width: 75%;"></div></div>'
+      + '        </div>'
+      + '        <div class="stat-row">'
+      + '          <div class="stat-label-bar"><span>心动同频</span><span id="wxCrVoiceLoveLabel">99%</span></div>'
+      + '          <div class="stat-progress-track"><div class="stat-progress-fill" id="wxCrVoiceLoveFill" style="width: 99%;"></div></div>'
+      + '        </div>'
+      + '      </div>'
+      + '    </div>'
+      + '    <div class="card-footer-sec">'
+      + '      <span class="card-timestamp-sub" id="wxCrVoiceTimeSub">RECORDED · 14:32:08</span>'
+      + '      <div class="card-motto-sub">对我来说，你不可重复</div>'
+      + '    </div>'
+      + '  </div>'
+      + '</div>'
+
+      // 6. 【历史心声留存馆】
+      + '<div class="history-voice-mask" id="wxCrHistoryVoiceMask">'
+      + '  <div class="history-voice-modal">'
+      + '    <div class="history-modal-header">'
+      + '      <span class="history-modal-title">✦ ' + esc(currentChatChar.name || 'Ta') + ' 的心声留存馆 ✦</span>'
+      + '      <button class="history-close-btn" id="wxCrCloseHistoryBtn" type="button">✕</button>'
+      + '    </div>'
+      + '    <div class="history-modal-list" id="wxCrHistoryVoiceList"></div>'
+      + '  </div>'
+      + '</div>'
+
+      // 7. 角色专属设定中枢（正中间弹出小卡片，完整 CharMgr 结构）
       + '<div class="wx-cr-settings-mask" id="wxCrSetMask">'
       + '  <div class="wx-cr-settings-card" id="wxCrSetCard">'
       + '    <div class="wx-cr-set-header">'
       + '      <span>' + esc(currentChatChar.name || '角色') + ' · 设定与参数</span>'
       + '      <button class="wx-cr-set-close" id="wxCrSetCloseBtn" type="button">✕</button>'
       + '    </div>'
-      + '    <div class="wx-cr-set-body">'
-      + '      <div class="wx-cr-set-group">'
-      + '        <div class="wx-cr-set-row">'
-      + '          <div><div class="wx-cr-set-label">心声流露</div><div class="wx-cr-set-desc">开启后角色回复包含内心独白</div></div>'
-      + '          <div class="wx-switch' + (cfg.innerVoice ? ' on' : '') + '" id="swInnerVoice"><div class="wx-switch-knob"></div></div>'
-      + '        </div>'
-      + '        <div class="wx-cr-set-row">'
-      + '          <div><div class="wx-cr-set-label">主动发消息</div><div class="wx-cr-set-desc">根据时间状态自主发起话题</div></div>'
-      + '          <div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swAutoMsg"><div class="wx-switch-knob"></div></div>'
-      + '        </div>'
-      + '      </div>'
-      + '      <div class="wx-cr-set-group">'
-      + '        <div class="wx-cr-set-row">'
-      + '          <div class="wx-cr-set-label">城市地点感知</div>'
-      + '          <input class="wx-cr-set-input" id="iptCharCity" value="' + esc(cfg.charCity || currentChatChar.location || '') + '" placeholder="如: 枫丹·沫芒宫">'
-      + '        </div>'
-      + '        <div class="wx-cr-set-row">'
-      + '          <div class="wx-cr-set-label">API 创造温度</div>'
-      + '          <input class="wx-cr-set-input" id="iptApiTemp" type="number" step="0.05" min="0.1" max="1.5" value="' + (cfg.temperature || 0.85) + '">'
-      + '        </div>'
-      + '      </div>'
-      + '      <div class="wx-cr-set-group">'
-      + '        <div class="wx-cr-set-row">'
-      + '          <div class="wx-cr-set-label">接口模式</div>'
-      + '          <input class="wx-cr-set-input" id="iptApiMode" value="' + (cfg.apiMode === 'individual' ? '独立角色配置' : '跟随全局设置') + '" readonly>'
-      + '        </div>'
-      + '      </div>'
-      + '    </div>'
+      + '    <div class="wx-cr-set-body" id="wxCrSetBody"></div>'
       + '  </div>'
       + '</div>'
 
-      // 6. 长按消息黑色悬浮菜单
+      // 8. 长按消息黑色悬浮菜单
       + '<div class="cr-ctx-menu-mask" id="wxCrCtxMask"></div>'
       + '<div class="cr-ctx-menu" id="wxCrCtxMenu" style="display:none;">'
       + '  <div class="cr-ctx-item" data-ctx-act="quote"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>引用</span></div>'
@@ -440,6 +480,7 @@
       + '</div>';
 
     document.body.appendChild(stage);
+    renderFullSettingsDOM(stage, cfg);
     bindChatEvents(stage);
     renderMessages();
   }
@@ -451,16 +492,114 @@
       + '</div>';
   }
 
-  // ============ 6. 渲染消息流与心声解析 ============
-  function parseInnerVoice(text) {
+  // ============ 6. 渲染设定中枢 DOM ============
+  function renderFullSettingsDOM(stage, cfg) {
+    var setBody = stage.querySelector('#wxCrSetBody');
+    if (!setBody) return;
+
+    var sv = function(k, v) { return cfg[k] === v ? ' selected' : ''; };
+    var STK_STYLES = ['可爱卡通','写实','像素风','手绘','表情包梗图'];
+    var PRO_LEVEL_NAMES = ['佛系','偶尔','适中','频繁','粘人'];
+
+    var isIndividual = (cfg.apiMode === 'individual');
+
+    var stkStylesHtml = STK_STYLES.map(function(s) {
+      var checked = (cfg.stickerStyles && cfg.stickerStyles.indexOf(s) >= 0) ? ' checked' : '';
+      return '<label class="cr-set-chip"><input type="checkbox" data-stk-style="' + s + '"' + checked + '><span>' + s + '</span></label>';
+    }).join('');
+
+    var apiList = [];
+    try { apiList = JSON.parse(localStorage.getItem('api_configs') || '[]'); } catch(e){}
+    var apiOptionsHtml = '<option value="">请选择独立 API...</option>' + apiList.map(function(a) {
+      var sel = cfg.apiSelect === a.name ? ' selected' : '';
+      return '<option value="' + esc(a.name) + '"' + sel + '>' + esc(a.name) + ' (' + esc(a.model || '') + ')</option>';
+    }).join('');
+
+    setBody.innerHTML = ''
+      // 1. 心声流露
+      + '<div class="cr-set-card-group">'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">心声流露</div><div class="cr-set-desc">开启后角色回复中将包含内心独白</div></div><div class="wx-switch' + (cfg.innerVoice ? ' on' : '') + '" id="swInnerVoice"><div class="wx-switch-knob"></div></div></div>'
+      + '</div>'
+
+      // 2. 主动发消息
+      + '<div class="cr-set-card-group">'
+      + '  <div class="cr-set-card-title">主动发消息</div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">开启主动联系</div><div class="cr-set-desc">角色会不定时主动发起话题</div></div><div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swProactive"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-row"><span>消息频率 (间隔分钟)</span><div style="display:flex;align-items:center;gap:6px;"><input class="cr-set-num-input" id="cfgProMin" type="number" value="' + (cfg.proMinInterval||15) + '"><span>至</span><input class="cr-set-num-input" id="cfgProMax" type="number" value="' + (cfg.proMaxInterval||120) + '"></div></div>'
+      + '  <div class="cr-set-card-row"><span>活跃时段</span><div style="display:flex;gap:6px;"><input class="cr-set-time-input" id="cfgProStart" type="time" value="' + (cfg.proActiveStart||'08:00') + '"><span>至</span><input class="cr-set-time-input" id="cfgProEnd" type="time" value="' + (cfg.proActiveEnd||'23:30') + '"></div></div>'
+      + '  <div class="cr-set-card-row"><span>消息积极程度</span><select class="cr-set-select" id="cfgProLevel">' + PRO_LEVEL_NAMES.map(function(name, idx){ return '<option value="' + (idx+1) + '"' + ((cfg.proLevel||3)===(idx+1)?' selected':'') + '>' + name + '</option>'; }).join('') + '</select></div>'
+      + '  <div class="cr-set-card-row"><span>单次回复条数</span><div style="display:flex;align-items:center;gap:6px;"><input class="cr-set-num-input" id="cfgMinMsgs" type="number" min="1" max="10" value="' + (cfg.minMsgs||1) + '"><span>至</span><input class="cr-set-num-input" id="cfgMaxMsgs" type="number" min="1" max="10" value="' + (cfg.maxMsgs||3) + '"></div></div>'
+      + '  <div class="cr-set-card-row"><span>回复速度</span><select class="cr-set-select" id="cfgReplySpeed"><option' + sv('replySpeed','快速（1-3秒）') + '>快速（1-3秒）</option><option' + sv('replySpeed','正常（3-8秒）') + '>正常（3-8秒）</option><option' + sv('replySpeed','慢速（5-15秒）') + '>慢速（5-15秒）</option></select></div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">显示「正在输入中」</div><div class="cr-set-desc">顶栏展示打字动态动画</div></div><div class="wx-switch' + (cfg.showTyping !== false ? ' on' : '') + '" id="swShowTyping"><div class="wx-switch-knob"></div></div></div>'
+      + '</div>'
+
+      // 3. 温度与创造力参数
+      + '<div class="cr-set-card-group">'
+      + '  <div class="cr-set-card-title">温度与创造力参数</div>'
+      + '  <div class="cr-set-card-row"><span>Temperature (温度)</span><input class="cr-set-num-input" id="cfgTemp" type="number" step="0.05" min="0" max="2" value="' + (cfg.temperature || 0.85) + '"></div>'
+      + '  <div class="cr-set-card-row"><span>Frequency Penalty</span><input class="cr-set-num-input" id="cfgFreq" type="number" step="0.1" min="0" max="2" value="' + (cfg.freqPenalty || 0.3) + '"></div>'
+      + '  <div class="cr-set-card-row"><span>Presence Penalty</span><input class="cr-set-num-input" id="cfgPres" type="number" step="0.1" min="0" max="2" value="' + (cfg.presPenalty || 0.3) + '"></div>'
+      + '</div>'
+
+      // 4. 是否单独配置 API
+      + '<div class="cr-set-card-group">'
+      + '  <div class="cr-set-card-title">API 接口模式</div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">单独配置 API</div><div class="cr-set-desc">为该角色指定专属模型或代理</div></div><div class="wx-switch' + (isIndividual ? ' on' : '') + '" id="swIndividualApi"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-row" id="rowApiSelect" style="' + (isIndividual ? '' : 'display:none;') + '"><span>选择专属 API</span><select class="cr-set-select" id="cfgApiSelect">' + apiOptionsHtml + '</select></div>'
+      + '</div>'
+
+      // 5. 时间 & 天气感知
+      + '<div class="cr-set-card-group">'
+      + '  <div class="cr-set-card-title">情境与天气感知</div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">时间 & 天气感知</div><div class="cr-set-desc">让角色获知当前真实时间与天气</div></div><div class="wx-switch' + (cfg.timeWeather ? ' on' : '') + '" id="swTimeWeather"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-row"><span>真实城市 (抓取天气)</span><input class="cr-set-input" id="cfgCharRealCity" placeholder="如: Tokyo, Paris, 上海" value="' + esc(cfg.charRealCity || '') + '"></div>'
+      + '  <div class="cr-set-card-row"><span>虚拟地名 (设定城市)</span><input class="cr-set-input" id="cfgCharCity" placeholder="留空则使用真实城市" value="' + esc(cfg.charCity || '') + '"></div>'
+      + '</div>'
+
+      // 6. 语言与语音
+      + '<div class="cr-set-card-group">'
+      + '  <div class="cr-set-card-title">语言与语音</div>'
+      + '  <div class="cr-set-card-row"><span>主要语言</span><select class="cr-set-select" id="cfgMainLang"><option' + sv('mainLang','简体中文') + '>简体中文</option><option' + sv('mainLang','繁體中文') + '>繁體中文</option><option' + sv('mainLang','English') + '>English</option><option' + sv('mainLang','日本語') + '>日本語</option><option' + sv('mainLang','한국어') + '>한국어</option></select></div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">双语模式</div><div class="cr-set-desc">每条消息附带翻译</div></div><div class="wx-switch' + (cfg.bilingual ? ' on' : '') + '" id="swBilingual"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">MiniMax 语音</div><div class="cr-set-desc">TTS 真实语音合成</div></div><div class="wx-switch' + (cfg.minimax ? ' on' : '') + '" id="swMinimax"><div class="wx-switch-knob"></div></div></div>'
+      + '</div>'
+
+      // 7. 表情包生成
+      + '<div class="cr-set-card-group">'
+      + '  <div class="cr-set-card-title">表情包生成</div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">AI 表情包生成</div><div class="cr-set-desc">配合语境自动配图</div></div><div class="wx-switch' + (cfg.stickerGen ? ' on' : '') + '" id="swStickerGen"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-chips-wrap" id="cfgStkStylesWrap">' + stkStylesHtml + '</div>'
+      + '</div>';
+  }
+
+  // ============ 7. 渲染气泡群与心声结构解析 ============
+  function parseDossierVoice(text) {
     var raw = (text || '').trim();
-    var voice = '';
-    var match = raw.match(/[\(（]([^\)）]{2,})[\)）]/);
-    if (match && match[1]) {
-      voice = match[1].trim();
+    var voiceObj = null;
+
+    var match = raw.match(/\[心声:\s*([^\|\]]+)(?:\|\s*动作:\s*([^\|\]]+))?(?:\|\s*心情:\s*([^\|\]]+))?(?:\|\s*体力:\s*([^\|\]]+))?\]/i);
+    if (match) {
+      voiceObj = {
+        monologue: (match[1] || '').trim(),
+        action: (match[2] || '正专心凝望着窗外。').trim(),
+        mood: (match[3] || '平静温和').trim(),
+        energy: (match[4] || '80%').trim()
+      };
       raw = raw.replace(match[0], '').trim();
+    } else {
+      var simpleMatch = raw.match(/[\(（]([^\)）]{2,})[\)）]/);
+      if (simpleMatch && simpleMatch[1]) {
+        voiceObj = {
+          monologue: simpleMatch[1].trim(),
+          action: '正看着手机屏幕，嘴角带着一抹浅笑。',
+          mood: '极度依恋',
+          energy: '85%'
+        };
+        raw = raw.replace(simpleMatch[0], '').trim();
+      }
     }
-    return { text: raw || '...', voice: voice };
+
+    return { text: raw || '...', voiceObj: voiceObj };
   }
 
   function renderMessages() {
@@ -474,41 +613,82 @@
     }
 
     var html = '<div class="wx-msg-time-pill">今天</div>';
-    var cfg = getCfg(currentChatChar.id);
+    var groups = [];
+    var curGroup = null;
 
-    chatMessages.forEach(function (msg, idx) {
-      if (msg.isSystem) {
-        html += '<div class="wx-msg-system-pill">' + esc(msg.content || msg.text) + '</div>';
+    // 分组连续发言
+    for (var i = 0; i < chatMessages.length; i++) {
+      var m = chatMessages[i];
+      var isUser = (m.role === 'user' || m.sender === 'user');
+      if (!curGroup || curGroup.isUser !== isUser || m.isSystem) {
+        curGroup = { isUser: isUser, isSystem: !!m.isSystem, msgs: [] };
+        groups.push(curGroup);
+      }
+      curGroup.msgs.push({ msg: m, globalIdx: i });
+    }
+
+    groups.forEach(function(g) {
+      if (g.isSystem) {
+        g.msgs.forEach(function(item) {
+          html += '<div class="wx-msg-system-pill">' + esc(item.msg.content || item.msg.text) + '</div>';
+        });
         return;
       }
 
-      var isUser = (msg.role === 'user' || msg.sender === 'user');
+      var isUser = g.isUser;
       var avatarSrc = isUser
         ? (currentChatUser ? (currentChatUser.customPolPhoto || currentChatUser.photo) : '')
         : (currentChatChar ? currentChatChar.photo : '');
 
-      var contentText = msg.content || msg.text || '';
-      var voiceHtml = '';
-      if (!isUser && cfg.innerVoice) {
-        var parsed = parseInnerVoice(contentText);
-        contentText = parsed.text;
-        if (parsed.voice) {
-          voiceHtml = '<div class="wx-msg-inner-voice">💭 ' + esc(parsed.voice) + '</div>';
+      html += '<div class="wx-msg-group' + (isUser ? ' user-side' : '') + '">'
+        + '<div class="wx-msg-avatar" data-avatar-side="' + (isUser ? 'user' : 'char') + '" title="点击查看档案详情">'
+        + (avatarSrc ? '<img src="' + esc(avatarSrc) + '">' : (isUser ? '墨' : '✦'))
+        + '</div>'
+        + '<div class="wx-msg-bubbles-col">';
+
+      var total = g.msgs.length;
+      g.msgs.forEach(function(item, idx) {
+        var m = item.msg;
+        var globalIdx = item.globalIdx;
+        var content = m.content || m.text || '';
+        var voiceObj = m.voiceObj || null;
+
+        if (!isUser && !voiceObj) {
+          var parsed = parseDossierVoice(content);
+          content = parsed.text;
+          voiceObj = parsed.voiceObj;
+          m.voiceObj = voiceObj;
+          m.cleanContent = content;
+        } else if (m.cleanContent) {
+          content = m.cleanContent;
         }
-      }
 
-      var quoteHtml = msg.quote ? '<div class="wx-msg-quote-bar">' + esc(msg.quote) + '</div>' : '';
+        var shapeCls = '';
+        if (total === 1) {
+          shapeCls = isUser ? 'user-single' : 'char-single';
+        } else {
+          if (idx === 0) shapeCls = isUser ? 'user-top' : 'char-top';
+          else if (idx === total - 1) shapeCls = isUser ? 'user-bot' : 'char-bot';
+          else shapeCls = isUser ? 'user-mid' : 'char-mid';
+        }
 
-      html += '<div class="wx-msg-row' + (isUser ? ' user-side' : '') + '" data-msg-idx="' + idx + '">'
-        + '<div class="wx-msg-avatar" data-avatar-side="' + (isUser ? 'user' : 'char') + '" title="点击编辑档案">'
-        + (avatarSrc ? '<img src="' + esc(avatarSrc) + '">' : '✦')
-        + '</div>'
-        + '<div class="wx-msg-bubble-col">'
-        + quoteHtml
-        + '<div class="wx-msg-bubble" data-bubble-idx="' + idx + '">' + esc(contentText) + '</div>'
-        + voiceHtml
-        + '</div>'
-        + '</div>';
+        var heartHtml = '';
+        if (!isUser && voiceObj && idx === total - 1) {
+          heartHtml = '<span class="voice-heart-trigger" data-voice-idx="' + globalIdx + '" title="点击查看当下心声">'
+            + '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>'
+            + '</span>';
+        }
+
+        var quoteHtml = m.quote ? '<div class="wx-msg-quote-bar">' + esc(m.quote) + '</div>' : '';
+
+        html += '<div class="wx-msg-bubble-item ' + shapeCls + '" data-bubble-idx="' + globalIdx + '">'
+          + quoteHtml
+          + esc(content)
+          + heartHtml
+          + '</div>';
+      });
+
+      html += '</div></div>';
     });
 
     body.innerHTML = html;
@@ -523,7 +703,7 @@
     }
   }
 
-  // ============ 7. 流式 Stream 请求 ============
+  // ============ 8. 真实流式 Stream 发送与请求 ============
   function requestAIStream() {
     var cfg = getCfg(currentChatChar.id);
     var api = getActiveApi(currentChatChar.id);
@@ -630,7 +810,7 @@
     renderMessages();
   }
 
-  // ============ 8. 交互事件、直达档案与黑色菜单 ============
+  // ============ 9. 交互事件、直达档案、长按菜单与手势绑定 ============
   function bindChatEvents(stage) {
     function closeChatRoom(callback) {
       if (abortCtrl) abortCtrl.abort();
@@ -646,37 +826,91 @@
     var backBtn = stage.querySelector('#wxCrBackBtn');
     backBtn.addEventListener('click', function() { closeChatRoom(); });
 
-    // ── 直达档案编辑页 ──
-    function gotoArchiveEdit(targetType) {
-      closeChatRoom(function() {
-        if (window.AppNav) {
-          window.AppNav.showPage('archive');
-          // 触发档案页面对应的编辑状态
-          setTimeout(function() {
-            var tabBtn = document.getElementById(targetType === 'char' ? 'tabCharBtn' : 'tabUserBtn');
-            if (tabBtn) tabBtn.click();
-            var dockEditBtn = document.getElementById('dockEditBtn');
-            if (dockEditBtn) dockEditBtn.click();
-          }, 150);
-        }
-      });
+    // ── 直达档案详情卡片（不进编辑手账） ──
+    function gotoArchiveCard(side) {
+      window._returnToChatFromArchive = {
+        char: currentChatChar,
+        user: currentChatUser
+      };
+      stage.style.display = 'none';
+
+      if (window.AppNav) {
+        window.AppNav.showPage('archive');
+        setTimeout(function() {
+          var tabBtn = document.getElementById(side === 'char' ? 'tabCharBtn' : 'tabUserBtn');
+          if (tabBtn) tabBtn.click();
+        }, 50);
+      }
     }
 
-    var charHeadBtn = stage.querySelector('#wxCrCharHeadBtn');
-    if (charHeadBtn) {
-      charHeadBtn.addEventListener('click', function() {
-        gotoArchiveEdit('char');
-      });
-    }
-
-    // 点击消息流头像
+    // 监听聊天中左右头像点击
     stage.addEventListener('click', function(e) {
       var avt = e.target.closest('[data-avatar-side]');
       if (avt) {
         var side = avt.dataset.avatarSide;
-        gotoArchiveEdit(side);
+        gotoArchiveCard(side);
       }
     });
+
+    // 左上角头像点击 -> 弹出【历史心声留存馆】
+    var charHeadBtn = stage.querySelector('#wxCrCharHeadBtn');
+    var histMask = stage.querySelector('#wxCrHistoryVoiceMask');
+    var histList = stage.querySelector('#wxCrHistoryVoiceList');
+    var closeHistBtn = stage.querySelector('#wxCrCloseHistoryBtn');
+
+    if (charHeadBtn) {
+      charHeadBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var voiceMsgs = chatMessages.filter(function(m) { return m.voiceObj; });
+        if (!voiceMsgs.length) {
+          histList.innerHTML = '<div class="cr-voice-empty">✦ 还没有沉淀下他的心声碎片哦 ✦</div>';
+        } else {
+          histList.innerHTML = voiceMsgs.map(function(m) {
+            var vo = m.voiceObj;
+            return '<div class="history-item-card">'
+              + '<div class="history-item-top"><span class="history-item-time">' + fmtTime(m.ts || Date.now()) + '</span><svg class="history-item-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg></div>'
+              + '<div class="history-item-text">“ ' + esc(vo.monologue) + ' ”</div>'
+              + '<div class="history-item-context">回复: ' + esc(m.cleanContent || m.content || m.text) + '</div>'
+              + '</div>';
+          }).join('');
+        }
+        histMask.classList.add('show');
+      });
+    }
+
+    if (closeHistBtn) closeHistBtn.addEventListener('click', function() { histMask.classList.remove('show'); });
+    if (histMask) histMask.addEventListener('click', function(e) { if (e.target === histMask) histMask.classList.remove('show'); });
+
+    // 单次心声弹卡逻辑 (实心黑小心心)
+    var voiceModalWrap = stage.querySelector('#wxCrVoiceModalWrap');
+    var closeVoiceBtn = stage.querySelector('#wxCrCloseVoiceBtn');
+
+    stage.addEventListener('click', function(e) {
+      var heart = e.target.closest('[data-voice-idx]');
+      if (heart) {
+        e.stopPropagation();
+        var idx = parseInt(heart.dataset.voiceIdx, 10);
+        var targetMsg = chatMessages[idx];
+        if (!targetMsg || !targetMsg.voiceObj) return;
+
+        var vo = targetMsg.voiceObj;
+        stage.querySelector('#wxCrVoiceMonologueText').textContent = '“ ' + vo.monologue + ' ”';
+        stage.querySelector('#wxCrVoiceActionText').textContent = vo.action || '正安静地坐在桌前。';
+        stage.querySelector('#wxCrVoiceWishText').textContent = '☕ 心情温和，期待着你的下一次回应。';
+        stage.querySelector('#wxCrVoiceMoodLabel').textContent = vo.mood || '欣悦';
+        stage.querySelector('#wxCrVoiceEnergyLabel').textContent = vo.energy || '80%';
+        stage.querySelector('#wxCrVoiceTimeSub').textContent = 'RECORDED · ' + fmtTime(targetMsg.ts || Date.now());
+
+        voiceModalWrap.classList.add('show');
+      }
+    });
+
+    if (closeVoiceBtn) closeVoiceBtn.addEventListener('click', function() { voiceModalWrap.classList.remove('show'); });
+    if (voiceModalWrap) {
+      voiceModalWrap.addEventListener('click', function(e) {
+        if (e.target === voiceModalWrap) voiceModalWrap.classList.remove('show');
+      });
+    }
 
     // AI 生图按钮
     var aiImgBtn = stage.querySelector('#wxCrAiImgBtn');
@@ -786,38 +1020,57 @@
     });
     closeSetBtn.addEventListener('click', closeSettings);
 
-    // 参数开关与同步
+    // 绑定设置项与实时持久化
     var cfg = getCfg(currentChatChar.id);
-    var swVoice = stage.querySelector('#swInnerVoice');
-    if (swVoice) {
-      swVoice.addEventListener('click', function() {
-        this.classList.toggle('on');
-        cfg.innerVoice = this.classList.contains('on');
-        saveCfg(currentChatChar.id, cfg);
-        renderMessages();
-      });
-    }
 
-    var swAuto = stage.querySelector('#swAutoMsg');
-    if (swAuto) {
-      swAuto.addEventListener('click', function() {
-        this.classList.toggle('on');
-        cfg.proactive = this.classList.contains('on');
-        saveCfg(currentChatChar.id, cfg);
-      });
-    }
+    function syncSettingFields() {
+      var gv = function(id) { var el = stage.querySelector('#' + id); return el ? el.value : ''; };
+      cfg.innerVoice = stage.querySelector('#swInnerVoice') ? stage.querySelector('#swInnerVoice').classList.contains('on') : true;
+      cfg.proactive = stage.querySelector('#swAutoMsg') ? stage.querySelector('#swAutoMsg').classList.contains('on') : false;
+      cfg.proMinInterval = parseInt(gv('cfgProMin'), 10) || 15;
+      cfg.proMaxInterval = parseInt(gv('cfgProMax'), 10) || 120;
+      cfg.proActiveStart = gv('cfgProStart') || '08:00';
+      cfg.proActiveEnd = gv('cfgProEnd') || '23:30';
+      cfg.proLevel = parseInt(gv('cfgProLevel'), 10) || 3;
+      cfg.minMsgs = parseInt(gv('cfgMinMsgs'), 10) || 1;
+      cfg.maxMsgs = parseInt(gv('cfgMaxMsgs'), 10) || 3;
+      cfg.replySpeed = gv('cfgReplySpeed') || '正常（3-8秒）';
+      cfg.showTyping = stage.querySelector('#swShowTyping') ? stage.querySelector('#swShowTyping').classList.contains('on') : true;
+      cfg.temperature = parseFloat(gv('cfgTemp')) || 0.85;
+      cfg.freqPenalty = parseFloat(gv('cfgFreq')) || 0.3;
+      cfg.presPenalty = parseFloat(gv('cfgPres')) || 0.3;
+      cfg.apiMode = stage.querySelector('#swIndividualApi') && stage.querySelector('#swIndividualApi').classList.contains('on') ? 'individual' : 'global';
+      cfg.apiSelect = gv('cfgApiSelect') || '';
+      cfg.timeWeather = stage.querySelector('#swTimeWeather') ? stage.querySelector('#swTimeWeather').classList.contains('on') : true;
+      cfg.charRealCity = gv('cfgCharRealCity') || '';
+      cfg.charCity = gv('cfgCharCity') || '';
+      cfg.mainLang = gv('cfgMainLang') || '简体中文';
+      cfg.bilingual = stage.querySelector('#swBilingual') ? stage.querySelector('#swBilingual').classList.contains('on') : false;
+      cfg.minimax = stage.querySelector('#swMinimax') ? stage.querySelector('#swMinimax').classList.contains('on') : false;
+      cfg.stickerGen = stage.querySelector('#swStickerGen') ? stage.querySelector('#swStickerGen').classList.contains('on') : false;
 
-    var iptCity = stage.querySelector('#iptCharCity');
-    var iptTemp = stage.querySelector('#iptApiTemp');
+      var checkedStyles = [];
+      stage.querySelectorAll('#cfgStkStylesWrap input:checked').forEach(function(cb) { checkedStyles.push(cb.dataset.stkStyle); });
+      cfg.stickerStyles = checkedStyles.length ? checkedStyles : ['可爱卡通'];
 
-    function syncFields() {
-      if (iptCity) cfg.charCity = iptCity.value.trim();
-      if (iptTemp) cfg.temperature = parseFloat(iptTemp.value) || 0.85;
       saveCfg(currentChatChar.id, cfg);
     }
 
-    if (iptCity) iptCity.addEventListener('blur', syncFields);
-    if (iptTemp) iptTemp.addEventListener('blur', syncFields);
+    stage.querySelectorAll('.wx-switch').forEach(function(sw) {
+      sw.addEventListener('click', function() {
+        this.classList.toggle('on');
+        if (this.id === 'swIndividualApi') {
+          var rowSel = stage.querySelector('#rowApiSelect');
+          if (rowSel) rowSel.style.display = this.classList.contains('on') ? 'flex' : 'none';
+        }
+        syncSettingFields();
+      });
+    });
+
+    stage.querySelectorAll('.cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input, #cfgStkStylesWrap input').forEach(function(inp) {
+      inp.addEventListener('change', syncSettingFields);
+      inp.addEventListener('blur', syncSettingFields);
+    });
 
     // 输入与发送监听
     var input = stage.querySelector('#wxCrInput');
@@ -855,7 +1108,7 @@
       };
 
       if (replyingMsg) {
-        newMsg.quote = (replyingMsg.sender === 'user' ? '你' : currentChatChar.name) + ': ' + (replyingMsg.content || replyingMsg.text);
+        newMsg.quote = (replyingMsg.sender === 'user' ? '你' : currentChatChar.name) + ': ' + (replyingMsg.cleanContent || replyingMsg.content || replyingMsg.text);
         replyingMsg = null;
         input.placeholder = '与 ' + currentChatChar.name + ' 私语...';
       }
@@ -872,6 +1125,11 @@
 
       updateTypingUI(true);
 
+      var replySpeed = cfg.replySpeed || '正常（3-8秒）';
+      var delayMs = 1500;
+      if (replySpeed === '快速（1-3秒）') delayMs = 1000;
+      else if (replySpeed === '慢速（5-15秒）') delayMs = 3500;
+
       sendDelayTimer = setTimeout(function() {
         sendDelayTimer = null;
         if (isInputIdle) {
@@ -879,7 +1137,7 @@
         } else {
           isWaitingForIdle = true;
         }
-      }, 1500);
+      }, delayMs);
     }
 
     sendBtn.addEventListener('click', doSendMessage);
@@ -940,7 +1198,7 @@
           input.placeholder = '回复 ' + (targetMsg.sender === 'user' ? '自己' : currentChatChar.name) + '...';
           input.focus();
         } else if (act === 'copy') {
-          var textToCopy = targetMsg.content || targetMsg.text || '';
+          var textToCopy = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(textToCopy);
           }
@@ -1002,7 +1260,7 @@
     });
   }
 
-  // ============ 9. 本地消息存储与读取 ============
+  // ============ 10. 本地消息存储与读取 ============
   function loadChatMessages(charId, cb) {
     if (!window.AppDB) {
       try {
