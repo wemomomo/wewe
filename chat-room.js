@@ -221,9 +221,11 @@
   }
 
   function buildPromptRules(cfg, charData, userData, history) {
-    var charName = charData ? charData.name : '角色';
-    var userName = (userData ? userData.name : '') || '墨墨';
-    var callName = charData && charData.callName ? charData.callName : userName;
+    var charName = currentChatChar ? (currentChatChar.name || '角色') : '角色';
+  var userName = currentChatUser ? (currentChatUser.name || currentChatUser.nickname || '对方') : '对方';
+  var callName = (currentChatChar && currentChatChar.callName) ? currentChatChar.callName : userName;
+  
+  var prompt = '距离「' + callName + '」上次发来消息已经过去了一段时间。请根据你此刻当下的心境、所在环境以及你与「' + callName + '」的关系，以「' + charName + '」的身份主动向「' + callName + '」发来消息。';
     var minM = Math.max(1, cfg.minMsgs || 1);
     var maxM = Math.max(1, cfg.maxMsgs || 3);
 
@@ -432,7 +434,7 @@
       + '      <button class="card-close-btn" id="wxCrCloseVoiceBtn" type="button">✕</button>'
       + '    </div>'
       + '    <div class="voice-monologue-sec">'
-      + '      <div class="voice-quote-text" id="wxCrVoiceMonologueText">“ ... ”</div>'
+  + ' <div class="voice-quote-text" id="wxCrVoiceMonologueText">“ ... ”</div>'
       + '      <div class="voice-heart-pulse-bar">'
       + '        <div class="line"></div>'
       + '        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>'
@@ -825,18 +827,26 @@
   }
 
   // ============ 9. 主动发消息定时器调度引擎 ============
-  function startProactiveTimer() {
+    function startProactiveTimer() {
     stopProactiveTimer();
     if (!currentChatChar) return;
     var cfg = getCfg(currentChatChar.id);
     if (!cfg.proactive) return;
 
-    var minMs = (cfg.proMinInterval || 15) * 60 * 1000;
-    var maxMs = (cfg.proMaxInterval || 120) * 60 * 1000;
+    // 转换为毫秒：如果设置的时间小于 1 分钟，按秒计算（方便测试）
+    var minVal = Number(cfg.proMinInterval) || 1;
+    var maxVal = Number(cfg.proMaxInterval) || 3;
+    var minMs = Math.max(minVal * 60 * 1000, 10000); // 至少 10 秒
+    var maxMs = Math.max(maxVal * 60 * 1000, minMs + 5000);
     var delay = minMs + Math.random() * (maxMs - minMs);
 
+    console.log('[主动消息] 已为「' + currentChatChar.name + '」排期，将在 ' + Math.round(delay / 1000) + ' 秒后尝试触发');
+
     _proactiveTimer = setTimeout(function() {
-      if (!currentChatChar || isStreaming) { startProactiveTimer(); return; }
+      if (!currentChatChar || isStreaming) {
+        startProactiveTimer();
+        return;
+      }
 
       // 检查活跃时段
       if (cfg.proActiveMode === 'custom') {
@@ -860,15 +870,23 @@
     }
   }
 
-  function fireProactiveMessage() {
+    function fireProactiveMessage() {
+    if (!currentChatChar) return;
     var cfg = getCfg(currentChatChar.id);
     var api = getActiveApi(currentChatChar.id);
-    if (!api) return;
+    if (!api || !api.url || !api.key) return;
 
-    var prompt = '墨墨已经有一段时间没有跟你发消息了。请结合当前的时间和你们的关系，自然主动地向她发起一条新对话。';
+    var charName = currentChatChar.name || '角色';
+    var userName = (currentChatUser ? (currentChatUser.name || currentChatUser.nickname) : '') || '对方';
+    var callName = (currentChatChar && currentChatChar.callName) ? currentChatChar.callName : userName;
+
+    var prompt = '距离「' + callName + '」上次发来消息已经过去了一段时间。请根据你此刻当下的心境、所在环境以及你与「' + callName + '」的关系，以「' + charName + '」的身份主动向「' + callName + '」发来消息。';
+
     var apiMsgs = buildApiPayload(currentChatChar, currentChatUser, cfg, chatMessages, true, prompt);
     var url = api.url.replace(/\/+$/, '') + '/chat/completions';
     var params = getParams(currentChatChar.id);
+
+    updateTypingUI(true);
 
     fetch(url, {
       method: 'POST',
@@ -887,8 +905,10 @@
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
+      updateTypingUI(false);
       var content = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) ? d.choices[0].message.content : '';
-      if (!content) return;
+      if (!content || content.indexOf('[SKIP]') !== -1) return;
+
       var parts = smartSplitMessages(content);
       var now = Date.now();
       parts.forEach(function(p, idx) {
@@ -899,10 +919,16 @@
           ts: now + idx * 800
         });
       });
+
       saveChatMessages(currentChatChar.id);
       renderMessages();
+
+      if (navigator.vibrate) navigator.vibrate(20);
     })
-    .catch(function() {});
+    .catch(function(err) {
+      updateTypingUI(false);
+      console.warn('[主动消息] 触发失败:', err);
+    });
   }
 
   // ============ 10. 交互事件绑定与心声翻页 ============
@@ -1164,7 +1190,10 @@
       cfg.stickerStyles = checkedStyles.length ? checkedStyles : ['可爱卡通'];
 
       saveCfg(currentChatChar.id, cfg);
+    if (cfg.proactive) {
       startProactiveTimer();
+    } else {
+      stopProactiveTimer();
     }
 
     stage.querySelectorAll('.wx-switch').forEach(function(sw) {
