@@ -17,7 +17,10 @@
   var isInputIdle = true;
   var isWaitingForIdle = false;
 
+  // 主动消息全局定时器
   var _proactiveTimer = null;
+
+  // 跨页面返回标记
   window._chatActiveCharId = null;
 
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
@@ -28,9 +31,9 @@
   function getCfg(charId) {
     var defaultCfg = {
       sceneText: '',           // 当前场景（背景补充）
-      historyLimit: 20,        // 记忆深度/历史轮数 (0为不限, 最高1000)
+      historyLimit: 20,        // 记忆深度/历史轮数 (0表示不限制，最高1000)
       innerVoice: true,        // 心声流露开关
-      voiceLevelMode: 'normal',// 'normal' 平常 | 'obsessed' 迷恋
+      voiceLevel: 'normal',    // 'normal'(平常) | 'obsession'(迷恋·深度)
       mainLang: '简体中文',
       bilingual: false,
       biLang: 'English',
@@ -99,9 +102,9 @@
   function getParams(charId) {
     var cfg = getCfg(charId);
     return {
-      temperature: cfg.temperature || 0.85,
-      freqPenalty: cfg.freqPenalty || 0.3,
-      presPenalty: cfg.presPenalty || 0.3
+      temperature: cfg.temperature !== undefined ? cfg.temperature : 0.85,
+      freqPenalty: cfg.freqPenalty !== undefined ? cfg.freqPenalty : 0.3,
+      presPenalty: cfg.presPenalty !== undefined ? cfg.presPenalty : 0.3
     };
   }
 
@@ -228,8 +231,9 @@
 
     var parts = [];
     parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。');
-    parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实生活气息。严禁长篇大论小作文。');
+    parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实生活气息。严禁长篇大论。');
 
+    // 注入当前背景与场景补充
     if (cfg.sceneText && cfg.sceneText.trim()) {
       parts.push('【当前所处场景与背景补充】：\n' + cfg.sceneText.trim());
     }
@@ -255,12 +259,13 @@
     var tw = buildTimeWeather(cfg);
     if (tw) parts.push(tw);
 
-    // 4. 心声流露规范（区分【平常】与【迷恋】）
+    // 墨墨要求 4 & 12：心声流露程度规范（平常 vs 迷恋·深度）+ 支持 1 至 3 条心声
     if (cfg.innerVoice) {
-      if (cfg.voiceLevelMode === 'obsessed') {
-        parts.push('【心声流露模式 - 迷恋 (NSFW/深层欲望)】：\n你对「' + callName + '」怀有极度热烈、深沉甚至充满占有欲与隐秘遐想的深层情感。在每轮回复末尾附带以下格式：\n[心声: 你的内心真实独白（可大胆流露深层欲望与占有渴望） | 动作: 你此刻身体正做出的动作或隐秘小举止 | 独立心愿: 你自己此刻想吃的东西、想做的事情或生活念头]');
+      var isObsession = (cfg.voiceLevel === 'obsession');
+      if (isObsession) {
+        parts.push('【心声规范 - 迷恋（深度）】：\n触及欲望的本质、占有欲的根源；用最少的字传递最浓的情绪，点到即止。心声中展现出对「' + callName + '」深刻的渴望与隐秘的情愫。可输出1至3条精炼心声，条目间用顿号或分号隔开。\n输出格式：\n[心声: 1至3条内心真实暗涌 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
       } else {
-        parts.push('【心声流露模式 - 平常】：\n在每轮回复末尾附带以下格式：\n[心声: 你的内心真实独白 | 动作: 你当下身体正做出的动作或神态举止 | 独立心愿: 你自己此刻想吃的东西、想做的事情或生活念头]');
+        parts.push('【心声规范 - 平常】：\n展现自然真实的生活气息与内心情绪，可输出1至3条精炼心声，条目间用顿号或分号隔开。\n输出格式：\n[心声: 1至3条内心真实独白 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
       }
     }
 
@@ -279,10 +284,10 @@
     var promptObj = buildPromptRules(cfg, charData, userData, history);
     var apiMsgs = [{ role: 'system', content: promptObj.systemPrompt }];
 
-    var limit = parseInt(cfg.historyLimit, 10);
-    var histMsgs = [];
-    var ctx = (limit <= 0) ? history : history.slice(-limit);
+    var maxCtx = parseInt(cfg.historyLimit, 10);
+    var ctx = (maxCtx > 0) ? history.slice(-maxCtx) : history; // 0 表示不限制历史消息
 
+    var histMsgs = [];
     ctx.forEach(function(m) {
       var r = m.role || (m.sender === 'user' ? 'user' : 'assistant');
       var c = m.cleanContent || m.content || m.text || '';
@@ -340,13 +345,12 @@
     if (charBio.length > 24) charBio = charBio.slice(0, 24) + '...';
 
     stage.innerHTML = ''
-      // 1. 顶栏 (无横线，名字正中，个签拉开距离)
+      // 1. 顶栏 (无横线，角色名与个签拉开距离)
       + '<div class="wx-cr-header">'
       + '  <div class="wx-cr-left-group">'
       + '    <button class="wx-cr-back-btn" id="wxCrBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
       + '    <div class="salon-avatar-badge" id="wxCrCharHeadBtn" title="点击查看心声留存档案">'
       + (avatarSrc ? '<img class="salon-avatar-img" src="' + esc(avatarSrc) + '" alt="">' : '<div class="salon-avatar-img">✦</div>')
-      + '      <div class="salon-mini-wax">✦</div>'
       + '    </div>'
       + '  </div>'
 
@@ -379,7 +383,7 @@
       + '  </div>'
       + '</div>'
 
-      // 2. 聊天消息区 (白透毛玻璃)
+      // 2. 聊天消息区
       + '<div class="wx-cr-body" id="wxCrBody"></div>'
 
       // 3. 向上弹出的多功能菜单
@@ -427,7 +431,7 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 双栏心声手账卡片 (支持左右翻页)
+      // 5. 【彻底无遮罩】双栏心声手账卡片 (动作 + 独立心愿)
       + '<div class="voice-transparent-wrap" id="wxCrVoiceModalWrap">'
       + '  <div class="voice-dossier-card" id="wxCrVoiceCard">'
       + '    <div class="card-tape-deco"></div>'
@@ -473,7 +477,7 @@
       + '  </div>'
       + '</div>'
 
-      // 7. 长按消息两行黑色悬浮菜单
+      // 7. 长按消息黑色悬浮菜单
       + '<div class="cr-ctx-menu-mask" id="wxCrCtxMask"></div>'
       + '<div class="cr-ctx-menu" id="wxCrCtxMenu" style="display:none;"></div>';
 
@@ -502,9 +506,7 @@
     var isIndividual = (cfg.apiMode === 'individual');
     var isAllDay = (cfg.proActiveMode === 'allday');
     var isManualLevel = (cfg.proLevelMode === 'manual');
-    var isObsessed = (cfg.voiceLevelMode === 'obsessed');
-    var curHist = parseInt(cfg.historyLimit, 10);
-    var histText = (curHist <= 0) ? '不限历史' : (curHist + ' 条');
+    var isObsession = (cfg.voiceLevel === 'obsession');
 
     var stkStylesHtml = STK_STYLES.map(function(s) {
       var checked = (cfg.stickerStyles && cfg.stickerStyles.indexOf(s) >= 0) ? ' checked' : '';
@@ -523,29 +525,33 @@
       return '<option value="' + esc(a.name) + '"' + sel + '>' + esc(a.name) + '</option>';
     }).join('');
 
+    var histVal = parseInt(cfg.historyLimit, 10);
+    if (isNaN(histVal)) histVal = 20;
+    var histText = (histVal === 0) ? '不限制' : (histVal + ' 轮');
+
     setBody.innerHTML = ''
-      // 0. 当前场景（背景补充）与记忆深度
+      // 0. 当前场景（背景补充）与记忆深度滑块
       + '<div class="cr-set-card-group">'
       + '  <div class="cr-set-card-title">场景与记忆</div>'
-      + '  <div class="cr-set-card-row" style="flex-direction:column;align-items:stretch;gap:4px;">'
+      + '  <div class="cr-set-card-row" style="flex-direction:column;align-items:stretch;gap:6px;">'
       + '    <div style="display:flex;justify-content:space-between;align-items:center;">'
       + '      <span class="cr-set-label">当前场景（背景补充）</span>'
-      + '      <button class="cr-expand-edit-btn" id="btnExpandScene" type="button" title="扩大编辑"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>'
+      + '      <button class="cr-expand-icon-btn" id="btnExpandScene" type="button" title="放大编辑"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>'
       + '    </div>'
       + '    <textarea class="cr-set-textarea" id="cfgSceneText" rows="4" placeholder="补充角色此刻所处的环境、心境或特定前置剧情...">' + esc(cfg.sceneText || '') + '</textarea>'
       + '  </div>'
-      + '  <div class="cr-slider-block" style="margin-top:6px;">'
-      + '    <div class="cr-slider-header"><span>记忆深度 / 历史轮数</span><span id="txtHistoryLimit">' + histText + '</span></div>'
-      + '    <input class="cr-range-slider-full" id="cfgHistoryLimit" type="range" min="0" max="1000" step="5" value="' + curHist + '">'
-      + '    <div class="cr-slider-desc-text">滑到最左侧 (0) 为不限制历史消息，最右侧为 1000 条</div>'
+      + '  <div class="cr-param-box">'
+      + '    <div class="cr-param-head"><span class="cr-param-name">记忆深度 / 历史轮数</span><span class="cr-param-val" id="txtHistLimitVal">' + histText + '</span></div>'
+      + '    <div class="cr-param-desc">发送给模型的历史消息轮数。滑到最左侧为不限制，最右侧为 1000 轮。</div>'
+      + '    <div class="cr-param-range-wrap"><span class="cr-param-hint">不限制</span><input class="cr-range-slider" id="cfgHistoryLimit" type="range" min="0" max="1000" step="10" value="' + histVal + '"><span class="cr-param-hint">1000</span></div>'
       + '  </div>'
       + '</div>'
 
-      // 1. 心声流露及程度切换（平常 / 迷恋）
+      // 1. 心声流露及程度双选（平常 vs 迷恋·深度）
       + '<div class="cr-set-card-group">'
       + '  <div class="cr-set-card-title">心声流露</div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">开启心声流露</div><div class="cr-set-desc">角色回复中将包含内心独白与心声</div></div><div class="wx-switch' + (cfg.innerVoice ? ' on' : '') + '" id="swInnerVoice"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row" id="rowVoiceLevel" style="' + (cfg.innerVoice ? '' : 'display:none;') + '"><span>心声流露模式</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoVoiceLevelMode" value="normal"' + (!isObsessed?' checked':'') + '><span class="cr-radio-circle"></span> 平常</label><label class="cr-custom-radio"><input type="radio" name="rdoVoiceLevelMode" value="obsessed"' + (isObsessed?' checked':'') + '><span class="cr-radio-circle"></span> 迷恋</label></div></div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">心声流露</div><div class="cr-set-desc">开启后角色回复中将包含内心独白</div></div><div class="wx-switch' + (cfg.innerVoice ? ' on' : '') + '" id="swInnerVoice"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-row" id="rowVoiceLevel" style="' + (cfg.innerVoice ? '' : 'display:none;') + '"><span>流露程度</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoVoiceLevel" value="normal"' + (!isObsession ? ' checked' : '') + '><span class="cr-radio-circle"></span> 平常</label><label class="cr-custom-radio"><input type="radio" name="rdoVoiceLevel" value="obsession"' + (isObsession ? ' checked' : '') + '><span class="cr-radio-circle"></span> 迷恋 (深度)</label></div></div>'
       + '</div>'
 
       // 2. 主动发消息
@@ -553,31 +559,36 @@
       + '  <div class="cr-set-card-title">主动发消息</div>'
       + '  <div class="cr-set-card-row"><div><div class="cr-set-label">开启主动联系</div><div class="cr-set-desc">角色会根据时间与闲置状态主动发起话题</div></div><div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swProactive"><div class="wx-switch-knob"></div></div></div>'
       + '  <div class="cr-set-card-row"><span>消息频率 (间隔分钟)</span><div style="display:flex;align-items:center;gap:6px;"><input class="cr-set-num-input" id="cfgProMin" type="number" value="' + (cfg.proMinInterval||15) + '"><span>至</span><input class="cr-set-num-input" id="cfgProMax" type="number" value="' + (cfg.proMaxInterval||120) + '"></div></div>'
+      
+      // 活跃时段（全天 / 自定义）
       + '  <div class="cr-set-card-row"><span>活跃时段</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoActiveMode" value="allday"' + (isAllDay?' checked':'') + '><span class="cr-radio-circle"></span> 全天</label><label class="cr-custom-radio"><input type="radio" name="rdoActiveMode" value="custom"' + (!isAllDay?' checked':'') + '><span class="cr-radio-circle"></span> 自定义</label></div></div>'
       + '  <div class="cr-set-card-row" id="rowCustomTime" style="' + (isAllDay?'display:none;':'') + '"><span>自定义时段</span><div style="display:flex;gap:6px;"><input class="cr-set-time-input" id="cfgProStart" type="time" value="' + (cfg.proActiveStart||'08:00') + '"><span>至</span><input class="cr-set-time-input" id="cfgProEnd" type="time" value="' + (cfg.proActiveEnd||'23:30') + '"></div></div>'
+      
+      // 积极程度（手动 / 角色性格决定）
       + '  <div class="cr-set-card-row"><span>消息积极程度</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoLevelMode" value="manual"' + (isManualLevel?' checked':'') + '><span class="cr-radio-circle"></span> 手动</label><label class="cr-custom-radio"><input type="radio" name="rdoLevelMode" value="auto"' + (!isManualLevel?' checked':'') + '><span class="cr-radio-circle"></span> 角色性格决定</label></div></div>'
       + '  <div class="cr-set-card-row" id="rowManualLevel" style="' + (isManualLevel?'':'display:none;') + '"><span>设定程度</span><select class="cr-set-select" id="cfgProLevel">' + PRO_LEVEL_NAMES.map(function(name, idx){ return '<option value="' + (idx+1) + '"' + ((cfg.proLevel||3)===(idx+1)?' selected':'') + '>' + name + '</option>'; }).join('') + '</select></div>'
+
       + '  <div class="cr-set-card-row"><span>单次回复条数</span><div style="display:flex;align-items:center;gap:6px;"><input class="cr-set-num-input" id="cfgMinMsgs" type="number" min="1" max="10" value="' + (cfg.minMsgs||1) + '"><span>至</span><input class="cr-set-num-input" id="cfgMaxMsgs" type="number" min="1" max="10" value="' + (cfg.maxMsgs||3) + '"></div></div>'
       + '  <div class="cr-set-card-row"><span>回复速度</span><select class="cr-set-select" id="cfgReplySpeed"><option' + sv('replySpeed','快速（1-2秒）') + '>快速（1-2秒）</option><option' + sv('replySpeed','正常（2-4秒）') + '>正常（2-4秒）</option><option' + sv('replySpeed','慢速（4-7秒）') + '>慢速（4-7秒）</option></select></div>'
       + '</div>'
 
-      // 3. 温度与三大创造力参数 (含详细解释与滑块)
+      // 3. 温度与创造力参数（三项详解与专属滑块）
       + '<div class="cr-set-card-group">'
       + '  <div class="cr-set-card-title">温度与创造力参数</div>'
-      + '  <div class="cr-slider-block">'
-      + '    <div class="cr-slider-header"><span>Temperature (创造力温度)</span><span id="txtTemp">' + (cfg.temperature || 0.85) + '</span></div>'
-      + '    <div class="cr-slider-desc-text">严谨贴合人设 (0.1) ↔ 极具丰富发散创意 (2.0)</div>'
-      + '    <input class="cr-range-slider-full" id="cfgTemp" type="range" min="0.05" max="2.0" step="0.05" value="' + (cfg.temperature || 0.85) + '">'
+      + '  <div class="cr-param-box">'
+      + '    <div class="cr-param-head"><span class="cr-param-name">Temperature (创造力)</span><span class="cr-param-val" id="txtTempVal">' + (cfg.temperature || 0.85) + '</span></div>'
+      + '    <div class="cr-param-desc">数值越低越贴合严谨设定，数值越高越富有天马行空的想象力与情绪起伏。</div>'
+      + '    <div class="cr-param-range-wrap"><span class="cr-param-hint">贴合严谨 0.0</span><input class="cr-range-slider" id="cfgTemp" type="range" min="0" max="2" step="0.05" value="' + (cfg.temperature || 0.85) + '"><span class="cr-param-hint">极富创意 2.0</span></div>'
       + '  </div>'
-      + '  <div class="cr-slider-block">'
-      + '    <div class="cr-slider-header"><span>Frequency Penalty (重复词抑制)</span><span id="txtFreq">' + (cfg.freqPenalty || 0.3) + '</span></div>'
-      + '    <div class="cr-slider-desc-text">允许自然重复 (0.0) ↔ 极力避免重复句式 (2.0)</div>'
-      + '    <input class="cr-range-slider-full" id="cfgFreq" type="range" min="0.0" max="2.0" step="0.05" value="' + (cfg.freqPenalty || 0.3) + '">'
+      + '  <div class="cr-param-box">'
+      + '    <div class="cr-param-head"><span class="cr-param-name">Frequency Penalty (重复词抑制)</span><span class="cr-param-val" id="txtFreqVal">' + (cfg.freqPenalty || 0.3) + '</span></div>'
+      + '    <div class="cr-param-desc">增加该值可减少字词的单调重复，鼓励模型变换用词表达。</div>'
+      + '    <div class="cr-param-range-wrap"><span class="cr-param-hint">允许复述 0.0</span><input class="cr-range-slider" id="cfgFreq" type="range" min="0" max="2" step="0.1" value="' + (cfg.freqPenalty || 0.3) + '"><span class="cr-param-hint">避免重复 2.0</span></div>'
       + '  </div>'
-      + '  <div class="cr-slider-block">'
-      + '    <div class="cr-slider-header"><span>Presence Penalty (新话题倾向)</span><span id="txtPres">' + (cfg.presPenalty || 0.3) + '</span></div>'
-      + '    <div class="cr-slider-desc-text">聚焦当前话题 (0.0) ↔ 积极引入新奇话题 (2.0)</div>'
-      + '    <input class="cr-range-slider-full" id="cfgPres" type="range" min="0.0" max="2.0" step="0.05" value="' + (cfg.presPenalty || 0.3) + '">'
+      + '  <div class="cr-param-box">'
+      + '    <div class="cr-param-head"><span class="cr-param-name">Presence Penalty (新话题扩展)</span><span class="cr-param-val" id="txtPresVal">' + (cfg.presPenalty || 0.3) + '</span></div>'
+      + '    <div class="cr-param-desc">增加该值会促使模型更乐于引入新话题，让交谈发散更自然。</div>'
+      + '    <div class="cr-param-range-wrap"><span class="cr-param-hint">聚焦当前 0.0</span><input class="cr-range-slider" id="cfgPres" type="range" min="0" max="2" step="0.1" value="' + (cfg.presPenalty || 0.3) + '"><span class="cr-param-hint">鼓励发散 2.0</span></div>'
       + '  </div>'
       + '</div>'
 
@@ -588,7 +599,7 @@
       + '  <div class="cr-set-card-row" id="rowApiSelect" style="' + (isIndividual ? '' : 'display:none;') + '"><span>选择专属 API</span><select class="cr-set-select" id="cfgApiSelect">' + apiOptionsHtml + '</select></div>'
       + '</div>'
 
-      // 5. 时间 & 天气感知
+      // 5. 时间 & 天气感知 (带抓取按钮)
       + '<div class="cr-set-card-group">'
       + '  <div class="cr-set-card-title">情境与天气感知</div>'
       + '  <div class="cr-set-card-row"><div><div class="cr-set-label">时间 & 天气感知</div><div class="cr-set-desc">让角色获知当前真实时间与天气</div></div><div class="wx-switch' + (cfg.timeWeather ? ' on' : '') + '" id="swTimeWeather"><div class="wx-switch-knob"></div></div></div>'
@@ -697,21 +708,21 @@
         }
 
         var heartHtml = '';
-        if (!isUser && voiceObj) {
+        if (!isUser && voiceObj && idx === total - 1) {
           heartHtml = '<span class="voice-heart-trigger" data-voice-idx="' + globalIdx + '" title="点击查看当下心声">'
             + '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>'
             + '</span>';
         }
 
         var quoteHtml = m.quote ? '<div class="wx-msg-quote-bar">' + esc(m.quote) + '</div>' : '';
-        var timeHtml = (idx === total - 1) ? '<div class="wx-msg-bottom-timestamp">' + fmtTime(m.ts || Date.now()) + '</div>' : '';
+        var tailTimeHtml = (idx === total - 1) ? '<div class="bubble-tail-timestamp">' + fmtTime(m.ts || Date.now()) + '</div>' : '';
 
         html += '<div class="wx-msg-bubble-item" data-bubble-idx="' + globalIdx + '">'
           + quoteHtml
           + esc(content)
           + heartHtml
           + '</div>'
-          + timeHtml;
+          + tailTimeHtml;
       });
 
       html += '</div></div>';
@@ -981,7 +992,7 @@
     var backBtn = stage.querySelector('#wxCrBackBtn');
     backBtn.addEventListener('click', closeChatRoom);
 
-    // ── 直达档案卡片且支持一键返回 ──
+    // 直达档案卡片且支持一键返回
     function gotoArchiveCard(side) {
       stage.style.display = 'none';
       if (window.AppNav) {
@@ -1015,7 +1026,7 @@
       }
     });
 
-    // 左上角头像点击 -> 弹出【心声卡片】并支持左右滑动翻页
+    // 左上角头像点击 -> 弹出心声卡片
     var charHeadBtn = stage.querySelector('#wxCrCharHeadBtn');
     var voiceModalWrap = stage.querySelector('#wxCrVoiceModalWrap');
     var closeVoiceBtn = stage.querySelector('#wxCrCloseVoiceBtn');
@@ -1168,17 +1179,19 @@
     function syncSettingFields() {
       var gv = function(id) { var el = stage.querySelector('#' + id); return el ? el.value : ''; };
       cfg.sceneText = gv('cfgSceneText') || '';
-      
-      var histEl = stage.querySelector('#cfgHistoryLimit');
-      if (histEl) {
-        cfg.historyLimit = parseInt(histEl.value, 10);
-        var txtHist = stage.querySelector('#txtHistoryLimit');
-        if (txtHist) txtHist.textContent = (cfg.historyLimit <= 0) ? '不限历史' : (cfg.historyLimit + ' 条');
+
+      var histInput = stage.querySelector('#cfgHistoryLimit');
+      if (histInput) {
+        var hVal = parseInt(histInput.value, 10);
+        cfg.historyLimit = isNaN(hVal) ? 20 : hVal;
+        var txtHist = stage.querySelector('#txtHistLimitVal');
+        if (txtHist) txtHist.textContent = (cfg.historyLimit === 0) ? '不限制' : (cfg.historyLimit + ' 轮');
       }
 
       cfg.innerVoice = stage.querySelector('#swInnerVoice') ? stage.querySelector('#swInnerVoice').classList.contains('on') : true;
-      var rdoVoice = stage.querySelector('input[name="rdoVoiceLevelMode"]:checked');
-      cfg.voiceLevelMode = rdoVoice ? rdoVoice.value : 'normal';
+
+      var rdoVoice = stage.querySelector('input[name="rdoVoiceLevel"]:checked');
+      cfg.voiceLevel = rdoVoice ? rdoVoice.value : 'normal';
 
       cfg.proactive = stage.querySelector('#swProactive') ? stage.querySelector('#swProactive').classList.contains('on') : false;
       cfg.proMinInterval = parseInt(gv('cfgProMin'), 10) || 15;
@@ -1197,12 +1210,26 @@
       cfg.maxMsgs = parseInt(gv('cfgMaxMsgs'), 10) || 3;
       cfg.replySpeed = gv('cfgReplySpeed') || '正常（2-4秒）';
 
-      var tempEl = stage.querySelector('#cfgTemp');
-      if (tempEl) { cfg.temperature = parseFloat(tempEl.value) || 0.85; var tT = stage.querySelector('#txtTemp'); if (tT) tT.textContent = cfg.temperature; }
-      var freqEl = stage.querySelector('#cfgFreq');
-      if (freqEl) { cfg.freqPenalty = parseFloat(freqEl.value) || 0.3; var tF = stage.querySelector('#txtFreq'); if (tF) tF.textContent = cfg.freqPenalty; }
-      var presEl = stage.querySelector('#cfgPres');
-      if (presEl) { cfg.presPenalty = parseFloat(presEl.value) || 0.3; var tP = stage.querySelector('#txtPres'); if (tP) tP.textContent = cfg.presPenalty; }
+      var tempInput = stage.querySelector('#cfgTemp');
+      if (tempInput) {
+        cfg.temperature = parseFloat(tempInput.value) || 0.85;
+        var txtT = stage.querySelector('#txtTempVal');
+        if (txtT) txtT.textContent = cfg.temperature;
+      }
+
+      var freqInput = stage.querySelector('#cfgFreq');
+      if (freqInput) {
+        cfg.freqPenalty = parseFloat(freqInput.value) || 0.3;
+        var txtF = stage.querySelector('#txtFreqVal');
+        if (txtF) txtF.textContent = cfg.freqPenalty;
+      }
+
+      var presInput = stage.querySelector('#cfgPres');
+      if (presInput) {
+        cfg.presPenalty = parseFloat(presInput.value) || 0.3;
+        var txtP = stage.querySelector('#txtPresVal');
+        if (txtP) txtP.textContent = cfg.presPenalty;
+      }
 
       cfg.apiMode = stage.querySelector('#swIndividualApi') && stage.querySelector('#swIndividualApi').classList.contains('on') ? 'individual' : 'global';
       cfg.apiSelect = gv('cfgApiSelect') || '';
@@ -1256,31 +1283,17 @@
       });
     });
 
-    stage.querySelectorAll('input[name="rdoVoiceLevelMode"]').forEach(function(r) {
+    stage.querySelectorAll('input[name="rdoVoiceLevel"]').forEach(function(r) {
       r.addEventListener('change', syncSettingFields);
     });
 
-    stage.querySelectorAll('.cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input, .cr-range-slider-full, .cr-set-textarea, #cfgStkStylesWrap input').forEach(function(inp) {
+    stage.querySelectorAll('.cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input, .cr-range-slider, .cr-set-textarea, #cfgStkStylesWrap input').forEach(function(inp) {
       inp.addEventListener('input', syncSettingFields);
       inp.addEventListener('change', syncSettingFields);
       inp.addEventListener('blur', syncSettingFields);
     });
 
-    // 场景扩大编辑
-    var btnExpScene = stage.querySelector('#btnExpandScene');
-    if (btnExpScene) {
-      btnExpScene.addEventListener('click', function() {
-        var ta = stage.querySelector('#cfgSceneText');
-        var oldVal = ta ? ta.value : '';
-        var newVal = prompt('当前场景（背景补充）深度编辑：', oldVal);
-        if (newVal !== null) {
-          if (ta) ta.value = newVal;
-          syncSettingFields();
-        }
-      });
-    }
-
-    // 真实天气抓取按钮
+    // 抓取天气按钮
     var fetchWeatherBtn = stage.querySelector('#btnFetchWeather');
     if (fetchWeatherBtn) {
       fetchWeatherBtn.addEventListener('click', function() {
@@ -1300,47 +1313,40 @@
       });
     }
 
-    // 生图模型拉取按钮
+    // 绘图模型拉取按钮
     var fetchImgBtn = stage.querySelector('#btnFetchImgModels');
     if (fetchImgBtn) {
       fetchImgBtn.addEventListener('click', function() {
-        var selApiName = (stage.querySelector('#cfgImgApiSelect') || {}).value;
-        var api = null;
-        var list = [];
-        try { list = JSON.parse(localStorage.getItem('api_configs') || '[]'); } catch(e){}
-        if (selApiName) {
-          api = list.find(function(a){ return a.name === selApiName; });
-        } else {
-          api = getActiveApi(currentChatChar.id);
-        }
-
+        var api = getActiveApi(currentChatChar.id);
         if (!api || !api.url || !api.key) {
-          if (window.AppNav) window.AppNav.showToast('请先配置好对应的 API');
+          if (window.AppNav) window.AppNav.showToast('请先配置并启用接口');
           return;
         }
-
-        if (window.AppNav) window.AppNav.showToast('正在拉取绘图模型...');
+        if (window.AppNav) window.AppNav.showToast('正在获取绘图模型...');
         fetch(api.url.replace(/\/+$/, '') + '/models', {
           headers: { 'Authorization': 'Bearer ' + api.key }
         })
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          var raw = d.data || d;
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var raw = data.data || data;
           var models = [];
           if (Array.isArray(raw)) {
-            raw.forEach(function(m){ var id = m.id || m.name; if (id) models.push(id); });
+            for (var i = 0; i < raw.length; i++) {
+              var id = raw[i].id || raw[i].name || raw[i];
+              if (id) models.push(id);
+            }
           }
           if (models.length) {
-            var pick = prompt('请选择或输入绘图模型：\n' + models.slice(0, 15).join('\n'), models[0]);
-            if (pick) {
-              stage.querySelector('#cfgImgModel').value = pick.trim();
+            var mName = prompt('请选择或填入绘图模型：\n' + models.slice(0, 15).join('\n'), models[0]);
+            if (mName) {
+              stage.querySelector('#cfgImgModel').value = mName.trim();
               syncSettingFields();
             }
           } else {
             if (window.AppNav) window.AppNav.showToast('未拉取到模型列表');
           }
         })
-        .catch(function(err){
+        .catch(function(err) {
           if (window.AppNav) window.AppNav.showToast('拉取失败: ' + err.message);
         });
       });
@@ -1422,7 +1428,7 @@
       }
     });
 
-    // ── 长按消息两行黑色悬浮菜单 ──
+    // 长按消息两行黑色悬浮菜单
     var ctxMenu = stage.querySelector('#wxCrCtxMenu');
     var ctxMask = stage.querySelector('#wxCrCtxMask');
     var currentCtxIdx = -1;
@@ -1448,6 +1454,7 @@
 
         var isUser = (targetMsg.role === 'user' || targetMsg.sender === 'user');
 
+        // 第一行：常用操作与社交
         var row1 = '<div class="cr-ctx-menu-row">'
           + '<div class="cr-ctx-item" data-ctx-act="quote"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>引用</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span></div>'
@@ -1459,6 +1466,7 @@
         }
         row1 += '</div>';
 
+        // 第二行：重发与删除类
         var row2 = '<div class="cr-ctx-menu-row">'
           + '<div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>' + (isUser ? '重发' : '重现') + '</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg><span>删除</span></div>'
@@ -1522,7 +1530,7 @@
             saveChatMessages(currentChatChar.id);
             renderMessages();
           } else if (act === 'delFromHere') {
-            // 8. 彻底修复：保留本条，精确将本条之后产生的所有记录全部删除！
+            // 墨墨要求 3：保留长按选中的当前消息，往后所有的消息全部彻底删除
             if (confirm('确定删除此条消息之后的所有记录吗？')) {
               chatMessages.splice(currentCtxIdx + 1);
               saveChatMessages(currentChatChar.id);
@@ -1554,7 +1562,7 @@
       });
     }
 
-    // 托盘功能
+    // 托盘功能点击
     stage.querySelectorAll('[data-tray-act]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var act = this.dataset.trayAct;
