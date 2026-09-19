@@ -1356,33 +1356,40 @@
         var targetMsg = chatMessages[idx];
         if (!targetMsg) return;
 
+        
+                pressTimer = setTimeout(function () {
+        currentCtxIdx = idx;
+        var targetMsg = chatMessages[idx];
+        if (!targetMsg) return;
+
         var isUser = (targetMsg.role === 'user' || targetMsg.sender === 'user');
 
-        // 动态拼装高定黑卡菜单项
-        var menuItemsHtml = ''
+        // 第一行：常用操作与社交
+        var row1 = '<div class="cr-ctx-menu-row">'
           + '<div class="cr-ctx-item" data-ctx-act="quote"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>引用</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>编辑</span></div>';
 
-        // 角色的消息专属：收藏与转发
         if (!isUser) {
-          menuItemsHtml += '<div class="cr-ctx-item" data-ctx-act="fav"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>收藏</span></div>'
+          row1 += '<div class="cr-ctx-item" data-ctx-act="fav"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>收藏</span></div>'
             + '<div class="cr-ctx-item" data-ctx-act="share"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>转发</span></div>';
         }
+        row1 += '</div>';
 
-        // 重新生成/重发与删除功能
-        menuItemsHtml += '<div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>' + (isUser ? '重发' : '重现') + '</span></div>'
+        // 第二行：重发与删除类
+        var row2 = '<div class="cr-ctx-menu-row">'
+          + '<div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>' + (isUser ? '重发' : '重现') + '</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg><span>删除</span></div>'
-          + '<div class="cr-ctx-item" data-ctx-act="delFromHere"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><polyline points="8 21 12 17 16 21"/></svg><span>后面全删</span></div>';
+          + '<div class="cr-ctx-item" data-ctx-act="delFromHere"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><polyline points="8 21 12 17 16 21"/></svg><span>后面全删</span></div>'
+          + '</div>';
 
         if (ctxMenu) {
-          ctxMenu.innerHTML = menuItemsHtml;
-          bindCtxItemClicks(); // 绑定各按钮点击事件
+          ctxMenu.innerHTML = row1 + row2;
+          bindCtxItemClicks();
 
           var rect = bubble.getBoundingClientRect();
           var top = Math.max(70, rect.top);
-          // 防止右侧用户菜单超出屏幕右边界
-          var left = Math.min(window.innerWidth - 120, Math.max(120, rect.left + rect.width / 2));
+          var left = Math.min(window.innerWidth - 130, Math.max(130, rect.left + rect.width / 2));
 
           ctxMenu.style.top = top + 'px';
           ctxMenu.style.left = left + 'px';
