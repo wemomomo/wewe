@@ -1,6 +1,6 @@
 
 /* ======================================================== */
-/* Chat 单聊高定白透毛玻璃与手账对话区 (Chat Room Core)      */
+/* Chat 单聊高定顶栏与手账对话区 (Chat Room Core)            */
 /* ======================================================== */
 
 .wx-chat-room-stage {
@@ -11,10 +11,10 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  /* 9. 纯白半透明毛玻璃背景 */
-  background: rgba(255, 255, 255, 0.88) !important;
-  backdrop-filter: blur(30px) !important;
-  -webkit-backdrop-filter: blur(30px) !important;
+  /* 墨墨要求 9：白色半透明毛玻璃背景 */
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(25px) !important;
+  -webkit-backdrop-filter: blur(25px) !important;
   z-index: 10000 !important;
   display: flex;
   flex-direction: column;
@@ -53,14 +53,15 @@
 }
 
 /* =========================================================
-   1. 纯净顶栏 (10. 无下边框横线)
+   1. 纯白极简顶栏 (彻底删除下边框横线，拉开签名间距)
 ========================================================= */
 .wx-cr-header {
   position: relative;
   height: calc(58px + var(--safe-top));
   padding-top: var(--safe-top);
-  background: transparent;
-  border-bottom: none !important; /* 👈 彻底删除顶部横线 */
+  background: transparent !important;
+  /* 墨墨要求 10：彻底删除顶部横线 */
+  border-bottom: none !important;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -116,7 +117,7 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   object-fit: cover;
   background: #f8f8fa;
   display: flex;
@@ -129,7 +130,7 @@
   display: none !important;
 }
 
-/* 标题绝对正中居中 (11. 名字与个签拉开距离) */
+/* 标题绝对正中居中 */
 .wx-cr-title-col {
   position: absolute;
   left: 50%;
@@ -138,9 +139,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px !important; /* 👈 拉开间距 */
+  /* 墨墨要求 11：名字与签名拉开舒适距离 */
+  gap: 4px !important;
   text-align: center;
-  max-width: 58%;
+  max-width: 55%;
   z-index: 1;
 }
 
@@ -156,10 +158,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  line-height: 1.1;
 }
 
 .char-signature-sub {
-  font-size: 10.5px;
+  font-size: 10px;
   color: #8e8e93;
   font-weight: 500;
   letter-spacing: 0.3px;
@@ -243,14 +246,14 @@
 }
 
 /* =========================================================
-   2. 聊天消息区 (15. 尖角统一方向向上，非拼块)
+   2. 聊天消息区 (纯白通透 + 经典尖角统一朝上气泡)
 ========================================================= */
 .wx-cr-body {
   flex: 1;
   width: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 16px 14px;
+  padding: 14px 12px 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -258,6 +261,7 @@
   box-sizing: border-box;
   background: transparent !important;
 }
+
 .wx-cr-body::-webkit-scrollbar {
   display: none;
 }
@@ -270,8 +274,6 @@
   font-family: monospace;
   color: #8e8e93;
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   padding: 3px 10px;
   border-radius: 10px;
   line-height: 1.2;
@@ -288,6 +290,7 @@
   flex-direction: row-reverse;
 }
 
+/* 头像 38px */
 .wx-msg-avatar {
   width: 38px !important;
   height: 38px !important;
@@ -311,17 +314,18 @@
   object-fit: cover;
 }
 
+/* 气泡列严格受控在对方头像范围之内 */
 .wx-msg-bubbles-col {
   max-width: 68% !important;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 .wx-msg-group.user-side .wx-msg-bubbles-col {
   align-items: flex-end;
 }
 
-/* 15. 经典独立气泡：尖角统一朝上 */
+/* 墨墨要求 15：恢复最初最经典的尖角统一朝上气泡 (角色左上尖角，用户右上尖角) */
 .wx-msg-bubble-item {
   position: relative;
   padding: 10px 13px;
@@ -331,25 +335,31 @@
   word-break: break-word;
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 2px 14px 14px 14px !important; /* 👈 尖角统一在左上方 */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  border-radius: 2px 14px 14px 14px !important; /* 👈 角色尖角统一朝上 */
 }
 
+/* 用户气泡：右上尖角朝上 */
 .wx-msg-group.user-side .wx-msg-bubble-item {
   background: #141619;
   color: #ffffff;
   border: none;
-  border-radius: 14px 2px 14px 14px !important; /* 👈 尖角统一在右上方 */
   box-shadow: 0 3px 12px rgba(20, 22, 25, 0.12);
+  border-radius: 14px 2px 14px 14px !important; /* 👈 用户尖角统一朝上 */
 }
 
-/* 13. 气泡尾巴下方的优雅微小时间戳 */
-.wx-msg-bottom-timestamp {
+/* 墨墨要求 13：每轮最后一条气泡尾巴下方的精巧时间戳 */
+.bubble-tail-timestamp {
   font-size: 9.5px;
-  color: #a0aec0;
   font-family: monospace;
+  color: #9ca3af;
   margin-top: 2px;
   padding: 0 4px;
+  user-select: none;
+}
+.wx-msg-group.user-side .bubble-tail-timestamp {
+  text-align: right;
+  color: #9ca3af;
 }
 
 .wx-msg-quote-bar {
@@ -367,7 +377,7 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* 实心黑小爱心 (垂直居中悬浮在气泡外侧) */
+/* 实心黑小爱心 */
 .voice-heart-trigger {
   position: absolute;
   right: -24px;
@@ -466,11 +476,9 @@
   bottom: calc(58px + var(--safe-bottom));
   left: 10px;
   right: 10px;
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   border-radius: 20px;
   padding: 10px 4px 6px;
   z-index: 50;
@@ -565,7 +573,7 @@
 }
 
 /* =========================================================
-   5. 底部栏 (输入框 #f8f8fa + 大加号 28px)
+   5. 底部栏
 ========================================================= */
 .chat-footer-clean {
   background: transparent !important;
@@ -872,7 +880,7 @@
 }
 
 /* =========================================================
-   7. 角色专属全功能设置 (1. 标题字体加大 + 2. 场景4行空间)
+   7. 角色专属全功能设置 (正中间弹出卡片，字号加大)
 ========================================================= */
 .wx-cr-settings-mask {
   position: fixed;
@@ -896,7 +904,7 @@
 
 .wx-cr-settings-card {
   width: 100%;
-  max-width: 336px;
+  max-width: 340px;
   max-height: 78vh;
   background: #ffffff;
   border-radius: 24px;
@@ -955,21 +963,19 @@
   gap: 8px;
 }
 
-/* 1. 分组标题字体加大 */
+/* 墨墨要求 1：分类标题字号加大 */
 .cr-set-card-title {
-  font-size: 12.5px !important;
+  font-size: 13px !important;
   font-weight: 900 !important;
   color: #1a1c22 !important;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
-  margin-bottom: 2px;
 }
 
 .cr-set-card-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 0;
+  padding: 6px 0;
   font-size: 13.5px;
   color: #1a1c22;
   font-weight: 600;
@@ -977,10 +983,10 @@
 .cr-set-label { font-size: 13.5px; font-weight: 600; color: #1a1c22; }
 .cr-set-desc { font-size: 10.5px; color: #8e8e93; font-weight: normal; margin-top: 1px; }
 
-/* 2. 场景内容框 4 行高度空间 */
+/* 墨墨要求 2：场景多行文本框扩大到 4 行 */
 .cr-set-textarea {
   width: 100%;
-  min-height: 80px !important; /* 👈 起码 4 行高度 */
+  min-height: 84px !important;
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: #ffffff;
   border-radius: 8px;
@@ -990,9 +996,21 @@
   outline: none;
   font-family: inherit;
   resize: none;
-  line-height: 1.45;
   box-sizing: border-box;
+  line-height: 1.45;
 }
+
+.cr-expand-icon-btn {
+  background: none;
+  border: none;
+  color: #8e8e93;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cr-expand-icon-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.2; fill: none; }
 
 .cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input {
   border: 1px solid rgba(0,0,0,0.08);
@@ -1006,34 +1024,38 @@
 }
 .cr-set-num-input { width: 55px; text-align: center; }
 .cr-set-time-input { width: 85px; text-align: center; }
-/* 7. 真实城市输入框收窄 */
+
+/* 墨墨要求 7：真实城市输入框缩窄 */
 .cr-set-input { text-align: right; max-width: 110px !important; }
 
-/* 3. 历史轮数与温度调节滑块 */
-.cr-slider-block {
-  width: 100%;
+/* 墨墨要求 3 & 6：大模型参数与历史轮数滑块卡片 */
+.cr-param-box {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 4px 0;
+  padding: 6px 0;
+  border-top: 0.5px dashed rgba(0, 0, 0, 0.06);
 }
-.cr-slider-header {
+.cr-param-box:first-of-type { border-top: none; }
+.cr-param-head {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
+}
+.cr-param-name { font-size: 12.5px; font-weight: 700; color: #1a1c22; }
+.cr-param-val { font-size: 12px; font-family: monospace; font-weight: 800; color: #1a1c22; }
+.cr-param-desc { font-size: 10px; color: #8e8e93; line-height: 1.35; }
+.cr-param-range-wrap {
+  display: flex;
   align-items: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: #1a1c22;
+  gap: 8px;
+  margin-top: 2px;
 }
-.cr-slider-desc-text {
-  font-size: 10px;
-  color: #8e8e93;
-  line-height: 1.35;
-}
-.cr-range-slider-full {
-  width: 100%;
+.cr-param-hint { font-size: 9.5px; color: #9ca3af; font-weight: 600; white-space: nowrap; }
+
+.cr-range-slider {
+  flex: 1;
   accent-color: #1a1c22;
-  margin: 2px 0;
 }
 
 .cr-fetch-btn {
@@ -1119,7 +1141,7 @@
 }
 
 /* =========================================================
-   5. 高定白底黑线 · 镂空同心圆单选框 (彻底强制去蓝去黑点)
+   墨墨要求 5：单选框精修（黑线白底圆圈 + 选中时内嵌黑色圆点）
 ========================================================= */
 .cr-custom-radio {
   display: inline-flex !important;
@@ -1134,8 +1156,6 @@
 
 .cr-custom-radio input[type="radio"] {
   display: none !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
   opacity: 0 !important;
   width: 0 !important;
   height: 0 !important;
@@ -1143,10 +1163,10 @@
   pointer-events: none !important;
 }
 
-/* 黑色细外框 + 纯白底色 */
+/* 黑色线条 + 白色填充的外圈 */
 .cr-radio-circle {
-  width: 17px !important;
-  height: 17px !important;
+  width: 16px !important;
+  height: 16px !important;
   border-radius: 50% !important;
   border: 1.5px solid #1a1c22 !important;
   background: #ffffff !important;
@@ -1158,14 +1178,11 @@
   transition: all 0.2s ease !important;
 }
 
-/* 选中状态：内层出现黑线白底同心圆环，绝对没有黑点 */
+/* 选中状态：中间内嵌一个纯黑实心小圆点 */
 .cr-custom-radio input[type="radio"]:checked + .cr-radio-circle::after {
   content: '' !important;
-  width: 7px !important;
-  height: 7px !important;
+  width: 6px !important;
+  height: 6px !important;
   border-radius: 50% !important;
-  background: #ffffff !important;
-  border: 1.5px solid #1a1c22 !important;
-  box-sizing: border-box !important;
-  box-shadow: none !important;
+  background: #1a1c22 !important;
 }
