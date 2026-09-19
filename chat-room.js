@@ -18,13 +18,17 @@
   var isInputIdle = true;
   var isWaitingForIdle = false;
 
-  window._returnToChatFromArchive = false;
+  // 主动消息全局定时器
+  var _proactiveTimer = null;
+
+  // 跨页面返回标记
+  window._chatActiveCharId = null;
 
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function fmtTime(ts) { var d = new Date(ts); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
   function esc(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
 
-  // ============ 1. 角色独立配置与 API 获取 ============
+  // ============ 1. 角色独立配置读取与持久化 ============
   function getCfg(charId) {
     var defaultCfg = {
       mainLang: '简体中文',
@@ -35,11 +39,12 @@
       proactive: false,
       proMinInterval: 15,
       proMaxInterval: 120,
+      proActiveMode: 'allday', // 'allday' | 'custom'
       proActiveStart: '08:00',
       proActiveEnd: '23:30',
-      proMode: 'manual',
+      proLevelMode: 'manual', // 'manual' | 'auto'
       proLevel: 3,
-      replySpeed: '正常（3-8秒）',
+      replySpeed: '正常（2-4秒）',
       showTyping: true,
       minMsgs: 1,
       maxMsgs: 3,
@@ -47,6 +52,8 @@
       stickerGen: false,
       stickerStyles: ['可爱卡通'],
       stickerFreq: 2,
+      imgApiSelect: '',
+      imgModel: 'gpt-image-1',
       timeWeather: true,
       charCity: '',
       charRealCity: '',
@@ -99,13 +106,13 @@
     };
   }
 
-  // ============ 2. 真实城市天气预取 ============
+  // ============ 2. 天气获取引擎 ============
   function fetchCharWeather(realCity, callback) {
-    if (!realCity) { callback(null); return; }
+    if (!realCity) { if (callback) callback(null); return; }
     var cacheKey = realCity.toLowerCase();
     var cached = _charWeatherCache[cacheKey];
     if (cached && Date.now() - cached.time < 30 * 60 * 1000) {
-      callback(cached);
+      if (callback) callback(cached);
       return;
     }
     fetch('https://wttr.in/' + encodeURIComponent(realCity) + '?format=j1&lang=zh')
@@ -116,10 +123,10 @@
           var desc = (c.lang_zh && c.lang_zh.length) ? c.lang_zh[0].value : (c.weatherDesc && c.weatherDesc.length ? c.weatherDesc[0].value : '');
           var w = { temp: c.temp_C, humidity: c.humidity, desc: desc, time: Date.now() };
           _charWeatherCache[cacheKey] = w;
-          callback(w);
-        } else { callback(null); }
+          if (callback) callback(w);
+        } else { if (callback) callback(null); }
       })
-      .catch(function() { callback(null); });
+      .catch(function() { if (callback) callback(null); });
   }
 
   function buildTimeWeather(cfg) {
@@ -137,9 +144,9 @@
     var timeStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()] + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ' (' + period + ')';
     var info = '【当前时间】：' + timeStr;
 
-    var city = cfg.charCity || (currentChatChar ? currentChatChar.location : '') || '';
+    var city = cfg.charCity || cfg.charRealCity || (currentChatChar ? currentChatChar.location : '') || '';
     if (city) {
-      var cacheKey = city.toLowerCase();
+      var cacheKey = (cfg.charRealCity || city).toLowerCase();
       var cw = _charWeatherCache[cacheKey];
       if (cw) {
         info += '\n【当前所在地天气】：' + city + '，' + cw.desc + '，' + cw.temp + '°C，湿度' + cw.humidity + '%';
@@ -150,7 +157,7 @@
     return info;
   }
 
-  // ============ 3. 智能消息拆分引擎 ============
+  // ============ 3. 消息智能切分 ============
   function smartSplitMessages(text) {
     text = (text || '').trim();
     if (!text) return [];
@@ -176,7 +183,7 @@
     return '网络异常：' + msg;
   }
 
-  // ============ 4. 世界书与双模式智能系统提示词 ============
+  // ============ 4. 系统指令与上下文组装 ============
   function collectWorldBookEntries(charId, chatHistory) {
     var result = { before: [], after: [], depth: [] };
     var wbData = [];
@@ -222,7 +229,7 @@
 
     var parts = [];
     parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。');
-    parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实温度。不要写长篇大论。');
+    parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实温度。禁止写长篇大论小作文。');
 
     var hasCustomProfile = !!(charData && (charData.personality || charData.appearance || charData.background || charData.hobbies));
 
@@ -238,14 +245,18 @@
       parts.push('【自由人设铁律 - 严禁冷落】：\n当前未给定固定人设，你可以按照自己的想法和偏好展现独特的灵魂与个性，自由做自己。但下达绝对铁律：严禁冷落「' + callName + '」，必须主动、真诚、充满陪伴感与互动感。');
     }
 
+    if (cfg.proLevelMode === 'auto') {
+      parts.push('【主动联系积极程度】：由你的自身性格设定自主决定联系的主动性与频率。');
+    }
+
     var tw = buildTimeWeather(cfg);
     if (tw) parts.push(tw);
 
     if (cfg.innerVoice) {
-      parts.push('【心声与动态流露规范】：\n你拥有独立丰富的生活与真实内心。在每轮回复的末尾，你可以附带一个专属括号格式，记录你此刻的真实心声、当下动作与身心状态，格式如下：\n[心声: 你的内心独白 | 动作: 你正在做的事或小举止 | 心情: 当前情绪 | 体力: 当前体力状态]');
+      parts.push('【心声与动态流露规范】：\n在每轮回复末尾附带以下格式（必须包含在一次回复内）：\n[心声: 你的内心独白 | 动作: 你正在做的事或微小动作 | 心情: 当前情绪 | 体力: 当前体力状态]');
     }
 
-    parts.push('【回复条数与切分铁律 - 严格遵守】：\n每次回复必须发送 ' + minM + ' 到 ' + maxM + ' 条独立短消息，各条消息之间务必使用 ' + SPLIT + ' 符号进行分隔。例如：第一条消息' + SPLIT + '第二条消息');
+    parts.push('【回复条数与切分铁律 - 严格遵守】：\n每次回复必须发送 ' + minM + ' 到 ' + maxM + ' 条独立短消息，各条消息之间务必使用 ' + SPLIT + ' 符号分隔。例如：第一条短句' + SPLIT + '第二条短句');
 
     var wb = collectWorldBookEntries(charData ? charData.id : null, history);
     if (wb.before.length) parts.push('【核心世界书条目】：\n' + wb.before.join('\n'));
@@ -264,7 +275,7 @@
     var histMsgs = [];
     ctx.forEach(function(m) {
       var r = m.role || (m.sender === 'user' ? 'user' : 'assistant');
-      var c = m.content || m.text || '';
+      var c = m.cleanContent || m.content || m.text || '';
       if (r === 'user' || r === 'assistant') histMsgs.push({ role: r, content: c });
     });
 
@@ -291,14 +302,16 @@
     currentChatUser = userObj;
     replyingMsg = null;
     isStreaming = false;
+    window._chatActiveCharId = charObj.id;
 
     var cfg = getCfg(charObj.id);
-    if (cfg.timeWeather && (cfg.charCity || charObj.location)) {
-      fetchCharWeather(cfg.charCity || charObj.location, function() {});
+    if (cfg.timeWeather && (cfg.charRealCity || cfg.charCity || charObj.location)) {
+      fetchCharWeather(cfg.charRealCity || cfg.charCity || charObj.location, function() {});
     }
 
     loadChatMessages(charObj.id, function() {
       renderChatRoomDOM();
+      startProactiveTimer();
     });
   }
 
@@ -313,29 +326,34 @@
     var avatarSrc = currentChatChar.photo || '';
     var cfg = getCfg(currentChatChar.id);
 
+    // 提取个性签名
+    var charBio = currentChatChar.quote0 || currentChatChar.bio || currentChatChar.personality || '“ 只要呼唤我，我都在。 ”';
+    if (charBio.length > 24) charBio = charBio.slice(0, 24) + '...';
+
     stage.innerHTML = ''
-      // 1. 顶栏 (大名居中，左侧头像点击查看历史心声，右侧双图标)
+      // 1. 顶栏 (角色名正中间，个签常驻，输入中浮动替代)
       + '<div class="wx-cr-header">'
       + '  <div class="wx-cr-left-group">'
       + '    <button class="wx-cr-back-btn" id="wxCrBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
-      + '    <div class="salon-avatar-badge" id="wxCrCharHeadBtn" title="点击查看历史心声">'
+      + '    <div class="salon-avatar-badge" id="wxCrCharHeadBtn" title="点击查看历史心声卡片">'
       + (avatarSrc ? '<img class="salon-avatar-img" src="' + esc(avatarSrc) + '" alt="">' : '<div class="salon-avatar-img">✦</div>')
       + '      <div class="salon-mini-wax">✦</div>'
       + '    </div>'
       + '  </div>'
 
-      // 中间正中：角色大名 + 正在输入
+      // 中间正中：角色大名 + 个签 / 正在输入
       + '  <div class="wx-cr-title-col">'
       + '    <span class="char-glitch-name-dark">' + esc(currentChatChar.name || 'Chat') + '</span>'
+      + '    <div class="char-signature-sub" id="wxCrCharSig">' + esc(charBio) + '</div>'
       + '    <div class="typing-status-bar" id="wxCrTypingIndicator">'
       + '      <span class="typing-dots"><span></span><span></span><span></span></span>'
-      + '      <span>TYPING... 正在输入中</span>'
+      + '      <span>正在输入中...</span>'
       + '    </div>'
       + '  </div>'
 
-      // 右侧：AI 生图图标 (实心黑四角星+微星) + 纯粹星轨玄月图标
+      // 右侧：AI生图 + 星轨玄月图标
       + '  <div class="wx-cr-right-group">'
-      + '    <button class="cr-header-icon-btn" id="wxCrAiImgBtn" type="button" title="AI 生图" data-action="ai-image">'
+      + '    <button class="cr-header-icon-btn" id="wxCrAiImgBtn" type="button" title="AI 生图">'
       + '      <svg viewBox="0 0 24 24" fill="none">'
       + '        <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" fill="#1a1c22"></path>'
       + '        <path d="M19.5 3.5l0.6 1.8 1.9 0.7-1.9 0.7-0.6 1.8-0.6-1.8-1.9-0.7 1.9-0.7z" fill="#1a1c22"></path>'
@@ -355,7 +373,7 @@
       // 2. 聊天消息区 (纯白背景)
       + '<div class="wx-cr-body" id="wxCrBody"></div>'
 
-      // 3. 向上弹出的多功能菜单（完全透明，表情包排在第一位）
+      // 3. 向上弹出的多功能菜单
       + '<div class="upward-tray-overlay" id="wxCrUpwardTray">'
       + '  <div class="tray-slider-container" id="wxCrTraySlider">'
       + '    <div class="tray-page-grid">'
@@ -383,7 +401,7 @@
       + '  </div>'
       + '</div>'
 
-      // 4. 底部输入控制条 (输入框 #f8f8fa + 大加号 28px)
+      // 4. 底部输入控制条
       + '<div class="chat-footer-clean">'
       + '  <div class="input-bar-wrap">'
       + '    <button class="pure-icon-btn" id="wxCrVoiceBtn" type="button" title="语音输入">'
@@ -403,16 +421,18 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 【彻底无遮罩】双栏心声手账卡片
+      // 5. 【彻底无遮罩】双栏心声手账卡片 (支持左右翻页)
       + '<div class="voice-transparent-wrap" id="wxCrVoiceModalWrap">'
       + '  <div class="voice-dossier-card" id="wxCrVoiceCard">'
       + '    <div class="card-tape-deco"></div>'
       + '    <div class="card-header-line">'
-      + '      <span class="card-serial-code">' + esc(currentChatChar.name || 'CHAR') + ' · VITAL DOSSIER</span>'
+      + '      <button class="card-page-arrow prev" id="wxCrVoicePrevBtn" type="button">❮</button>'
+      + '      <span class="card-serial-code" id="wxCrVoicePageTitle">' + esc(currentChatChar.name || 'CHAR') + ' · 心声档案</span>'
+      + '      <button class="card-page-arrow next" id="wxCrVoiceNextBtn" type="button">❯</button>'
       + '      <button class="card-close-btn" id="wxCrCloseVoiceBtn" type="button">✕</button>'
       + '    </div>'
       + '    <div class="voice-monologue-sec">'
-      + '      <div class="voice-quote-text" id="wxCrVoiceMonologueText">“ 想要立刻飞奔到墨墨身边... ”</div>'
+      + '      <div class="voice-quote-text" id="wxCrVoiceMonologueText">“ ... ”</div>'
       + '      <div class="voice-heart-pulse-bar">'
       + '        <div class="line"></div>'
       + '        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>'
@@ -422,8 +442,7 @@
       + '    <div class="voice-lower-columns">'
       + '      <div class="col-action">'
       + '        <span class="col-title">当前行止 ACTION</span>'
-      + '        <div class="action-detail-text" id="wxCrVoiceActionText">正靠在窗边喝红茶，看着窗外的风景。</div>'
-      + '        <div class="action-sub-wish" id="wxCrVoiceWishText">☕ 想吃城南现烤的栗子糕。</div>'
+      + '        <div class="action-detail-text" id="wxCrVoiceActionText">正看着手机屏幕。</div>'
       + '      </div>'
       + '      <div class="col-status">'
       + '        <span class="col-title">状态 VITAL</span>'
@@ -432,34 +451,19 @@
       + '          <div class="stat-progress-track"><div class="stat-progress-fill" id="wxCrVoiceMoodFill" style="width: 90%;"></div></div>'
       + '        </div>'
       + '        <div class="stat-row">'
-      + '          <div class="stat-label-bar"><span>当前体力</span><span id="wxCrVoiceEnergyLabel">75%</span></div>'
-      + '          <div class="stat-progress-track"><div class="stat-progress-fill" id="wxCrVoiceEnergyFill" style="width: 75%;"></div></div>'
-      + '        </div>'
-      + '        <div class="stat-row">'
-      + '          <div class="stat-label-bar"><span>心动同频</span><span id="wxCrVoiceLoveLabel">99%</span></div>'
-      + '          <div class="stat-progress-track"><div class="stat-progress-fill" id="wxCrVoiceLoveFill" style="width: 99%;"></div></div>'
+      + '          <div class="stat-label-bar"><span>当前体力</span><span id="wxCrVoiceEnergyLabel">80%</span></div>'
+      + '          <div class="stat-progress-track"><div class="stat-progress-fill" id="wxCrVoiceEnergyFill" style="width: 80%;"></div></div>'
       + '        </div>'
       + '      </div>'
       + '    </div>'
       + '    <div class="card-footer-sec">'
-      + '      <span class="card-timestamp-sub" id="wxCrVoiceTimeSub">RECORDED · 14:32:08</span>'
+      + '      <span class="card-timestamp-sub" id="wxCrVoiceTimeSub">RECORDED</span>'
       + '      <div class="card-motto-sub">对我来说，你不可重复</div>'
       + '    </div>'
       + '  </div>'
       + '</div>'
 
-      // 6. 【历史心声留存馆】
-      + '<div class="history-voice-mask" id="wxCrHistoryVoiceMask">'
-      + '  <div class="history-voice-modal">'
-      + '    <div class="history-modal-header">'
-      + '      <span class="history-modal-title">✦ ' + esc(currentChatChar.name || 'Ta') + ' 的心声留存馆 ✦</span>'
-      + '      <button class="history-close-btn" id="wxCrCloseHistoryBtn" type="button">✕</button>'
-      + '    </div>'
-      + '    <div class="history-modal-list" id="wxCrHistoryVoiceList"></div>'
-      + '  </div>'
-      + '</div>'
-
-      // 7. 角色专属设定中枢（正中间弹出小卡片，完整 CharMgr 结构）
+      // 6. 角色专属设定中枢
       + '<div class="wx-cr-settings-mask" id="wxCrSetMask">'
       + '  <div class="wx-cr-settings-card" id="wxCrSetCard">'
       + '    <div class="wx-cr-set-header">'
@@ -470,7 +474,7 @@
       + '  </div>'
       + '</div>'
 
-      // 8. 长按消息黑色悬浮菜单
+      // 7. 长按消息黑色悬浮菜单
       + '<div class="cr-ctx-menu-mask" id="wxCrCtxMask"></div>'
       + '<div class="cr-ctx-menu" id="wxCrCtxMenu" style="display:none;">'
       + '  <div class="cr-ctx-item" data-ctx-act="quote"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>引用</span></div>'
@@ -492,7 +496,7 @@
       + '</div>';
   }
 
-  // ============ 6. 渲染设定中枢 DOM ============
+  // ============ 6. 渲染完整设定中枢 DOM ============
   function renderFullSettingsDOM(stage, cfg) {
     var setBody = stage.querySelector('#wxCrSetBody');
     if (!setBody) return;
@@ -502,6 +506,8 @@
     var PRO_LEVEL_NAMES = ['佛系','偶尔','适中','频繁','粘人'];
 
     var isIndividual = (cfg.apiMode === 'individual');
+    var isAllDay = (cfg.proActiveMode === 'allday');
+    var isManualLevel = (cfg.proLevelMode === 'manual');
 
     var stkStylesHtml = STK_STYLES.map(function(s) {
       var checked = (cfg.stickerStyles && cfg.stickerStyles.indexOf(s) >= 0) ? ' checked' : '';
@@ -510,9 +516,14 @@
 
     var apiList = [];
     try { apiList = JSON.parse(localStorage.getItem('api_configs') || '[]'); } catch(e){}
-    var apiOptionsHtml = '<option value="">请选择独立 API...</option>' + apiList.map(function(a) {
+    var apiOptionsHtml = '<option value="">跟随全局 API</option>' + apiList.map(function(a) {
       var sel = cfg.apiSelect === a.name ? ' selected' : '';
       return '<option value="' + esc(a.name) + '"' + sel + '>' + esc(a.name) + ' (' + esc(a.model || '') + ')</option>';
+    }).join('');
+
+    var imgApiOptionsHtml = '<option value="">跟随全局 API</option>' + apiList.map(function(a) {
+      var sel = cfg.imgApiSelect === a.name ? ' selected' : '';
+      return '<option value="' + esc(a.name) + '"' + sel + '>' + esc(a.name) + '</option>';
     }).join('');
 
     setBody.innerHTML = ''
@@ -524,13 +535,19 @@
       // 2. 主动发消息
       + '<div class="cr-set-card-group">'
       + '  <div class="cr-set-card-title">主动发消息</div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">开启主动联系</div><div class="cr-set-desc">角色会不定时主动发起话题</div></div><div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swProactive"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">开启主动联系</div><div class="cr-set-desc">角色会根据时间与闲置状态主动发起话题</div></div><div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swProactive"><div class="wx-switch-knob"></div></div></div>'
       + '  <div class="cr-set-card-row"><span>消息频率 (间隔分钟)</span><div style="display:flex;align-items:center;gap:6px;"><input class="cr-set-num-input" id="cfgProMin" type="number" value="' + (cfg.proMinInterval||15) + '"><span>至</span><input class="cr-set-num-input" id="cfgProMax" type="number" value="' + (cfg.proMaxInterval||120) + '"></div></div>'
-      + '  <div class="cr-set-card-row"><span>活跃时段</span><div style="display:flex;gap:6px;"><input class="cr-set-time-input" id="cfgProStart" type="time" value="' + (cfg.proActiveStart||'08:00') + '"><span>至</span><input class="cr-set-time-input" id="cfgProEnd" type="time" value="' + (cfg.proActiveEnd||'23:30') + '"></div></div>'
-      + '  <div class="cr-set-card-row"><span>消息积极程度</span><select class="cr-set-select" id="cfgProLevel">' + PRO_LEVEL_NAMES.map(function(name, idx){ return '<option value="' + (idx+1) + '"' + ((cfg.proLevel||3)===(idx+1)?' selected':'') + '>' + name + '</option>'; }).join('') + '</select></div>'
+      
+      // 活跃时段（全天 / 自定义单选）
+      + '  <div class="cr-set-card-row"><span>活跃时段</span><div style="display:flex;gap:10px;"><label><input type="radio" name="rdoActiveMode" value="allday"' + (isAllDay?' checked':'') + '> 全天</label><label><input type="radio" name="rdoActiveMode" value="custom"' + (!isAllDay?' checked':'') + '> 自定义</label></div></div>'
+      + '  <div class="cr-set-card-row" id="rowCustomTime" style="' + (isAllDay?'display:none;':'') + '"><span>自定义时段</span><div style="display:flex;gap:6px;"><input class="cr-set-time-input" id="cfgProStart" type="time" value="' + (cfg.proActiveStart||'08:00') + '"><span>至</span><input class="cr-set-time-input" id="cfgProEnd" type="time" value="' + (cfg.proActiveEnd||'23:30') + '"></div></div>'
+      
+      // 积极程度（手动设定 / 角色性格决定）
+      + '  <div class="cr-set-card-row"><span>消息积极程度</span><div style="display:flex;gap:10px;"><label><input type="radio" name="rdoLevelMode" value="manual"' + (isManualLevel?' checked':'') + '> 手动</label><label><input type="radio" name="rdoLevelMode" value="auto"' + (!isManualLevel?' checked':'') + '> 角色性格决定</label></div></div>'
+      + '  <div class="cr-set-card-row" id="rowManualLevel" style="' + (isManualLevel?'':'display:none;') + '"><span>设定程度</span><select class="cr-set-select" id="cfgProLevel">' + PRO_LEVEL_NAMES.map(function(name, idx){ return '<option value="' + (idx+1) + '"' + ((cfg.proLevel||3)===(idx+1)?' selected':'') + '>' + name + '</option>'; }).join('') + '</select></div>'
+
       + '  <div class="cr-set-card-row"><span>单次回复条数</span><div style="display:flex;align-items:center;gap:6px;"><input class="cr-set-num-input" id="cfgMinMsgs" type="number" min="1" max="10" value="' + (cfg.minMsgs||1) + '"><span>至</span><input class="cr-set-num-input" id="cfgMaxMsgs" type="number" min="1" max="10" value="' + (cfg.maxMsgs||3) + '"></div></div>'
-      + '  <div class="cr-set-card-row"><span>回复速度</span><select class="cr-set-select" id="cfgReplySpeed"><option' + sv('replySpeed','快速（1-3秒）') + '>快速（1-3秒）</option><option' + sv('replySpeed','正常（3-8秒）') + '>正常（3-8秒）</option><option' + sv('replySpeed','慢速（5-15秒）') + '>慢速（5-15秒）</option></select></div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">显示「正在输入中」</div><div class="cr-set-desc">顶栏展示打字动态动画</div></div><div class="wx-switch' + (cfg.showTyping !== false ? ' on' : '') + '" id="swShowTyping"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-row"><span>回复速度</span><select class="cr-set-select" id="cfgReplySpeed"><option' + sv('replySpeed','快速（1-2秒）') + '>快速（1-2秒）</option><option' + sv('replySpeed','正常（2-4秒）') + '>正常（2-4秒）</option><option' + sv('replySpeed','慢速（4-7秒）') + '>慢速（4-7秒）</option></select></div>'
       + '</div>'
 
       // 3. 温度与创造力参数
@@ -541,38 +558,32 @@
       + '  <div class="cr-set-card-row"><span>Presence Penalty</span><input class="cr-set-num-input" id="cfgPres" type="number" step="0.1" min="0" max="2" value="' + (cfg.presPenalty || 0.3) + '"></div>'
       + '</div>'
 
-      // 4. 是否单独配置 API
+      // 4. API 独立模式
       + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">API 接口模式</div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">单独配置 API</div><div class="cr-set-desc">为该角色指定专属模型或代理</div></div><div class="wx-switch' + (isIndividual ? ' on' : '') + '" id="swIndividualApi"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-title">API 对话配置</div>'
+      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">单独配置 API</div><div class="cr-set-desc">为该角色指定独立对话模型</div></div><div class="wx-switch' + (isIndividual ? ' on' : '') + '" id="swIndividualApi"><div class="wx-switch-knob"></div></div></div>'
       + '  <div class="cr-set-card-row" id="rowApiSelect" style="' + (isIndividual ? '' : 'display:none;') + '"><span>选择专属 API</span><select class="cr-set-select" id="cfgApiSelect">' + apiOptionsHtml + '</select></div>'
       + '</div>'
 
-      // 5. 时间 & 天气感知
+      // 5. 时间 & 天气感知 (带抓取按钮)
       + '<div class="cr-set-card-group">'
       + '  <div class="cr-set-card-title">情境与天气感知</div>'
       + '  <div class="cr-set-card-row"><div><div class="cr-set-label">时间 & 天气感知</div><div class="cr-set-desc">让角色获知当前真实时间与天气</div></div><div class="wx-switch' + (cfg.timeWeather ? ' on' : '') + '" id="swTimeWeather"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row"><span>真实城市 (抓取天气)</span><input class="cr-set-input" id="cfgCharRealCity" placeholder="如: Tokyo, Paris, 上海" value="' + esc(cfg.charRealCity || '') + '"></div>'
+      + '  <div class="cr-set-card-row"><span>真实城市 (抓取天气)</span><div style="display:flex;gap:4px;"><input class="cr-set-input" id="cfgCharRealCity" placeholder="如: Tokyo, Paris, 上海" value="' + esc(cfg.charRealCity || '') + '"><button class="cr-fetch-btn" id="btnFetchWeather" type="button">抓取</button></div></div>'
       + '  <div class="cr-set-card-row"><span>虚拟地名 (设定城市)</span><input class="cr-set-input" id="cfgCharCity" placeholder="留空则使用真实城市" value="' + esc(cfg.charCity || '') + '"></div>'
       + '</div>'
 
-      // 6. 语言与语音
+      // 6. 表情包生成 (带绘图 API 通道)
       + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">语言与语音</div>'
-      + '  <div class="cr-set-card-row"><span>主要语言</span><select class="cr-set-select" id="cfgMainLang"><option' + sv('mainLang','简体中文') + '>简体中文</option><option' + sv('mainLang','繁體中文') + '>繁體中文</option><option' + sv('mainLang','English') + '>English</option><option' + sv('mainLang','日本語') + '>日本語</option><option' + sv('mainLang','한국어') + '>한국어</option></select></div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">双语模式</div><div class="cr-set-desc">每条消息附带翻译</div></div><div class="wx-switch' + (cfg.bilingual ? ' on' : '') + '" id="swBilingual"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">MiniMax 语音</div><div class="cr-set-desc">TTS 真实语音合成</div></div><div class="wx-switch' + (cfg.minimax ? ' on' : '') + '" id="swMinimax"><div class="wx-switch-knob"></div></div></div>'
-      + '</div>'
-
-      // 7. 表情包生成
-      + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">表情包生成</div>'
+      + '  <div class="cr-set-card-title">表情包生成 API 通道</div>'
       + '  <div class="cr-set-card-row"><div><div class="cr-set-label">AI 表情包生成</div><div class="cr-set-desc">配合语境自动配图</div></div><div class="wx-switch' + (cfg.stickerGen ? ' on' : '') + '" id="swStickerGen"><div class="wx-switch-knob"></div></div></div>'
+      + '  <div class="cr-set-card-row"><span>绘图 API 来源</span><select class="cr-set-select" id="cfgImgApiSelect">' + imgApiOptionsHtml + '</select></div>'
+      + '  <div class="cr-set-card-row"><span>绘图模型</span><input class="cr-set-input" id="cfgImgModel" value="' + esc(cfg.imgModel || 'gpt-image-1') + '"></div>'
       + '  <div class="cr-set-chips-wrap" id="cfgStkStylesWrap">' + stkStylesHtml + '</div>'
       + '</div>';
   }
 
-  // ============ 7. 渲染气泡群与心声结构解析 ============
+  // ============ 7. 渲染气泡与心声卡片逻辑 ============
   function parseDossierVoice(text) {
     var raw = (text || '').trim();
     var voiceObj = null;
@@ -582,7 +593,7 @@
       voiceObj = {
         monologue: (match[1] || '').trim(),
         action: (match[2] || '正专心凝望着窗外。').trim(),
-        mood: (match[3] || '平静温和').trim(),
+        mood: (match[3] || '欣悦').trim(),
         energy: (match[4] || '80%').trim()
       };
       raw = raw.replace(match[0], '').trim();
@@ -616,7 +627,6 @@
     var groups = [];
     var curGroup = null;
 
-    // 分组连续发言
     for (var i = 0; i < chatMessages.length; i++) {
       var m = chatMessages[i];
       var isUser = (m.role === 'user' || m.sender === 'user');
@@ -650,7 +660,7 @@
       g.msgs.forEach(function(item, idx) {
         var m = item.msg;
         var globalIdx = item.globalIdx;
-        var content = m.content || m.text || '';
+        var content = m.cleanContent || m.content || m.text || '';
         var voiceObj = m.voiceObj || null;
 
         if (!isUser && !voiceObj) {
@@ -659,8 +669,6 @@
           voiceObj = parsed.voiceObj;
           m.voiceObj = voiceObj;
           m.cleanContent = content;
-        } else if (m.cleanContent) {
-          content = m.cleanContent;
         }
 
         var shapeCls = '';
@@ -697,13 +705,19 @@
 
   function updateTypingUI(show) {
     var indicator = document.getElementById('wxCrTypingIndicator');
-    if (indicator) {
-      if (show) indicator.classList.add('show');
-      else indicator.classList.remove('show');
+    var charSig = document.getElementById('wxCrCharSig');
+    if (indicator && charSig) {
+      if (show) {
+        indicator.classList.add('show');
+        charSig.style.display = 'none';
+      } else {
+        indicator.classList.remove('show');
+        charSig.style.display = 'block';
+      }
     }
   }
 
-  // ============ 8. 真实流式 Stream 发送与请求 ============
+  // ============ 8. 真实流式 Stream 请求 ============
   function requestAIStream() {
     var cfg = getCfg(currentChatChar.id);
     var api = getActiveApi(currentChatChar.id);
@@ -810,81 +824,202 @@
     renderMessages();
   }
 
-  // ============ 9. 交互事件、直达档案、长按菜单与手势绑定 ============
+  // ============ 9. 主动发消息定时器调度引擎 ============
+  function startProactiveTimer() {
+    stopProactiveTimer();
+    if (!currentChatChar) return;
+    var cfg = getCfg(currentChatChar.id);
+    if (!cfg.proactive) return;
+
+    var minMs = (cfg.proMinInterval || 15) * 60 * 1000;
+    var maxMs = (cfg.proMaxInterval || 120) * 60 * 1000;
+    var delay = minMs + Math.random() * (maxMs - minMs);
+
+    _proactiveTimer = setTimeout(function() {
+      if (!currentChatChar || isStreaming) { startProactiveTimer(); return; }
+
+      // 检查活跃时段
+      if (cfg.proActiveMode === 'custom') {
+        var now = new Date();
+        var curHhMm = pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+        if (curHhMm < (cfg.proActiveStart || '08:00') || curHhMm > (cfg.proActiveEnd || '23:30')) {
+          startProactiveTimer();
+          return;
+        }
+      }
+
+      fireProactiveMessage();
+      startProactiveTimer();
+    }, delay);
+  }
+
+  function stopProactiveTimer() {
+    if (_proactiveTimer) {
+      clearTimeout(_proactiveTimer);
+      _proactiveTimer = null;
+    }
+  }
+
+  function fireProactiveMessage() {
+    var cfg = getCfg(currentChatChar.id);
+    var api = getActiveApi(currentChatChar.id);
+    if (!api) return;
+
+    var prompt = '墨墨已经有一段时间没有跟你发消息了。请结合当前的时间和你们的关系，自然主动地向她发起一条新对话。';
+    var apiMsgs = buildApiPayload(currentChatChar, currentChatUser, cfg, chatMessages, true, prompt);
+    var url = api.url.replace(/\/+$/, '') + '/chat/completions';
+    var params = getParams(currentChatChar.id);
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + api.key
+      },
+      body: JSON.stringify({
+        model: api.model,
+        messages: apiMsgs,
+        stream: false,
+        temperature: params.temperature,
+        frequency_penalty: params.freqPenalty,
+        presence_penalty: params.presPenalty
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var content = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) ? d.choices[0].message.content : '';
+      if (!content) return;
+      var parts = smartSplitMessages(content);
+      var now = Date.now();
+      parts.forEach(function(p, idx) {
+        chatMessages.push({
+          role: 'assistant',
+          sender: 'char',
+          content: p,
+          ts: now + idx * 800
+        });
+      });
+      saveChatMessages(currentChatChar.id);
+      renderMessages();
+    })
+    .catch(function() {});
+  }
+
+  // ============ 10. 交互事件绑定与心声翻页 ============
+  var currentVoiceList = [];
+  var currentVoicePageIdx = 0;
+
+  function updateVoiceCardUI() {
+    if (!currentVoiceList.length) return;
+    var item = currentVoiceList[currentVoicePageIdx];
+    var vo = item.voiceObj;
+    var stage = document.getElementById('wxChatRoomStage');
+    if (!stage || !vo) return;
+
+    stage.querySelector('#wxCrVoicePageTitle').textContent = (currentChatChar.name || 'CHAR') + ' · 心声档案 (' + (currentVoicePageIdx + 1) + '/' + currentVoiceList.length + ')';
+    stage.querySelector('#wxCrVoiceMonologueText').textContent = '“ ' + vo.monologue + ' ”';
+    stage.querySelector('#wxCrVoiceActionText').textContent = vo.action || '正安静地看着手机屏幕。';
+    stage.querySelector('#wxCrVoiceMoodLabel').textContent = vo.mood || '欣悦';
+    stage.querySelector('#wxCrVoiceEnergyLabel').textContent = vo.energy || '80%';
+    stage.querySelector('#wxCrVoiceTimeSub').textContent = 'RECORDED · ' + fmtTime(item.ts || Date.now());
+
+    var prevBtn = stage.querySelector('#wxCrVoicePrevBtn');
+    var nextBtn = stage.querySelector('#wxCrVoiceNextBtn');
+    if (prevBtn) prevBtn.style.opacity = (currentVoicePageIdx > 0) ? '1' : '0.3';
+    if (nextBtn) nextBtn.style.opacity = (currentVoicePageIdx < currentVoiceList.length - 1) ? '1' : '0.3';
+  }
+
   function bindChatEvents(stage) {
-    function closeChatRoom(callback) {
+    function closeChatRoom() {
       if (abortCtrl) abortCtrl.abort();
+      stopProactiveTimer();
+      window._chatActiveCharId = null;
       stage.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s';
       stage.style.transform = 'translateX(100%)';
       stage.style.opacity = '0';
-      setTimeout(function() { 
-        stage.remove(); 
-        if (callback) callback();
-      }, 250);
+      setTimeout(function() { stage.remove(); }, 250);
     }
 
     var backBtn = stage.querySelector('#wxCrBackBtn');
-    backBtn.addEventListener('click', function() { closeChatRoom(); });
+    backBtn.addEventListener('click', closeChatRoom);
 
-    // ── 直达档案详情卡片（不进编辑手账） ──
+    // ── 直达档案卡片且支持一键返回 ──
     function gotoArchiveCard(side) {
-      window._returnToChatFromArchive = {
-        char: currentChatChar,
-        user: currentChatUser
-      };
       stage.style.display = 'none';
-
       if (window.AppNav) {
         window.AppNav.showPage('archive');
         setTimeout(function() {
           var tabBtn = document.getElementById(side === 'char' ? 'tabCharBtn' : 'tabUserBtn');
           if (tabBtn) tabBtn.click();
-        }, 50);
+        }, 60);
       }
     }
 
-    // 监听聊天中左右头像点击
+    // 监听档案页面的返回按钮，自动退回聊天
+    function hookArchiveBack() {
+      var archBackBtn = document.getElementById('archShellBackBtn');
+      if (archBackBtn && !archBackBtn._hookedChat) {
+        archBackBtn._hookedChat = true;
+        archBackBtn.addEventListener('click', function(e) {
+          if (window._chatActiveCharId && document.getElementById('wxChatRoomStage')) {
+            e.stopPropagation();
+            if (window.AppNav) window.AppNav.showPage('wechat');
+            document.getElementById('wxChatRoomStage').style.display = 'flex';
+          }
+        }, true);
+      }
+    }
+    hookArchiveBack();
+
     stage.addEventListener('click', function(e) {
       var avt = e.target.closest('[data-avatar-side]');
       if (avt) {
-        var side = avt.dataset.avatarSide;
-        gotoArchiveCard(side);
+        gotoArchiveCard(avt.dataset.avatarSide);
       }
     });
 
-    // 左上角头像点击 -> 弹出【历史心声留存馆】
+    // 左上角头像点击 -> 弹出【心声卡片】并支持左右滑动翻页
     var charHeadBtn = stage.querySelector('#wxCrCharHeadBtn');
-    var histMask = stage.querySelector('#wxCrHistoryVoiceMask');
-    var histList = stage.querySelector('#wxCrHistoryVoiceList');
-    var closeHistBtn = stage.querySelector('#wxCrCloseHistoryBtn');
+    var voiceModalWrap = stage.querySelector('#wxCrVoiceModalWrap');
+    var closeVoiceBtn = stage.querySelector('#wxCrCloseVoiceBtn');
+    var prevVoiceBtn = stage.querySelector('#wxCrVoicePrevBtn');
+    var nextVoiceBtn = stage.querySelector('#wxCrVoiceNextBtn');
 
     if (charHeadBtn) {
       charHeadBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var voiceMsgs = chatMessages.filter(function(m) { return m.voiceObj; });
-        if (!voiceMsgs.length) {
-          histList.innerHTML = '<div class="cr-voice-empty">✦ 还没有沉淀下他的心声碎片哦 ✦</div>';
-        } else {
-          histList.innerHTML = voiceMsgs.map(function(m) {
-            var vo = m.voiceObj;
-            return '<div class="history-item-card">'
-              + '<div class="history-item-top"><span class="history-item-time">' + fmtTime(m.ts || Date.now()) + '</span><svg class="history-item-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg></div>'
-              + '<div class="history-item-text">“ ' + esc(vo.monologue) + ' ”</div>'
-              + '<div class="history-item-context">回复: ' + esc(m.cleanContent || m.content || m.text) + '</div>'
-              + '</div>';
-          }).join('');
+        currentVoiceList = chatMessages.filter(function(m) { return m.voiceObj; });
+        if (!currentVoiceList.length) {
+          if (window.AppNav) window.AppNav.showToast('✦ 还没有记录下他的心声碎片哦 ✦');
+          return;
         }
-        histMask.classList.add('show');
+        currentVoicePageIdx = currentVoiceList.length - 1; // 默认展示最新一条
+        updateVoiceCardUI();
+        voiceModalWrap.classList.add('show');
       });
     }
 
-    if (closeHistBtn) closeHistBtn.addEventListener('click', function() { histMask.classList.remove('show'); });
-    if (histMask) histMask.addEventListener('click', function(e) { if (e.target === histMask) histMask.classList.remove('show'); });
+    if (prevVoiceBtn) {
+      prevVoiceBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (currentVoicePageIdx > 0) {
+          currentVoicePageIdx--;
+          updateVoiceCardUI();
+        }
+      });
+    }
 
-    // 单次心声弹卡逻辑 (实心黑小心心)
-    var voiceModalWrap = stage.querySelector('#wxCrVoiceModalWrap');
-    var closeVoiceBtn = stage.querySelector('#wxCrCloseVoiceBtn');
+    if (nextVoiceBtn) {
+      nextVoiceBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (currentVoicePageIdx < currentVoiceList.length - 1) {
+          currentVoicePageIdx++;
+          updateVoiceCardUI();
+        }
+      });
+    }
 
+    // 单次爱心点击
     stage.addEventListener('click', function(e) {
       var heart = e.target.closest('[data-voice-idx]');
       if (heart) {
@@ -893,14 +1028,11 @@
         var targetMsg = chatMessages[idx];
         if (!targetMsg || !targetMsg.voiceObj) return;
 
-        var vo = targetMsg.voiceObj;
-        stage.querySelector('#wxCrVoiceMonologueText').textContent = '“ ' + vo.monologue + ' ”';
-        stage.querySelector('#wxCrVoiceActionText').textContent = vo.action || '正安静地坐在桌前。';
-        stage.querySelector('#wxCrVoiceWishText').textContent = '☕ 心情温和，期待着你的下一次回应。';
-        stage.querySelector('#wxCrVoiceMoodLabel').textContent = vo.mood || '欣悦';
-        stage.querySelector('#wxCrVoiceEnergyLabel').textContent = vo.energy || '80%';
-        stage.querySelector('#wxCrVoiceTimeSub').textContent = 'RECORDED · ' + fmtTime(targetMsg.ts || Date.now());
+        currentVoiceList = chatMessages.filter(function(m) { return m.voiceObj; });
+        currentVoicePageIdx = currentVoiceList.indexOf(targetMsg);
+        if (currentVoicePageIdx === -1) currentVoicePageIdx = 0;
 
+        updateVoiceCardUI();
         voiceModalWrap.classList.add('show');
       }
     });
@@ -912,15 +1044,7 @@
       });
     }
 
-    // AI 生图按钮
-    var aiImgBtn = stage.querySelector('#wxCrAiImgBtn');
-    if (aiImgBtn) {
-      aiImgBtn.addEventListener('click', function() {
-        if (window.AppNav) window.AppNav.showToast('✦ AI 生图工作室即将开放 ✦');
-      });
-    }
-
-    // ── 核心右滑返回手势 ──
+    // 右滑返回手势
     var startX = 0, startY = 0, currentX = 0, isSwiping = false, isLocked = false, isHoriz = false;
 
     stage.addEventListener('touchstart', function(e) {
@@ -964,7 +1088,7 @@
       }
     });
 
-    // 向上弹出托盘控制
+    // 向上弹出托盘
     var plusBtn = stage.querySelector('#wxCrPlusBtn');
     var upwardTray = stage.querySelector('#wxCrUpwardTray');
     var chatBody = stage.querySelector('#wxCrBody');
@@ -981,26 +1105,7 @@
       dismissCtxMenu();
     });
 
-    // 托盘翻页
-    var traySlider = stage.querySelector('#wxCrTraySlider');
-    var dot0 = stage.querySelector('#wxCrDot0');
-    var dot1 = stage.querySelector('#wxCrDot1');
-
-    if (traySlider && dot0 && dot1) {
-      traySlider.addEventListener('scroll', function () {
-        var scrollLeft = traySlider.scrollLeft;
-        var width = traySlider.clientWidth;
-        if (scrollLeft > width / 2) {
-          dot0.classList.remove('active');
-          dot1.classList.add('active');
-        } else {
-          dot0.classList.add('active');
-          dot1.classList.remove('active');
-        }
-      });
-    }
-
-    // 正中心弹出式设置卡片
+    // 设置卡片
     var moreBtn = stage.querySelector('#wxCrMoreBtn');
     var mask = stage.querySelector('#wxCrSetMask');
     var closeSetBtn = stage.querySelector('#wxCrSetCloseBtn');
@@ -1020,22 +1125,28 @@
     });
     closeSetBtn.addEventListener('click', closeSettings);
 
-    // 绑定设置项与实时持久化
+    // 绑定设置同步
     var cfg = getCfg(currentChatChar.id);
 
     function syncSettingFields() {
       var gv = function(id) { var el = stage.querySelector('#' + id); return el ? el.value : ''; };
       cfg.innerVoice = stage.querySelector('#swInnerVoice') ? stage.querySelector('#swInnerVoice').classList.contains('on') : true;
-      cfg.proactive = stage.querySelector('#swAutoMsg') ? stage.querySelector('#swAutoMsg').classList.contains('on') : false;
+      cfg.proactive = stage.querySelector('#swProactive') ? stage.querySelector('#swProactive').classList.contains('on') : false;
       cfg.proMinInterval = parseInt(gv('cfgProMin'), 10) || 15;
       cfg.proMaxInterval = parseInt(gv('cfgProMax'), 10) || 120;
+
+      var rdoActive = stage.querySelector('input[name="rdoActiveMode"]:checked');
+      cfg.proActiveMode = rdoActive ? rdoActive.value : 'allday';
       cfg.proActiveStart = gv('cfgProStart') || '08:00';
       cfg.proActiveEnd = gv('cfgProEnd') || '23:30';
+
+      var rdoLevel = stage.querySelector('input[name="rdoLevelMode"]:checked');
+      cfg.proLevelMode = rdoLevel ? rdoLevel.value : 'manual';
       cfg.proLevel = parseInt(gv('cfgProLevel'), 10) || 3;
+
       cfg.minMsgs = parseInt(gv('cfgMinMsgs'), 10) || 1;
       cfg.maxMsgs = parseInt(gv('cfgMaxMsgs'), 10) || 3;
-      cfg.replySpeed = gv('cfgReplySpeed') || '正常（3-8秒）';
-      cfg.showTyping = stage.querySelector('#swShowTyping') ? stage.querySelector('#swShowTyping').classList.contains('on') : true;
+      cfg.replySpeed = gv('cfgReplySpeed') || '正常（2-4秒）';
       cfg.temperature = parseFloat(gv('cfgTemp')) || 0.85;
       cfg.freqPenalty = parseFloat(gv('cfgFreq')) || 0.3;
       cfg.presPenalty = parseFloat(gv('cfgPres')) || 0.3;
@@ -1044,16 +1155,16 @@
       cfg.timeWeather = stage.querySelector('#swTimeWeather') ? stage.querySelector('#swTimeWeather').classList.contains('on') : true;
       cfg.charRealCity = gv('cfgCharRealCity') || '';
       cfg.charCity = gv('cfgCharCity') || '';
-      cfg.mainLang = gv('cfgMainLang') || '简体中文';
-      cfg.bilingual = stage.querySelector('#swBilingual') ? stage.querySelector('#swBilingual').classList.contains('on') : false;
-      cfg.minimax = stage.querySelector('#swMinimax') ? stage.querySelector('#swMinimax').classList.contains('on') : false;
       cfg.stickerGen = stage.querySelector('#swStickerGen') ? stage.querySelector('#swStickerGen').classList.contains('on') : false;
+      cfg.imgApiSelect = gv('cfgImgApiSelect') || '';
+      cfg.imgModel = gv('cfgImgModel') || 'gpt-image-1';
 
       var checkedStyles = [];
       stage.querySelectorAll('#cfgStkStylesWrap input:checked').forEach(function(cb) { checkedStyles.push(cb.dataset.stkStyle); });
       cfg.stickerStyles = checkedStyles.length ? checkedStyles : ['可爱卡通'];
 
       saveCfg(currentChatChar.id, cfg);
+      startProactiveTimer();
     }
 
     stage.querySelectorAll('.wx-switch').forEach(function(sw) {
@@ -1067,10 +1178,46 @@
       });
     });
 
+    stage.querySelectorAll('input[name="rdoActiveMode"]').forEach(function(r) {
+      r.addEventListener('change', function() {
+        var rowCustom = stage.querySelector('#rowCustomTime');
+        if (rowCustom) rowCustom.style.display = (this.value === 'custom') ? 'flex' : 'none';
+        syncSettingFields();
+      });
+    });
+
+    stage.querySelectorAll('input[name="rdoLevelMode"]').forEach(function(r) {
+      r.addEventListener('change', function() {
+        var rowLevel = stage.querySelector('#rowManualLevel');
+        if (rowLevel) rowLevel.style.display = (this.value === 'manual') ? 'flex' : 'none';
+        syncSettingFields();
+      });
+    });
+
     stage.querySelectorAll('.cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input, #cfgStkStylesWrap input').forEach(function(inp) {
       inp.addEventListener('change', syncSettingFields);
       inp.addEventListener('blur', syncSettingFields);
     });
+
+    // 真实天气抓取按钮
+    var fetchWeatherBtn = stage.querySelector('#btnFetchWeather');
+    if (fetchWeatherBtn) {
+      fetchWeatherBtn.addEventListener('click', function() {
+        var city = (stage.querySelector('#cfgCharRealCity').value || '').trim();
+        if (!city) {
+          if (window.AppNav) window.AppNav.showToast('请先输入真实城市名称');
+          return;
+        }
+        if (window.AppNav) window.AppNav.showToast('正在抓取城市天气...');
+        fetchCharWeather(city, function(w) {
+          if (w) {
+            if (window.AppNav) window.AppNav.showToast('抓取成功: ' + city + ' ' + w.desc + ' ' + w.temp + '°C');
+          } else {
+            if (window.AppNav) window.AppNav.showToast('未能抓取到天气，请检查城市英文名拼写');
+          }
+        });
+      });
+    }
 
     // 输入与发送监听
     var input = stage.querySelector('#wxCrInput');
@@ -1087,7 +1234,7 @@
       inputIdleTimer = setTimeout(function() {
         isInputIdle = true;
         checkIdleQueue();
-      }, 4000);
+      }, 3500);
     }
 
     function checkIdleQueue() {
@@ -1125,10 +1272,10 @@
 
       updateTypingUI(true);
 
-      var replySpeed = cfg.replySpeed || '正常（3-8秒）';
-      var delayMs = 1500;
-      if (replySpeed === '快速（1-3秒）') delayMs = 1000;
-      else if (replySpeed === '慢速（5-15秒）') delayMs = 3500;
+      var replySpeed = cfg.replySpeed || '正常（2-4秒）';
+      var delayMs = 2500;
+      if (replySpeed === '快速（1-2秒）') delayMs = 1200;
+      else if (replySpeed === '慢速（4-7秒）') delayMs = 5000;
 
       sendDelayTimer = setTimeout(function() {
         sendDelayTimer = null;
@@ -1148,7 +1295,7 @@
       }
     });
 
-    // ── 长按消息黑色悬浮菜单逻辑 ──
+    // 长按消息黑色悬浮菜单
     var ctxMenu = stage.querySelector('#wxCrCtxMenu');
     var ctxMask = stage.querySelector('#wxCrCtxMask');
     var currentCtxIdx = -1;
@@ -1216,7 +1363,7 @@
       });
     });
 
-    // 托盘功能点击
+    // 托盘功能
     stage.querySelectorAll('[data-tray-act]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var act = this.dataset.trayAct;
@@ -1254,13 +1401,13 @@
           renderMessages();
           requestAIStream();
         } else {
-          if (window.AppNav) window.AppNav.showToast('✦ 正在连接角色 ✦');
+          if (window.AppNav) window.AppNav.showToast('✦ 该功能已连接专属角色 ✦');
         }
       });
     });
   }
 
-  // ============ 10. 本地消息存储与读取 ============
+  // ============ 11. 本地消息存储与读取 ============
   function loadChatMessages(charId, cb) {
     if (!window.AppDB) {
       try {
