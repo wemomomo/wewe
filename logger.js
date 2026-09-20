@@ -1,8 +1,7 @@
-
 (function () {
   'use strict';
 
-  var MAX_LOGS = 50; // 保留最近 50 条深度交互记录
+  var MAX_LOGS = 50;
 
   function esc(str) {
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
@@ -12,7 +11,7 @@
     return 'wx_chat_logs_' + (charId || 'default');
   }
 
-  // ============ 从 AppDB 获取当前激活的角色 ============
+  // 纯 AppDB (IndexedDB) 查找激活角色
   function fetchCurrentActiveChar(callback) {
     function doFetch() {
       if (!window.AppDB) {
@@ -29,13 +28,11 @@
           return;
         }
 
-        // 1. 若当前在聊天中，优先选用当前聊天的角色
         if (window._chatActiveCharId) {
           var found = charList.find(function (c) { return c.id === window._chatActiveCharId; });
           if (found) { if (callback) callback(found); return; }
         }
 
-        // 2. 否则读取当前激活角色 ID
         window.AppDB.get('character_archive_active_id_v1', function (activeCId) {
           var activeChar = null;
           if (activeCId) {
@@ -54,7 +51,7 @@
     }
   }
 
-  // ============ 1. 日志记录与读取 (纯 AppDB) ============
+  // 纯 AppDB 读取与持久化日志
   function getLogs(charId, callback) {
     if (!window.AppDB) {
       if (callback) callback([]);
@@ -67,15 +64,13 @@
   }
 
   function saveLogs(charId, list, callback) {
-    var sliced = list.slice(0, MAX_LOGS);
     if (window.AppDB) {
-      window.AppDB.save(getLogKey(charId), sliced, callback);
+      window.AppDB.save(getLogKey(charId), list.slice(0, MAX_LOGS), callback);
     } else {
       if (callback) callback();
     }
   }
 
-  // 粗略估算 Token
   function estimateTokens(text) {
     if (!text) return 0;
     var str = String(text);
@@ -84,6 +79,19 @@
     return Math.ceil(zh * 1.3 + en * 0.3);
   }
 
+  // 净化后台技术规则与切分指令，呈现真实纯净对话
+  function sanitizePrompt(text) {
+    if (!text || typeof text !== 'string') return '';
+    var str = text;
+    str = str.replace(/【回复条数与切分铁律[\s\S]*?(?=\n\n|$)/g, '');
+    str = str.replace(/输出格式：\s*\[心声:[\s\S]*?\]/g, '');
+    str = str.replace(/格式要求：独立输出一条[\s\S]*?\]/g, '');
+    str = str.replace(/各条消息之间务必使用[\s\S]*?分隔[。！\n]?/g, '');
+    str = str.replace(/\|\|\|/g, '');
+    return str.trim();
+  }
+
+  // ============ 1. 日志记录核心 ============
   function recordRequest(data) {
     var charId = data.charId || 'default';
     var now = new Date();
@@ -95,9 +103,15 @@
     var logId = 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 
     var promptTokens = 0;
+    var cleanMsgs = [];
     if (Array.isArray(data.messages)) {
       data.messages.forEach(function(m) {
-        promptTokens += estimateTokens(m.content);
+        var cleanContent = sanitizePrompt(m.content);
+        promptTokens += estimateTokens(cleanContent);
+        cleanMsgs.push({
+          role: m.role,
+          content: cleanContent
+        });
       });
     }
 
@@ -112,14 +126,14 @@
       temperature: data.temperature !== undefined ? data.temperature : 0.85,
       promptTokens: promptTokens,
       completionTokens: 0,
-      systemPrompt: data.systemPrompt || '',
-      messages: data.messages || [],
+      systemPrompt: cleanMsgs[0] ? cleanMsgs[0].content : '',
+      messages: cleanMsgs,
       rawResponse: '',
       errorMsg: '',
       durationMs: 0
     };
 
-    getLogs(charId, function (logs) {
+    getLogs(charId, function(logs) {
       logs.unshift(newEntry);
       saveLogs(charId, logs);
     });
@@ -128,7 +142,7 @@
   }
 
   function recordResponse(charId, logId, res) {
-    getLogs(charId, function (logs) {
+    getLogs(charId, function(logs) {
       var item = logs.find(function(l) { return l.id === logId; });
       if (!item) return;
 
@@ -170,7 +184,6 @@
     stage.id = 'wxLoggerStage';
 
     stage.innerHTML = ''
-      // 顶栏
       + '<div class="logger-stage-header">'
       + '  <div class="logger-head-left">'
       + '    <button class="logger-native-back" id="loggerStageBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
@@ -185,8 +198,6 @@
       + '    </button>'
       + '  </div>'
       + '</div>'
-
-      // 全屏日志画卷列表
       + '<div class="logger-stage-body" id="loggerStageBody"></div>';
 
     document.body.appendChild(stage);
@@ -199,7 +210,7 @@
     var body = stage.querySelector('#loggerStageBody');
     if (!body) return;
 
-    getLogs(charData.id, function (logs) {
+    getLogs(charData.id, function(logs) {
       if (!logs.length) {
         body.innerHTML = '<div class="logger-empty-stage">'
           + '<div class="logger-empty-icon">📜</div>'
@@ -220,7 +231,6 @@
 
         var totalTokens = (item.promptTokens || 0) + (item.completionTokens || 0);
 
-        // 上下文消息预览
         var msgsHtml = '';
         if (Array.isArray(item.messages)) {
           msgsHtml = item.messages.map(function(m) {
@@ -275,7 +285,6 @@
     var backBtn = stage.querySelector('#loggerStageBackBtn');
     if (backBtn) backBtn.addEventListener('click', closeLoggerStage);
 
-    // 清空日志
     var clearBtn = stage.querySelector('#loggerStageClearBtn');
     if (clearBtn) {
       clearBtn.addEventListener('click', function () {
@@ -286,7 +295,7 @@
             confirmText: '清空',
             isDanger: true
           }, function () {
-            clearLogs(charData.id, function () {
+            clearLogs(charData.id, function() {
               renderLoggerList(stage, charData);
               if (window.AppNav) window.AppNav.showToast('日志已清空');
             });
@@ -295,7 +304,6 @@
       });
     }
 
-    // 卡片折叠与展开
     stage.addEventListener('click', function (e) {
       var head = e.target.closest('.logger-card-header');
       if (head) {
@@ -304,7 +312,6 @@
       }
     });
 
-    // 右滑返回手势
     var startX = 0, startY = 0, currentX = 0, isSwiping = false;
     stage.addEventListener('touchstart', function (e) {
       if (e.touches[0].clientX > 45) return;
@@ -345,7 +352,6 @@
     clearLogs: clearLogs
   };
 
-  // 兼容别名
   window.ChatLogger = window.WxLogger;
 
 })();
