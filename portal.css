@@ -1,11 +1,12 @@
+
 /* ======================================================== */
-/* 全局快捷中枢悬浮球 (Floating Portal Core) - 高定纯净版     */
+/* 全局快捷中枢悬浮球 (Floating Portal Core) - 极简高定版     */
 /* ======================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
 
 /* =========================================================
-   1. 全局悬浮球主球体 (贴边吸附 + 自由拖拽 + 3种形态)
+   1. 全局悬浮球主球体
 ========================================================= */
 .portal-floating-orb {
   position: fixed;
@@ -27,7 +28,6 @@
   transform: scale(0.92);
 }
 
-/* 形态 1：默认微光星轨球 */
 .portal-floating-orb.style-default {
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(16px);
@@ -38,13 +38,7 @@
     0 2px 6px rgba(15, 23, 42, 0.06),
     inset 0 1px 2px rgba(255, 255, 255, 1);
 }
-.portal-floating-orb.style-default.active {
-  background: #111111;
-  border-color: #111111;
-  color: #ffffff;
-}
 
-/* 形态 2：黑边框照片相框 */
 .portal-floating-orb.style-blackframe {
   background: #ffffff;
   border: 2px solid #111111;
@@ -58,7 +52,6 @@
   display: block;
 }
 
-/* 形态 3：纯净透明 PNG 立绘 (绝无任何背景、遮罩与阴影) */
 .portal-floating-orb.style-pngstandee {
   background: transparent !important;
   border: none !important;
@@ -75,38 +68,16 @@
   filter: none !important;
 }
 
-/* 悬浮球内双环星轨图标 */
-.orb-inner-art {
-  position: relative;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: inherit;
-}
-.orb-orbit-ring {
-  position: absolute;
-  inset: 0;
+.orb-custom-icon-img {
+  width: 80%;
+  height: 80%;
   border-radius: 50%;
-  border: 1px dashed rgba(20, 22, 25, 0.35);
-  animation: orbSpin 16s linear infinite;
-}
-.portal-floating-orb.active .orb-orbit-ring {
-  border-color: rgba(255, 255, 255, 0.4);
-}
-.orb-center-star {
-  font-size: 14px;
-  line-height: 1;
-  transform: scale(1.1);
-}
-@keyframes orbSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  object-fit: cover;
+  display: block;
 }
 
 /* =========================================================
-   2. 环绕悬浮球外部的 5 个纯净圆按钮 (适中距离)
+   2. 5 个环绕圆按钮 (动态向量轴心定位)
 ========================================================= */
 .portal-satellites-group {
   position: absolute;
@@ -123,10 +94,12 @@
   gap: 3px;
   cursor: pointer;
   opacity: 0;
-  transform: translate(0, 0) scale(0.3);
+  transform: translate(-19px, -19px) scale(0);
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
   pointer-events: none;
   z-index: 18995;
+  width: 38px;
+  height: 38px;
 }
 .satellite-item-wrap:active {
   transform: scale(0.88) !important;
@@ -137,21 +110,6 @@
   pointer-events: auto;
 }
 
-/* 贴右边时 5 个圆钮展开坐标 */
-.align-right ~ .portal-satellites-group .satellite-item-wrap[data-idx="0"] { transform: translate(-65px, 20px) scale(1); }
-.align-right ~ .portal-satellites-group .satellite-item-wrap[data-idx="1"] { transform: translate(-70px, -36px) scale(1); }
-.align-right ~ .portal-satellites-group .satellite-item-wrap[data-idx="2"] { transform: translate(-42px, -82px) scale(1); }
-.align-right ~ .portal-satellites-group .satellite-item-wrap[data-idx="3"] { transform: translate(14px, -88px) scale(1); }
-.align-right ~ .portal-satellites-group .satellite-item-wrap[data-idx="4"] { transform: translate(62px, -52px) scale(1); }
-
-/* 贴左边时 5 个圆钮展开坐标 */
-.align-left ~ .portal-satellites-group .satellite-item-wrap[data-idx="0"] { transform: translate(65px, 20px) scale(1); }
-.align-left ~ .portal-satellites-group .satellite-item-wrap[data-idx="1"] { transform: translate(70px, -36px) scale(1); }
-.align-left ~ .portal-satellites-group .satellite-item-wrap[data-idx="2"] { transform: translate(42px, -82px) scale(1); }
-.align-left ~ .portal-satellites-group .satellite-item-wrap[data-idx="3"] { transform: translate(-14px, -88px) scale(1); }
-.align-left ~ .portal-satellites-group .satellite-item-wrap[data-idx="4"] { transform: translate(-62px, -52px) scale(1); }
-
-/* 圆形按钮：灰框 -> 白圈 -> 灰蓝芯 -> 黑色✦ */
 .satellite-circle-btn {
   width: 38px;
   height: 38px;
@@ -184,10 +142,11 @@
   line-height: 1;
   letter-spacing: 0.3px;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
 }
 
 /* =========================================================
-   3. 展开的大面板
+   3. 面板外壳
 ========================================================= */
 .portal-panel-mask {
   position: fixed;
@@ -301,39 +260,6 @@
 .api-pill-model { font-size: 10.5px; font-family: monospace; opacity: 0.65; }
 .api-pill-badge { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(0,0,0,0.06); }
 
-/* 档案快捷项 */
-.archive-quick-card {
-  padding: 12px;
-  background: #f8fafc;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-.arch-avatar-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: bold;
-  color: #475569;
-  overflow: hidden;
-}
-.arch-avatar-circle img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.arch-info-col { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.arch-name-title { font-size: 14px; font-weight: 800; color: #0f172a; }
-.arch-desc-sub { font-size: 11px; color: #64748b; }
-
 /* 灵感便签 */
 .notes-writer-box {
   display: flex;
@@ -436,14 +362,3 @@
   font-weight: 700;
   cursor: pointer;
 }
-
-/* 默认悬浮球内的专属居中图片（填满纯净圆球） */
-.orb-custom-icon-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-}
-
-
