@@ -2,234 +2,99 @@
 (function () {
   'use strict';
 
+  var MEM_KEY_PREFIX = 'wx_char_memories_';
+  var ARCHIVE_KEY_PREFIX = 'wx_chat_archive_';
+
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function esc(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
 
-  function getDateKey(ts) {
-    var d = new Date(ts || Date.now());
-    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  function getTodayDateStr(dateObj) {
+    var d = dateObj || new Date();
+    return d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate());
   }
 
-  // ============ 1. 轻量高精度向量语义距离计算引擎 (Cosine Similarity) ============
-  // 将文本转化为多维语义特征向量（支持字符级 N-gram + 语义特征哈希），无需外部依赖，毫秒级比对
-  function textToVector(text) {
-    var clean = (text || '').toLowerCase().replace(/[\s\p{P}]/gu, '');
-    var vec = {};
-    if (!clean) return vec;
-
-    // 1-gram & 2-gram 语义特征捕获
-    for (var i = 0; i < clean.length; i++) {
-      var c1 = clean[i];
-      vec[c1] = (vec[c1] || 0) + 1;
-      if (i < clean.length - 1) {
-        var c2 = clean.slice(i, i + 2);
-        vec[c2] = (vec[c2] || 0) + 1.5;
-      }
-    }
-    return vec;
-  }
-
-  function cosineSimilarity(vecA, vecB) {
-    var dot = 0;
-    var mA = 0;
-    var mB = 0;
-
-    for (var k in vecA) {
-      if (vecA.hasOwnProperty(k)) {
-        var valA = vecA[k];
-        mA += valA * valA;
-        if (vecB[k]) dot += valA * vecB[k];
-      }
-    }
-    for (var j in vecB) {
-      if (vecB.hasOwnProperty(j)) {
-        mB += vecB[j] * vecB[j];
-      }
-    }
-
-    if (mA === 0 || mB === 0) return 0;
-    return dot / (Math.sqrt(mA) * Math.sqrt(mB));
-  }
-
-  // ============ 2. 记忆库存储与读取 ============
-  function getMemoryList(charId) {
+  // ============ 1. 记忆存储与读取 ============
+  function getCharMemories(charId) {
     try {
-      return JSON.parse(localStorage.getItem('wx_char_memories_' + charId) || '[]');
-    } catch(e) {
+      return JSON.parse(localStorage.getItem(MEM_KEY_PREFIX + charId) || '[]');
+    } catch (e) {
       return [];
     }
   }
 
-  function saveMemoryList(charId, list) {
+  function saveCharMemories(charId, list) {
     try {
-      localStorage.setItem('wx_char_memories_' + charId, JSON.stringify(list));
-    } catch(e) {}
-    if (window.AppDB) window.AppDB.save('wx_char_memories_' + charId, list);
+      localStorage.setItem(MEM_KEY_PREFIX + charId, JSON.stringify(list));
+    } catch (e) {}
+    if (window.AppDB) window.AppDB.save(MEM_KEY_PREFIX + charId, list);
   }
 
-  function getArchiveMessages(charId, dateKey) {
+  // 获取注入给 AI 的精炼记忆文本（极度省 Tokens）
+  function getMemoryPromptText(charId, limitCount) {
+    var memories = getCharMemories(charId);
+    if (!memories.length) return '';
+    var count = limitCount || 7; // 默认带上最近7篇高浓度日记
+    var sliceMems = memories.slice(-count);
+
+    var parts = ['【往昔记忆日记库（你的核心经历与对User的羁绊回忆）】：'];
+    sliceMems.forEach(function (m) {
+      parts.push('✦ ' + m.dateStr + ' ✦');
+      if (m.track) parts.push('· 行动轨迹：' + m.track);
+      if (m.thoughts) parts.push('· 内心感想：' + m.thoughts);
+      if (m.summary) parts.push('· 彼此共话：' + m.summary);
+    });
+    return parts.join('\n');
+  }
+
+  // ============ 2. 午夜 00:00 自动结清与提炼引擎 ============
+  function checkAndTriggerMidnightSummary(charId, charData, userData, callback) {
+    if (!charId) return;
+    var rawMsgs = [];
     try {
-      return JSON.parse(localStorage.getItem('wx_chat_archive_' + charId + '_' + dateKey) || '[]');
-    } catch(e) {
-      return [];
-    }
-  }
+      rawMsgs = JSON.parse(localStorage.getItem('wx_chat_msgs_' + charId) || '[]');
+    } catch (e) {}
 
-  function saveArchiveMessages(charId, dateKey, msgs) {
-    try {
-      localStorage.setItem('wx_chat_archive_' + charId + '_' + dateKey, JSON.stringify(msgs));
-    } catch(e) {}
-    if (window.AppDB) window.AppDB.save('wx_chat_archive_' + charId + '_' + dateKey, msgs);
-  }
-
-  // ============ 3. 核心拦截：只取今天 00:01 之后的对话 ============
-  function filterTodayMessages(allMessages) {
-    var now = new Date();
-    var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 1).getTime();
-    return allMessages.filter(function (m) {
-      return (m.ts || 0) >= todayStart;
-    });
-  }
-
-  // ============ 4. 向量检索：跨天细节精准语义回溯 ============
-  function recallPastDetails(charId, currentQuery, topK) {
-    if (!currentQuery || !currentQuery.trim()) return [];
-    var queryVec = textToVector(currentQuery);
-    var memories = getMemoryList(charId);
-    var scored = [];
-
-    // 1. 在过往手账日记中算语义匹配度
-    memories.forEach(function (mem) {
-      var text = (mem.track || '') + ' ' + (mem.thoughts || '') + ' ' + (mem.summary || '');
-      var sim = cosineSimilarity(queryVec, textToVector(text));
-      if (sim > 0.22) {
-        scored.push({
-          type: 'diary',
-          date: mem.dateStr,
-          text: '【' + mem.dateStr + ' 记忆日记】：行动轨迹：' + mem.track + '；心绪念头：' + mem.thoughts + '；交谈摘要：' + mem.summary,
-          similarity: sim
-        });
-      }
-    });
-
-    // 2. 在过往归档对话碎片中检索高相似度句子
-    memories.slice(-7).forEach(function (mem) {
-      var archivedMsgs = getArchiveMessages(charId, mem.dateStr);
-      archivedMsgs.forEach(function (m) {
-        var content = m.cleanContent || m.content || m.text || '';
-        if (!content) return;
-        var sim = cosineSimilarity(queryVec, textToVector(content));
-        if (sim > 0.38) {
-          scored.push({
-            type: 'dialogue',
-            date: mem.dateStr,
-            text: '【' + mem.dateStr + ' 历史对话原句】：' + (m.sender === 'user' ? '墨墨' : '你') + '曾经说过：“' + content + '”',
-            similarity: sim
-          });
-        }
-      });
-    });
-
-    scored.sort(function (a, b) { return b.similarity - a.similarity; });
-    return scored.slice(0, topK || 3);
-  }
-
-  // ============ 5. 午夜 00:00 自动结清与日记生成 ============
-  function checkAndTriggerMidnightRollover(charId, currentChar, currentUser, onComplete) {
-    if (!charId || !currentChar) return;
-    var allMsgs = [];
-    try {
-      allMsgs = JSON.parse(localStorage.getItem('wx_chat_msgs_' + charId) || '[]');
-    } catch(e) { allMsgs = []; }
-    if (!allMsgs.length) return;
-
-    var todayStr = getDateKey(Date.now());
-    var unarchivedMsgs = {};
-
-    // 收集所有早于今天 00:00 的历史消息，按日期归类
-    allMsgs.forEach(function (m) {
-      var dKey = getDateKey(m.ts || Date.now());
-      if (dKey < todayStr && !m.isSystem && !m.isError) {
-        if (!unarchivedMsgs[dKey]) unarchivedMsgs[dKey] = [];
-        unarchivedMsgs[dKey].push(m);
-      }
-    });
-
-    var dateKeys = Object.keys(unarchivedMsgs);
-    if (!dateKeys.length) {
-      if (onComplete) onComplete();
+    // 过滤出有效消息
+    var validMsgs = rawMsgs.filter(function (m) { return !m.isError && !m.isSystem; });
+    if (validMsgs.length < 2) {
+      if (callback) callback(null);
       return;
     }
 
-    // 逐日结清未归档的旧历史
-    var dateIndex = 0;
-    function processNextDate() {
-      if (dateIndex >= dateKeys.length) {
-        // 将旧消息从当前对话流中物理移入归档库，只保留今天新消息
-        var remainingTodayMsgs = filterTodayMessages(allMsgs);
-        try {
-          localStorage.setItem('wx_chat_msgs_' + charId, JSON.stringify(remainingTodayMsgs));
-        } catch(e) {}
-        if (window.AppDB) window.AppDB.save('wx_chat_msgs_' + charId, remainingTodayMsgs);
-        if (onComplete) onComplete();
-        return;
-      }
-
-      var dKey = dateKeys[dateIndex];
-      var msgsOfThatDay = unarchivedMsgs[dKey];
-      saveArchiveMessages(charId, dKey, msgsOfThatDay);
-
-      // 调用模型生成当天的日记手账
-      generateDiaryPrompt(currentChar, currentUser, dKey, msgsOfThatDay, function (diaryObj) {
-        var memories = getMemoryList(charId);
-        memories = memories.filter(function (x) { return x.dateStr !== dKey; });
-        memories.push(diaryObj);
-        memories.sort(function (a, b) { return a.dateStr.localeCompare(b.dateStr); });
-        saveMemoryList(charId, memories);
-
-        dateIndex++;
-        processNextDate();
-      });
+    var yesterdayDateStr = getTodayDateStr(new Date(Date.now() - 3600000));
+    var memories = getCharMemories(charId);
+    var alreadyExists = memories.some(function (m) { return m.dateStr === yesterdayDateStr; });
+    if (alreadyExists) {
+      if (callback) callback(null);
+      return;
     }
 
-    processNextDate();
-  }
+    // 组装发给 AI 的日记提炼 Prompt
+    var charName = charData ? (charData.name || '角色') : '角色';
+    var userName = userData ? (userData.name || userData.nickname || '对方') : '对方';
 
-  function generateDiaryPrompt(currentChar, currentUser, dateStr, dayMsgs, cb) {
-    var charName = currentChar.name || '冥夜';
-    var userName = (currentUser ? (currentUser.name || currentUser.nickname) : '') || '墨墨';
-    var api = window.WxChatSettings ? window.WxChatSettings.getActiveApi(currentChar.id) : null;
-
-    var dialogueHistory = dayMsgs.map(function (m) {
-      var speaker = (m.sender === 'user' || m.role === 'user') ? userName : charName;
-      var text = m.cleanContent || m.content || m.text || '';
-      var voice = m.voiceObj ? (' [心声与念头: ' + m.voiceObj.monologue + ']') : '';
-      return speaker + ': ' + text + voice;
+    var chatDigest = validMsgs.map(function (m) {
+      var sender = (m.role === 'user' || m.sender === 'user') ? userName : charName;
+      var txt = m.cleanContent || m.content || m.text || '';
+      if (m.voiceObj) {
+        txt += ' (内心独白: ' + m.voiceObj.monologue + ' | 举止: ' + m.voiceObj.action + ')';
+      }
+      return sender + ': ' + txt;
     }).join('\n');
 
-    // 兜底离线总结，防止无 API 时失忆
-    function fallbackDiary() {
-      return {
-        dateStr: dateStr,
-        timestamp: new Date(dateStr).getTime(),
-        track: '全日陪伴在墨墨身边，静心处理手头琐事与日常起居。',
-        thoughts: '心系墨墨的一言一语，她的喜乐安好便是我最大的牵挂。',
-        summary: '与墨墨共话今日细碎日常，彼此依偎闲谈，字里行间皆是温情。',
-        messageCount: dayMsgs.length
-      };
-    }
+    var systemPrompt = '你现在是「' + charName + '」。今天已经过去了，现在是深夜。\n'
+      + '请你查看今天与「' + userName + '」的所有聊天记录和你的内心活动，在你的私人手账中写下一篇日记。\n'
+      + '【输出格式规范 - 严格遵守】：\n'
+      + '[行动轨迹]: 用两三句话总结你今天自己的生活行止、琐碎活动或所见所闻。\n'
+      + '[内心想法]: 写下今天聊天过程中，对「' + userName + '」产生的触动、隐秘念头或值得珍藏的情愫。\n'
+      + '[今日共话]: 简短概括今天你们两人主要聊了哪些事情、达成了什么约定。\n'
+      + '语气要完全符合你的人设风格，真诚、细腻、富有人性。';
 
+    var api = window.WxChatSettings ? window.WxChatSettings.getActiveApi(charId) : null;
     if (!api || !api.url || !api.key) {
-      cb(fallbackDiary());
+      if (callback) callback(null);
       return;
     }
-
-    var sysPrompt = '你是「' + charName + '」。今天是 ' + dateStr + ' 的深夜，你在独属于自己的手账日记本中写下对今天的私人复盘。\n'
-      + '请结合今天你与「' + userName + '」的全部交谈、以及你当时内心的真实想法，写下一则精炼高浓度的日记。\n'
-      + '输出格式必须严格为以下三行（不要出现多余文字）：\n'
-      + '[行动轨迹]: 用两三句话总结你今天的活动与行止（若无重大波澜，则描绘符合你人设的平静日常轨迹）。\n'
-      + '[内心所念]: 记录今天你在内心对「' + userName + '」所产生的最深刻想法、心动暗涌或值得永远留存的念头。\n'
-      + '[对话综述]: 总结今天你和「' + userName + '」主要聊了哪些事与心绪羁绊。';
 
     fetch(api.url.replace(/\/+$/, '') + '/chat/completions', {
       method: 'POST',
@@ -240,160 +105,328 @@
       body: JSON.stringify({
         model: api.model,
         messages: [
-          { role: 'system', content: sysPrompt },
-          { role: 'user', content: '以下是今天我们的全部聊天记录与内心念头：\n\n' + dialogueHistory }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: '【今天的所有聊天与心理活动记录】：\n' + chatDigest }
         ],
         temperature: 0.7
       })
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      var content = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) ? d.choices[0].message.content : '';
-      var track = '今日平静安宁，如常度过，专注于日常事务。';
-      var thoughts = '墨墨安好，心有所属，便是最大的慰藉。';
-      var summary = '与墨墨畅谈心事，细水长流。';
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var resContent = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ? data.choices[0].message.content : '';
+      if (!resContent) { if (callback) callback(null); return; }
 
-      var mTrack = content.match(/\[行动轨迹\][:：]\s*(.+)/);
-      var mThoughts = content.match(/\[内心所念\][:：]\s*(.+)/);
-      var mSummary = content.match(/\[对话综述\][:：]\s*(.+)/);
+      // 解析日记三栏
+      var trackMatch = resContent.match(/\[行动轨迹\][:：\s]*([\s\S]*?)(?=\[内心想法\]|$)/i);
+      var thoughtsMatch = resContent.match(/\[内心想法\][:：\s]*([\s\S]*?)(?=\[今日共话\]|$)/i);
+      var summaryMatch = resContent.match(/\[今日共话\][:：\s]*([\s\S]*?)$/i);
 
-      if (mTrack) track = mTrack[1].trim();
-      if (mThoughts) thoughts = mThoughts[1].trim();
-      if (mSummary) summary = mSummary[1].trim();
+      var newMem = {
+        id: 'mem_' + charId + '_' + Date.now(),
+        charId: charId,
+        dateStr: yesterdayDateStr,
+        timestamp: Date.now(),
+        track: trackMatch ? trackMatch[1].trim() : '度过了平静的一天，在熟悉的轨迹中穿行。',
+        thoughts: thoughtsMatch ? thoughtsMatch[1].trim() : '关于今天的对话，心中泛起许多细腻的涟漪。',
+        summary: summaryMatch ? summaryMatch[1].trim() : '聊了许多日常琐事，彼此的距离似乎又更近了一步。',
+        rawChatCount: validMsgs.length
+      };
 
-      cb({
-        dateStr: dateStr,
-        timestamp: new Date(dateStr).getTime(),
-        track: track,
-        thoughts: thoughts,
-        summary: summary,
-        messageCount: dayMsgs.length
-      });
+      // 1. 归档今日原始聊天到持久库
+      var archiveKey = ARCHIVE_KEY_PREFIX + charId + '_' + yesterdayDateStr;
+      try {
+        localStorage.setItem(archiveKey, JSON.stringify(validMsgs));
+      } catch (e) {}
+      if (window.AppDB) window.AppDB.save(archiveKey, validMsgs);
+
+      // 2. 清空实时会话，开启第二天崭新的一天（极省 Tokens）
+      try {
+        localStorage.setItem('wx_chat_msgs_' + charId, JSON.stringify([]));
+      } catch (e) {}
+      if (window.AppDB) window.AppDB.save('wx_chat_msgs_' + charId, []);
+
+      // 3. 压入记忆日记库
+      memories.push(newMem);
+      saveCharMemories(charId, memories);
+
+      if (callback) callback(newMem);
     })
-    .catch(function() {
-      cb(fallbackDiary());
+    .catch(function () {
+      if (callback) callback(null);
     });
   }
 
-  // ============ 6. 三栏式记忆时间轴手账 UI 渲染 ============
-  function openMemoryCorridor(currentChar, currentUser) {
-    if (!currentChar) return;
-    var existing = document.getElementById('wxCrMemoryCorridorMask');
-    if (existing) existing.remove();
+  // ============ 3. 高定全屏记忆手账页面渲染 ============
+  function openMemoryStage(charObj, userObj) {
+    var charList = [];
+    try {
+      charList = JSON.parse(localStorage.getItem('character_archives_list_v1') || '[]');
+    } catch (e) {}
 
-    var mask = document.createElement('div');
-    mask.className = 'wx-mem-corridor-mask';
-    mask.id = 'wxCrMemoryCorridorMask';
-
-    var memories = getMemoryList(currentChar.id);
-    var charName = currentChar.name || '角色';
-
-    var listHtml = '';
-    if (!memories.length) {
-      listHtml = '<div class="mem-empty-box"><span>✦ 暂无往昔手账，今夜午夜将凝结第一篇回忆 ✦</span></div>';
-    } else {
-      listHtml = memories.map(function (mem) {
-        return '<div class="mem-trio-card" data-mem-date="' + mem.dateStr + '">'
-          // 路线 1：左侧时间与轨迹
-          + '<div class="mem-col-left">'
-          + '  <div class="mem-date-badge">' + esc(mem.dateStr) + '</div>'
-          + '  <div class="mem-track-text">' + esc(mem.track) + '</div>'
-          + '</div>'
-
-          // 中轴分割线与星标
-          + '<div class="mem-spine-divider">'
-          + '  <span class="mem-star-node">✦</span>'
-          + '</div>'
-
-          // 路线 2：右侧心理念头与交谈综述
-          + '<div class="mem-col-mid">'
-          + '  <div class="mem-thought-quote">“ ' + esc(mem.thoughts) + ' ”</div>'
-          + '  <div class="mem-summary-sub">共话：' + esc(mem.summary) + '</div>'
-          + '</div>'
-
-          // 路线 3：最右侧归档溯源触发点
-          + '<div class="mem-col-right">'
-          + '  <button class="mem-archive-btn" data-archive-date="' + mem.dateStr + '" type="button" title="查看当天原始聊天">'
-          + '    <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
-          + '    <span>溯源</span>'
-          + '  </button>'
-          + '</div>'
-          + '</div>';
-      }).join('');
+    var activeChar = charObj || charList.find(function (c) { return c.id === window._chatActiveCharId; }) || charList[0];
+    if (!activeChar) {
+      if (window.AppNav) window.AppNav.showToast('请先在档案中录入角色设定');
+      return;
     }
 
-    mask.innerHTML = '<div class="wx-mem-corridor-panel">'
-      + '  <div class="mem-corridor-header">'
-      + '    <div class="mem-header-left">'
-      + '      <span class="mem-header-script">~ Memories ~</span>'
-      + '      <span class="mem-header-title">✦ ' + esc(charName) + ' · 记忆手账 ✦</span>'
+    var existingStage = document.getElementById('wxMemoryStage');
+    if (existingStage) existingStage.remove();
+
+    var stage = document.createElement('div');
+    stage.className = 'wx-memory-stage';
+    stage.id = 'wxMemoryStage';
+
+    stage.innerHTML = ''
+      // 1. 顶栏
+      + '<div class="mem-stage-header">'
+      + '  <div class="mem-head-left">'
+      + '    <button class="mem-native-back" id="memStageBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
+      + '    <div class="mem-title-group">'
+      + '      <span class="mem-script-tag">~ Memories & Dossier ~</span>'
+      + '      <h1 class="mem-main-title">' + esc(activeChar.name || 'Character') + ' · 记忆长廊</h1>'
       + '    </div>'
-      + '    <button class="mem-close-btn" id="wxMemCloseBtn" type="button">✕</button>'
       + '  </div>'
-      + '  <div class="mem-corridor-body">' + listHtml + '</div>'
+      + '  <div class="mem-head-right">'
+      + '    <button class="mem-trigger-summary-btn" id="memTriggerSummaryBtn" type="button" title="结清今日对话并撰写日记">'
+      + '      <span class="mem-btn-icon">❆</span>'
+      + '      <span>今日结清</span>'
+      + '    </button>'
+      + '  </div>'
       + '</div>'
 
-      // 归档对话回溯弹窗
-      + '<div class="mem-archive-modal" id="wxMemArchiveModal">'
-      + '  <div class="mem-archive-panel">'
-      + '    <div class="mem-archive-head">'
-      + '      <span class="mem-archive-title" id="wxArchiveModalTitle">历史对话归档</span>'
-      + '      <button class="mem-archive-close" id="wxArchiveModalClose" type="button">✕</button>'
+      // 2. 三栏时间线画卷展示区
+      + '<div class="mem-stage-body" id="memStageBody"></div>'
+
+      // 3. 对话原始溯源抽屉
+      + '<div class="mem-dialogue-drawer-mask" id="memDrawerMask"></div>'
+      + '<div class="mem-dialogue-drawer" id="memDialogueDrawer">'
+      + '  <div class="drawer-header-bar">'
+      + '    <div class="drawer-title-col">'
+      + '      <span class="drawer-sub-tag">CONVERSATION ARCHIVE</span>'
+      + '      <span class="drawer-date-title" id="drawerDateTitle">往昔对话溯源</span>'
       + '    </div>'
-      + '    <div class="mem-archive-msgs" id="wxArchiveModalMsgs"></div>'
+      + '    <button class="drawer-close-btn" id="drawerCloseBtn" type="button">✕</button>'
       + '  </div>'
+      + '  <div class="drawer-dialogue-list" id="drawerDialogueList"></div>'
       + '</div>';
 
-    document.body.appendChild(mask);
-    setTimeout(function() { mask.classList.add('show'); }, 10);
+    document.body.appendChild(stage);
 
-    // 绑定事件
-    mask.querySelector('#wxMemCloseBtn').onclick = function () {
-      mask.classList.remove('show');
-      setTimeout(function () { mask.remove(); }, 250);
-    };
+    renderMemoryTimeline(stage, activeChar);
+    bindStageEvents(stage, activeChar, userObj);
+  }
 
-    var archiveModal = mask.querySelector('#wxMemArchiveModal');
-    var archiveClose = mask.querySelector('#wxArchiveModalClose');
-    archiveClose.onclick = function () { archiveModal.classList.remove('show'); };
+  function renderMemoryTimeline(stage, charData) {
+    var body = stage.querySelector('#memStageBody');
+    if (!body) return;
 
-    mask.querySelectorAll('.mem-archive-btn').forEach(function (btn) {
-      btn.onclick = function (e) {
+    var memories = getCharMemories(charData.id);
+    if (!memories.length) {
+      body.innerHTML = '<div class="mem-empty-stage">'
+        + '<div class="mem-empty-crystal">❆</div>'
+        + '<div class="mem-empty-title">尚未凝结往昔记忆</div>'
+        + '<p class="mem-empty-desc">每日子夜 00:00，角色会自动回顾一整天的交谈与心声，在手账中写下专属日记；你也可以点击右上角「今日结清」手动归档。</p>'
+        + '</div>';
+      return;
+    }
+
+    var html = '<div class="mem-timeline-scroll-wrap">';
+
+    memories.slice().reverse().forEach(function (m, idx) {
+      html += '<div class="mem-trinity-card" data-mem-idx="' + idx + '">'
+        // 左栏：时间与活动轨迹
+        + '<div class="mem-route-col left">'
+        + '  <div class="mem-date-stamp">'
+        + '    <span class="stamp-month-day">' + esc(m.dateStr) + '</span>'
+        + '    <span class="stamp-sub-code">№ ' + pad2(memories.length - idx) + '</span>'
+        + '  </div>'
+        + '  <div class="mem-route-title"><span class="route-icon">✦</span> 行止与轨迹</div>'
+        + '  <div class="mem-track-para">' + esc(m.track) + '</div>'
+        + '</div>'
+
+        // 中间分隔立柱
+        + '<div class="mem-route-spine">'
+        + '  <div class="spine-line top"></div>'
+        + '  <div class="spine-gem">❆</div>'
+        + '  <div class="spine-line bottom"></div>'
+        + '</div>'
+
+        // 中栏：心念独白与日记
+        + '<div class="mem-route-col mid">'
+        + '  <div class="mem-route-title"><span class="route-icon">☽</span> 心理想法与暗涌</div>'
+        + '  <div class="mem-thought-quote">“ ' + esc(m.thoughts) + ' ”</div>'
+        + '  <div class="mem-summary-box">'
+        + '    <span class="summary-label">共话提要：</span>'
+        + '    <span class="summary-text">' + esc(m.summary) + '</span>'
+        + '  </div>'
+        + '</div>'
+
+        // 右栏：溯源归档点
+        + '<div class="mem-route-col right">'
+        + '  <button class="mem-archive-anchor-btn" data-archive-date="' + esc(m.dateStr) + '" data-char-id="' + esc(charData.id) + '" type="button">'
+        + '    <div class="anchor-circle"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>'
+        + '    <span class="anchor-label">对话溯源</span>'
+        + '    <span class="anchor-count">' + (m.rawChatCount || 0) + ' 条</span>'
+        + '  </button>'
+        + '</div>'
+        + '</div>';
+    });
+
+    html += '</div>';
+    body.innerHTML = html;
+  }
+
+  function bindStageEvents(stage, charData, userObj) {
+    function closeMemoryStage() {
+      stage.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s';
+      stage.style.transform = 'translateX(100%)';
+      stage.style.opacity = '0';
+      setTimeout(function () { stage.remove(); }, 250);
+    }
+
+    var backBtn = stage.querySelector('#memStageBackBtn');
+    if (backBtn) backBtn.addEventListener('click', closeMemoryStage);
+
+    // 今日手动结清
+    var triggerBtn = stage.querySelector('#memTriggerSummaryBtn');
+    if (triggerBtn) {
+      triggerBtn.addEventListener('click', function () {
+        if (window.AppDialog) {
+          window.AppDialog.confirm({
+            title: '今日记忆结清',
+            desc: '将把今天截至目前的所有聊天和心声提炼为一篇专属日记，并归档原始记录。确定结清吗？',
+            confirmText: '结清并写日记',
+            isDanger: false
+          }, function () {
+            if (window.AppNav) window.AppNav.showToast('正在翻看记录并撰写手账...');
+            checkAndTriggerMidnightSummary(charData.id, charData, userObj, function (newMem) {
+              if (newMem) {
+                renderMemoryTimeline(stage, charData);
+                if (window.AppNav) window.AppNav.showToast('✦ 今日记忆已成功结清入库 ✦');
+              } else {
+                if (window.AppNav) window.AppNav.showToast('今天暂无足够的聊天记录可供结清');
+              }
+            });
+          });
+        }
+      });
+    }
+
+    // 溯源抽屉打开
+    var drawer = stage.querySelector('#memDialogueDrawer');
+    var drawerMask = stage.querySelector('#memDrawerMask');
+    var drawerCloseBtn = stage.querySelector('#drawerCloseBtn');
+    var drawerTitle = stage.querySelector('#drawerDateTitle');
+    var drawerList = stage.querySelector('#drawerDialogueList');
+
+    function closeDrawer() {
+      if (drawer) drawer.classList.remove('show');
+      if (drawerMask) drawerMask.classList.remove('show');
+    }
+
+    if (drawerCloseBtn) drawerCloseBtn.addEventListener('click', closeDrawer);
+    if (drawerMask) drawerMask.addEventListener('click', closeDrawer);
+
+    stage.addEventListener('click', function (e) {
+      var anchorBtn = e.target.closest('[data-archive-date]');
+      if (anchorBtn) {
         e.stopPropagation();
-        var dKey = this.dataset.archiveDate;
-        var archivedMsgs = getArchiveMessages(currentChar.id, dKey);
-        var modalMsgs = mask.querySelector('#wxArchiveModalMsgs');
-        mask.querySelector('#wxArchiveModalTitle').textContent = dKey + ' · 对话原貌';
+        var dStr = anchorBtn.dataset.archiveDate;
+        var cId = anchorBtn.dataset.charId;
 
-        if (!archivedMsgs.length) {
-          modalMsgs.innerHTML = '<div class="mem-empty-box"><span>此日无原始对话记录</span></div>';
+        var archiveKey = ARCHIVE_KEY_PREFIX + cId + '_' + dStr;
+        var msgs = [];
+        try {
+          msgs = JSON.parse(localStorage.getItem(archiveKey) || '[]');
+        } catch (err) {}
+
+        drawerTitle.textContent = dStr + ' 原始对话溯源 (' + msgs.length + '条)';
+
+        if (!msgs.length) {
+          drawerList.innerHTML = '<div style="padding:40px 16px;text-align:center;color:#8e8e93;font-size:12px;">该日期的原始会话已精炼封存</div>';
         } else {
-          modalMsgs.innerHTML = archivedMsgs.map(function (m) {
-            var isUser = (m.sender === 'user' || m.role === 'user');
+          drawerList.innerHTML = msgs.map(function (m) {
+            var isUser = (m.role === 'user' || m.sender === 'user');
             var txt = m.cleanContent || m.content || m.text || '';
-            var timeStr = m.ts ? (' ' + fmtTime(m.ts)) : '';
-            return '<div class="archive-bubble-row' + (isUser ? ' user-side' : '') + '">'
-              + '<span class="archive-speaker">' + (isUser ? '墨墨' : charName) + timeStr + '</span>'
-              + '<div class="archive-bubble">' + esc(txt) + '</div>'
+            var voiceHtml = m.voiceObj ? '<div class="drawer-voice-quote">💭 心声: ' + esc(m.voiceObj.monologue) + '</div>' : '';
+
+            return '<div class="drawer-msg-row' + (isUser ? ' is-user' : '') + '">'
+              + '  <div class="drawer-msg-bubble">'
+              +      esc(txt)
+              +      voiceHtml
+              + '  </div>'
               + '</div>';
           }).join('');
         }
-        archiveModal.classList.add('show');
-      };
+
+        drawer.classList.add('show');
+        drawerMask.classList.add('show');
+      }
+    });
+
+    // 右滑返回手势
+    var startX = 0, startY = 0, currentX = 0, isSwiping = false;
+    stage.addEventListener('touchstart', function (e) {
+      if (e.touches[0].clientX > 45) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      currentX = 0;
+      isSwiping = true;
+      stage.style.transition = 'none';
+    }, { passive: true });
+
+    stage.addEventListener('touchmove', function (e) {
+      if (!isSwiping) return;
+      var diffX = e.touches[0].clientX - startX;
+      var diffY = e.touches[0].clientY - startY;
+      if (diffX > 0 && Math.abs(diffX) > Math.abs(diffY)) {
+        currentX = diffX;
+        stage.style.transform = 'translateX(' + currentX + 'px)';
+      }
+    }, { passive: true });
+
+    stage.addEventListener('touchend', function () {
+      if (!isSwiping) return;
+      isSwiping = false;
+      if (currentX > window.innerWidth * 0.28) {
+        closeMemoryStage();
+      } else {
+        stage.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+        stage.style.transform = 'translateX(0)';
+      }
     });
   }
 
-  function fmtTime(ts) {
-    var d = new Date(ts);
-    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  // ============ 4. 全局定时巡检午夜结清 ============
+  function startMidnightWatcher() {
+    setInterval(function () {
+      var now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() < 10) {
+        var charList = [];
+        try {
+          charList = JSON.parse(localStorage.getItem('character_archives_list_v1') || '[]');
+        } catch (e) {}
+
+        var userList = [];
+        try {
+          userList = JSON.parse(localStorage.getItem('user_archives_list_v3') || '[]');
+        } catch (e) {}
+
+        charList.forEach(function (c) {
+          var u = userList.find(function (x) { return x.id === c.boundUserId; }) || userList[0];
+          checkAndTriggerMidnightSummary(c.id, c, u, function () {});
+        });
+      }
+    }, 10000);
   }
 
+  startMidnightWatcher();
+
   window.WxChatMemory = {
-    filterToday: filterTodayMessages,
-    recall: recallPastDetails,
-    getMemories: getMemoryList,
-    checkRollover: checkAndTriggerMidnightRollover,
-    openCorridor: openMemoryCorridor
+    open: openMemoryStage,
+    getMemories: getCharMemories,
+    getPromptText: getMemoryPromptText,
+    triggerSummary: checkAndTriggerMidnightSummary
   };
 
 })();
