@@ -1,6 +1,5 @@
-
 /* ======================================================== */
-/* 全局快捷中枢悬浮球 (Floating Portal Core) - 极简高定版     */
+/* 全局快捷中枢悬浮球 (Floating Portal Core) - 高定纯净版     */
 /* ======================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
@@ -69,18 +68,18 @@
 }
 
 .orb-custom-icon-img {
-  width: 60%;
-  height: 60%;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
   display: block;
 }
 
 /* =========================================================
-   2. 5 个环绕圆按钮 (动态向量轴心定位)
+   2. 5 个环绕圆按钮 (44px 加大，文字居中嵌入圆内)
 ========================================================= */
 .portal-satellites-group {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 18990;
@@ -89,20 +88,18 @@
 .satellite-item-wrap {
   position: fixed;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
   cursor: pointer;
   opacity: 0;
-  transform: translate(-19px, -19px) scale(0);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
   pointer-events: none;
   z-index: 18995;
-  width: 38px;
-  height: auto !important; /* 1. 允许高度自适应，绝不上下挤压 */
-}
-.satellite-item-wrap:active {
-  transform: scale(0.88) !important;
+  width: 44px;
+  height: 44px;
+  touch-action: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
 }
 
 .portal-floating-orb.open ~ .portal-satellites-group .satellite-item-wrap {
@@ -110,40 +107,44 @@
   pointer-events: auto;
 }
 
+.portal-satellites-group.is-rotating .satellite-item-wrap {
+  transition: none !important;
+}
+
+/* 外层白底大正圆 (44px) */
 .satellite-circle-btn {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-  flex-shrink: 0 !important; /* 2. 核心：强制锁定正圆宽高比，绝对不许变扁 */
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  box-sizing: border-box;
+}
+.satellite-item-wrap:active .satellite-circle-btn {
+  transform: scale(0.9);
 }
 
+/* 内层浅蓝圆芯，文字居中 (32px) */
 .satellite-inner-blue {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #eaf2fa;
-  color: #000000;
+  color: #0f172a;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.satellite-label {
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 800;
-  color: #334155;
+  letter-spacing: 0.2px;
   line-height: 1;
-  letter-spacing: 0.3px;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
-  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 /* =========================================================
@@ -311,16 +312,15 @@
   align-items: flex-start;
 }
 
-/* 浮球样式定制行 */
+/* 浮球样式定制行 (点击左侧大预览框直接换图剪裁) */
 .orb-style-row {
-  padding: 14px;
+  padding: 12px 14px;
   background: #f8fafc;
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 14px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -329,13 +329,18 @@
   background: #f1f5f9;
 }
 .orb-style-preview-box {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.orb-style-preview-box:active {
+  transform: scale(0.92);
 }
 .orb-style-info-col {
   flex: 1;
@@ -353,27 +358,3 @@
   color: #64748b;
   line-height: 1.35;
 }
-.orb-upload-btn-sm {
-  padding: 6px 12px;
-  background: #111111;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-/* 旋转时关闭过渡动画，确保被按住的图标死死吸附在手指尖上 */
-.portal-satellites-group.is-rotating .satellite-item-wrap {
-  transition: none !important;
-}
-
-.satellite-item-wrap {
-  touch-action: none !important;
-}
-
-
-
-
-
