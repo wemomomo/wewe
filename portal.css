@@ -362,3 +362,17 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* 旋转时关闭过渡动画，确保被按住的图标死死吸附在手指尖上 */
+.portal-satellites-group.is-rotating .satellite-item-wrap {
+  transition: none !important;
+}
+
+.satellite-item-wrap {
+  touch-action: none !important;
+}
+
+
+
+
+
