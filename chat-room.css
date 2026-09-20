@@ -14,7 +14,7 @@
   width: 100vw !important;
   height: 100vh !important;
   background: #ffffff !important;
-  z-index: 10000 !important;
+  z-index: 10 !important;
   display: flex;
   flex-direction: column;
   overflow: hidden;
