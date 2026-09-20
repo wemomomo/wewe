@@ -83,7 +83,7 @@
     } catch(e) {}
   }
 
-  // 1. 纯净 PNG 立绘直选通道
+  // 1. 纯净 PNG 立绘直选通道（免裁剪，100% 保护透明通道，绝不转 JPEG 黑底）
   function pickRawPngPhoto(callback) {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -194,24 +194,24 @@
     satellitesGroup.id = 'satellitesGroup';
     satellitesGroup.innerHTML = ''
       + '<div class="satellite-item-wrap" data-idx="0" data-portal="mem">'
+      + '  <span class="satellite-label-top">记忆</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
-      + '  <span class="satellite-label-radial">记忆</span>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="1" data-portal="api">'
+      + '  <span class="satellite-label-top">API</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
-      + '  <span class="satellite-label-radial">API</span>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="2" data-portal="arch">'
+      + '  <span class="satellite-label-top">档案</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
-      + '  <span class="satellite-label-radial">档案</span>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="3" data-portal="notes">'
+      + '  <span class="satellite-label-top">便签</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
-      + '  <span class="satellite-label-radial">便签</span>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="4" data-portal="orbStyle">'
+      + '  <span class="satellite-label-top">浮球</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
-      + '  <span class="satellite-label-radial">浮球</span>'
       + '</div>';
 
     var panelMask = document.createElement('div');
@@ -248,7 +248,7 @@
     orb.className = 'portal-floating-orb ' + (isLeft ? 'align-left' : 'align-right') + ' style-' + orbConfig.mode + (orb.classList.contains('open') ? ' open' : '');
 
     if (orbConfig.mode === 'default') {
-      orb.innerHTML = '<img class="orb-custom-icon-img" src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" alt="Orb">';
+      orb.innerHTML = '<img class="orb-custom-icon-img" src="https://iili.io/nTN7lxs.md.png" alt="Orb">';
     } else if (orbConfig.mode === 'blackframe') {
       if (orbConfig.frameImg) {
         orb.innerHTML = '<img class="orb-frame-img" src="' + esc(orbConfig.frameImg) + '" alt="照片">';
@@ -264,13 +264,12 @@
     }
   }
 
-  // 严格设置 70px 半径，且让名字标签永远位于图标外端（径向发射对齐）
+  // 严格设置围绕距离为 70px，圆圈中心精准对齐
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 70; // 墨墨指定的 70 距离
-    var labelDist = 26; // 名字向外延伸贴在图标外端的距离
+    var radius = 70;
 
     var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
@@ -280,18 +279,9 @@
       var x = Math.cos(angle) * radius;
       var y = Math.sin(angle) * radius;
 
-      // 圆圈绝对坐标
       sat.style.left = Math.round(centerX + x - 19) + 'px';
-      sat.style.top = Math.round(centerY + y - 19) + 'px';
+      sat.style.top = Math.round(centerY + y - 31) + 'px';
       sat.style.transform = isOpen ? 'scale(1)' : 'scale(0)';
-
-      // 核心算法：名字永远沿着 (cos(angle), sin(angle)) 的外侧射线方向贴在最外端！
-      var label = sat.querySelector('.satellite-label-radial');
-      if (label) {
-        var lx = Math.cos(angle) * labelDist;
-        var ly = Math.sin(angle) * labelDist;
-        label.style.transform = 'translate(calc(-50% + ' + Math.round(lx) + 'px), calc(-50% + ' + Math.round(ly) + 'px))';
-      }
     });
   }
 
@@ -635,7 +625,7 @@
     });
   }
 
-  // 浮球样式定制面板
+  // 浮球样式定制面板（含 PNG URL 输入 & 历史立绘手账架带复制按钮）
   function renderOrbStyleSettings(container) {
     var orb = document.getElementById('portalOrb');
     var standeeHistory = getStandeeHistory();
@@ -654,9 +644,14 @@
         + '<div class="standee-history-shelf">'
         + standeeHistory.map(function(imgUrl, idx) {
             var isCur = (orbConfig.standeePng === imgUrl && orbConfig.mode === 'pngstandee');
-            return '<div class="standee-history-card' + (isCur ? ' active' : '') + '" data-pick-history="' + esc(imgUrl) + '">'
-              + '<img class="standee-history-img" src="' + esc(imgUrl) + '" alt="历史立绘">'
-              + '<span class="standee-del-x" data-del-history="' + idx + '">✕</span>'
+            return '<div class="standee-history-item-wrap">'
+              + '  <div class="standee-history-card' + (isCur ? ' active' : '') + '" data-pick-history="' + esc(imgUrl) + '">'
+              + '    <img class="standee-history-img" src="' + esc(imgUrl) + '" alt="历史立绘">'
+              + '    <span class="standee-del-x" data-del-history="' + idx + '">✕</span>'
+              + '  </div>'
+              + '  <button class="standee-copy-link-btn" data-copy-link="' + esc(imgUrl) + '" type="button" title="复制链接">'
+              + '    <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+              + '  </button>'
               + '</div>';
           }).join('')
         + '</div>';
@@ -665,7 +660,7 @@
     container.innerHTML = ''
       // 样式 1：默认球
       + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
-      + '  <div class="orb-style-preview-box" style="background:rgba(255,255,255,0.9); border:1px solid #cbd5e1;"><img src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>'
+      + '  <div class="orb-style-preview-box" style="background:rgba(255,255,255,0.9); border:1px solid #cbd5e1;"><img src="https://iili.io/nTN7lxs.md.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>'
       + '  <div class="orb-style-info-col">'
       + '    <div class="orb-style-title">默认球</div>'
       + '    <div class="orb-style-desc">专属图像居中圆球。</div>'
@@ -726,6 +721,7 @@
       });
     }
 
+    // URL 应用
     var urlInput = container.querySelector('#standeeUrlInput');
     var applyUrlBtn = container.querySelector('#standeeApplyUrlBtn');
     var pickLocalBtn = container.querySelector('#standeePickLocalBtn');
@@ -751,6 +747,7 @@
       pickLocalBtn.addEventListener('click', triggerPngPick);
     }
 
+    // 点击历史立绘卡片直接换装
     container.querySelectorAll('[data-pick-history]').forEach(function(card) {
       card.addEventListener('click', function(e) {
         if (e.target.closest('.standee-del-x')) return;
@@ -764,6 +761,26 @@
       });
     });
 
+    // 复制立绘链接到剪贴板
+    container.querySelectorAll('[data-copy-link]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var link = this.dataset.copyLink;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link);
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = link;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        if (window.AppNav) window.AppNav.showToast('链接已复制到剪贴板');
+      });
+    });
+
+    // 删除单张历史立绘
     container.querySelectorAll('[data-del-history]').forEach(function(xBtn) {
       xBtn.addEventListener('click', function(e) {
         e.stopPropagation();
