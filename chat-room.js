@@ -36,8 +36,9 @@
       voiceLevel: 'normal',    // 'normal'(平常) | 'obsession'(迷恋·深度)
       mainLang: '简体中文',     // 主要语言
       bilingual: false,        // 双语模式
-      biLang: 'English',       // 双语翻译目标语言
+            biLang: 'English',
       biStyle: 'bracket',      // 'bracket'(括号附注) | 'newline'(另起一行)
+      enFont: 'default',       // 'default' | 'caveat' | 'pinyon' | 'alex'
       minimax: false,          // MiniMax 语音开关
       mmVoiceId: '',           // MiniMax Voice ID
       mmApiKey: '',            // MiniMax API Key
@@ -687,7 +688,8 @@
       + '  </div>'
       + '  <div id="secBiSub" style="' + (cfg.bilingual ? '' : 'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px; display:flex; flex-direction:column; gap:8px;">'
       + '    <div class="gothic-row"><span>翻译为</span><select class="gothic-select" id="cfgBiLang"><option' + sv('biLang','English') + '>English</option><option' + sv('biLang','日本語') + '>日本語</option><option' + sv('biLang','한국어') + '>한국어</option><option' + sv('biLang','繁體中文') + '>繁體中文</option><option' + sv('biLang','粤语') + '>粤语</option></select></div>'
-      + '    <div class="gothic-row"><span>显示方式</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="bracket"' + (cfg.biStyle==='bracket'?' checked':'') + '><span class="cr-radio-circle"></span> 括号附注</label><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="newline"' + (cfg.biStyle==='newline'?' checked':'') + '><span class="cr-radio-circle"></span> 另起一行</label></div></div>'
+            + '    <div class="gothic-row"><span>显示方式</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="bracket"' + (cfg.biStyle==='bracket'?' checked':'') + '><span class="cr-radio-circle"></span> 括号附注</label><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="newline"' + (cfg.biStyle==='newline'?' checked':'') + '><span class="cr-radio-circle"></span> 另起一行</label></div></div>'
+      + '    <div class="gothic-row"><span>英文字体</span><select class="gothic-select" id="cfgEnFont"><option value="default"' + (cfg.enFont==='default'?' selected':'') + '>默认字体 (Sans)</option><option value="caveat"' + (cfg.enFont==='caveat'?' selected':'') + '>手写体 (Caveat)</option><option value="pinyon"' + (cfg.enFont==='pinyon'?' selected':'') + '>华丽宫廷贵族铜版体 (Pinyon Script)</option><option value="alex"' + (cfg.enFont==='alex'?' selected':'') + '>优雅流线墨水软笔体 (Alex Brush)</option></select></div>'
       + '  </div>'
       + '  <div class="gothic-row" style="border-top:1px dashed rgba(20,22,25,0.08); padding-top:8px;">'
       + '    <div class="gothic-row-label-col"><span class="gothic-label">MiniMax 语音</span><span class="gothic-desc">TTS 真实语音合成</span></div>'
@@ -791,7 +793,41 @@
       }
     }
 
-    return { text: raw || '...', voiceObj: voiceObj };
+        return { text: raw || '...', voiceObj: voiceObj };
+  }
+
+  // 格式化气泡双语排版（中文在上，虚线隔开，英文在下并应用选定英文字体）
+  function formatBubbleContent(rawContent, cfg) {
+    if (!cfg || !cfg.bilingual || cfg.biStyle !== 'newline') {
+      return esc(rawContent);
+    }
+
+    var fontClass = 'font-default';
+    if (cfg.enFont === 'caveat') fontClass = 'font-caveat';
+    else if (cfg.enFont === 'pinyon') fontClass = 'font-pinyon';
+    else if (cfg.enFont === 'alex') fontClass = 'font-alex';
+
+    var lines = rawContent.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    if (lines.length >= 2) {
+      var zhPart = lines[0];
+      var enPart = lines.slice(1).join(' ');
+      return '<div class="bilingual-newline-box">'
+        + '<div class="bilingual-main-text">' + esc(zhPart) + '</div>'
+        + '<div class="bilingual-divider-dash"></div>'
+        + '<div class="bilingual-trans-text ' + fontClass + '">' + esc(enPart) + '</div>'
+        + '</div>';
+    }
+
+    var bracketMatch = rawContent.match(/^([^\(（]+)[\(（]([^\)）]+)[\)）]$/);
+    if (bracketMatch) {
+      return '<div class="bilingual-newline-box">'
+        + '<div class="bilingual-main-text">' + esc(bracketMatch[1].trim()) + '</div>'
+        + '<div class="bilingual-divider-dash"></div>'
+        + '<div class="bilingual-trans-text ' + fontClass + '">' + esc(bracketMatch[2].trim()) + '</div>'
+        + '</div>';
+    }
+
+    return esc(rawContent);
   }
 
   function renderMessages() {
@@ -866,9 +902,10 @@
         var quoteHtml = m.quote ? '<div class="wx-msg-quote-bar">' + esc(m.quote) + '</div>' : '';
         var tailTimeHtml = (idx === total - 1) ? '<div class="bubble-tail-timestamp">' + fmtTime(m.ts || Date.now()) + '</div>' : '';
 
+                var formattedContent = formatBubbleContent(content, cfg);
         html += '<div class="wx-msg-bubble-item" data-bubble-idx="' + globalIdx + '">'
           + quoteHtml
-          + esc(content)
+          + formattedContent
           + heartHtml
           + '</div>'
           + tailTimeHtml;
@@ -1396,6 +1433,7 @@
       cfg.biLang = gv('cfgBiLang') || 'English';
       var rdoBiStyle = stage.querySelector('input[name="rdoBiStyle"]:checked');
       cfg.biStyle = rdoBiStyle ? rdoBiStyle.value : 'bracket';
+      cfg.enFont = gv('cfgEnFont') || 'default';
 
       cfg.minimax = stage.querySelector('#swMinimax') ? stage.querySelector('#swMinimax').classList.contains('on') : false;
       cfg.mmVoiceId = gv('cfgMmVoice') || '';
