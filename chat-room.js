@@ -232,10 +232,11 @@
     // 心声流露程度规范
     if (cfg.innerVoice) {
       var isObsession = (cfg.voiceLevel === 'obsession');
+      var transRule = '\n【特别注意】：若心声中使用外语/非中文，必须在每句外语后附带中文翻译。\n';
       if (isObsession) {
-        parts.push('【心声规范 - 迷恋（深度）】：\n欲望的本质、占有欲的根源；用最少的字传递最浓的情绪，点到即止。心声中展现出对「' + callName + '」深刻的渴望与隐秘的情愫。可输出1至3条精炼心声，条目间用顿号或分号隔开。\n输出格式：\n[心声: 1至3条内心真实暗涌 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
+        parts.push('【心声规范 - 迷恋（深度）】：\n欲望的本质、占有欲的根源；用最少的字传递最浓的情绪，点到即止。心声中展现出对「' + callName + '」深刻的渴望与隐秘的情愫。可输出1至3条精炼心声，条目间用顿号或分号隔开。' + transRule + '输出格式：\n[心声: 1至3条内心真实暗涌 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
       } else {
-        parts.push('【心声规范 - 平常】：\n展现自然真实的生活气息与内心情绪，可输出1至3条精炼心声，条目间用顿号或分号隔开。\n输出格式：\n[心声: 1至3条内心真实独白 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
+        parts.push('【心声规范 - 平常】：\n展现自然真实的生活气息与内心情绪，可输出1至3条精炼心声，条目间用顿号或分号隔开。' + transRule + '输出格式：\n[心声: 1至3条内心真实独白 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
       }
     }
 
@@ -262,6 +263,10 @@
     ctx.forEach(function(m) {
       var r = m.role || (m.sender === 'user' ? 'user' : 'assistant');
       var c = m.cleanContent || m.content || m.text || '';
+      if (r === 'assistant' && m.voiceObj) {
+        var vo = m.voiceObj;
+        c += '\n[心声: ' + vo.monologue + ' | 动作: ' + (vo.action || '') + ' | 独立心愿: ' + (vo.wish || '') + ']';
+      }
       if (r === 'user' || r === 'assistant') histMsgs.push({ role: r, content: c });
     });
 
@@ -623,13 +628,7 @@
         ? (currentChatUser ? (currentChatUser.customPolPhoto || currentChatUser.photo) : '')
         : (currentChatChar ? currentChatChar.photo : '');
 
-      html += '<div class="wx-msg-group' + (isUser ? ' user-side' : '') + '">'
-        + '<div class="wx-msg-avatar" data-avatar-side="' + (isUser ? 'user' : 'char') + '" title="点击查看档案详情">'
-        + (avatarSrc ? '<img src="' + esc(avatarSrc) + '">' : (isUser ? '墨' : '✦'))
-        + '</div>'
-        + '<div class="wx-msg-bubbles-col">';
-
-            // 1. 先在整组消息里智能搜寻心声对象
+      // 1. 先在整组消息里智能搜寻心声对象
       var groupVoiceObj = null;
       var groupVoiceIdx = -1;
       if (!isUser) {
@@ -646,6 +645,12 @@
           }
         });
       }
+
+      html += '<div class="wx-msg-group' + (isUser ? ' user-side' : '') + '">'
+        + '<div class="wx-msg-avatar">'
+        + (avatarSrc ? '<img src="' + esc(avatarSrc) + '">' : (isUser ? '墨' : '✦'))
+        + '</div>'
+        + '<div class="wx-msg-bubbles-col">';
 
       var total = g.msgs.length;
       g.msgs.forEach(function(item, idx) {
@@ -681,7 +686,7 @@
             formattedContent = '<div class="wx-sticker-card-img"><img src="' + esc(cache.url) + '" alt="' + esc(stkDesc) + '"></div>';
           } else if (cache && cache.loading) {
             formattedContent = '<div class="wx-sticker-loading-box"><span>🎨 正在绘制「' + esc(stkDesc) + '」...</span></div>';
-                   } else {
+          } else {
             formattedContent = '<div class="wx-sticker-fallback-pill">[' + esc(stkDesc) + '.jpg]</div>';
           }
         } else {
@@ -748,6 +753,19 @@
     var url = api.url.replace(/\/+$/, '') + '/chat/completions';
     var params = getParams(currentChatChar.id);
 
+    // 记录发起请求的日志
+    var currentLogId = null;
+    if (window.ChatLogger) {
+      currentLogId = window.ChatLogger.logRequest({
+        charId: currentChatChar.id,
+        charName: currentChatChar.name,
+        model: api.model,
+        temperature: params.temperature,
+        systemPrompt: apiMsgs[0] ? apiMsgs[0].content : '',
+        messages: apiMsgs
+      });
+    }
+
     isStreaming = true;
     streamPartialText = '';
     abortCtrl = new AbortController();
@@ -779,6 +797,12 @@
         return reader.read().then(function(result) {
           if (result.done) {
             onStreamDone(streamPartialText, cfg);
+            if (window.ChatLogger && currentLogId) {
+              window.ChatLogger.recordResponse(currentChatChar.id, currentLogId, {
+                rawText: streamPartialText,
+                isError: false
+              });
+            }
             return;
           }
           buffer += decoder.decode(result.value, { stream: true });
@@ -791,6 +815,12 @@
             var data = line.slice(5).trim();
             if (data === '[DONE]') {
               onStreamDone(streamPartialText, cfg);
+              if (window.ChatLogger && currentLogId) {
+                window.ChatLogger.recordResponse(currentChatChar.id, currentLogId, {
+                  rawText: streamPartialText,
+                  isError: false
+                });
+              }
               return;
             }
             if (!data) continue;
@@ -814,6 +844,13 @@
 
       var errMsg = err.message || String(err);
       var cnMsg = translateError(errMsg);
+
+      if (window.ChatLogger && currentLogId) {
+        window.ChatLogger.recordResponse(currentChatChar.id, currentLogId, {
+          isError: true,
+          errorMsg: errMsg
+        });
+      }
 
       // 错误消息留存在对话流中
       chatMessages.push({
@@ -1118,7 +1155,7 @@
       dismissCtxMenu();
     });
 
-    // 顶栏两大悬浮抽屉呼出（直接调用独立拆分模块）
+    // 顶栏两大悬浮抽屉呼出
     var moreBtn = stage.querySelector('#wxCrMoreBtn');
     if (moreBtn) {
       moreBtn.addEventListener('click', function(e) {
@@ -1219,7 +1256,7 @@
       }
     });
 
-    // ============ 长按菜单核心重构 ============
+    // ============ 长按菜单核心绑定 ============
     var ctxMenu = stage.querySelector('#wxCrCtxMenu');
     var ctxMask = stage.querySelector('#wxCrCtxMask');
     var currentCtxIdx = -1;
@@ -1284,7 +1321,7 @@
 
     stage.addEventListener('touchend', function() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } });
 
-        function bindCtxItemClicks() {
+    function bindCtxItemClicks() {
       if (!ctxMenu) return;
       ctxMenu.querySelectorAll('[data-ctx-act]').forEach(function(item) {
         item.addEventListener('click', function(e) {
@@ -1293,7 +1330,6 @@
           var targetIdx = currentCtxIdx;
           var targetMsg = chatMessages[targetIdx];
 
-          // 核心：先关闭悬浮小菜单，但保留 targetIdx 给确认弹窗使用
           dismissCtxMenu();
 
           if (!targetMsg || targetIdx < 0) return;
@@ -1322,16 +1358,19 @@
           } else if (act === 'del') {
             var doDelete = function() {
               if (targetIdx >= 0) {
+                if (chatMessages[targetIdx] && chatMessages[targetIdx].voiceObj) {
+                  delete chatMessages[targetIdx].voiceObj;
+                }
                 chatMessages.splice(targetIdx, 1);
                 saveChatMessages(currentChatChar.id);
                 renderMessages();
-                if (window.AppNav) window.AppNav.showToast('消息已删除');
+                if (window.AppNav) window.AppNav.showToast('消息及对应心声已删除');
               }
             };
             if (window.AppDialog) {
               window.AppDialog.confirm({
                 title: '删除消息',
-                desc: '确定删除这条消息吗？',
+                desc: '确定删除这条消息（及当时的心声）吗？',
                 confirmText: '确认删除',
                 isDanger: true
               }, doDelete);
@@ -1341,22 +1380,27 @@
           } else if (act === 'delFromHere') {
             var doDeleteAfter = function() {
               if (targetIdx >= 0) {
+                for (var i = targetIdx; i < chatMessages.length; i++) {
+                  if (chatMessages[i] && chatMessages[i].voiceObj) {
+                    delete chatMessages[i].voiceObj;
+                  }
+                }
                 chatMessages.splice(targetIdx);
                 saveChatMessages(currentChatChar.id);
                 renderMessages();
-                if (window.AppNav) window.AppNav.showToast('已删除后续所有消息');
+                if (window.AppNav) window.AppNav.showToast('已删除后续所有消息及心声');
               }
             };
 
             if (window.AppDialog) {
               window.AppDialog.confirm({
                 title: '往后全删',
-                desc: '确定删除这条消息及之后的所有记录吗？',
+                desc: '确定删除这条及之后的所有消息与心声记录吗？',
                 confirmText: '确定清空后续',
                 isDanger: true
               }, doDeleteAfter);
             } else {
-              if (confirm('确定删除这条消息及之后的所有记录吗？')) {
+              if (confirm('确定删除这条及之后的所有消息与心声记录吗？')) {
                 doDeleteAfter();
               }
             }
@@ -1365,6 +1409,13 @@
             isStreaming = false;
             updateTypingUI(false);
             var isUserMsg = (targetMsg.role === 'user' || targetMsg.sender === 'user');
+            
+            for (var k = targetIdx; k < chatMessages.length; k++) {
+              if (chatMessages[k] && chatMessages[k].voiceObj) {
+                delete chatMessages[k].voiceObj;
+              }
+            }
+
             if (isUserMsg) {
               var userText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
               chatMessages.splice(targetIdx);
