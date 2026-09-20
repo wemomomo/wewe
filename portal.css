@@ -436,3 +436,14 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* 默认悬浮球内的专属居中图片（填满纯净圆球） */
+.orb-custom-icon-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+
