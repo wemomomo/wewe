@@ -69,8 +69,8 @@
 }
 
 .orb-custom-icon-img {
-  width: 80%;
-  height: 80%;
+  width: 60%;
+  height: 60%;
   border-radius: 50%;
   object-fit: cover;
   display: block;
@@ -99,7 +99,7 @@
   pointer-events: none;
   z-index: 18995;
   width: 38px;
-  height: 38px;
+  height: auto !important; /* 1. 允许高度自适应，绝不上下挤压 */
 }
 .satellite-item-wrap:active {
   transform: scale(0.88) !important;
@@ -120,6 +120,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  flex-shrink: 0 !important; /* 2. 核心：强制锁定正圆宽高比，绝对不许变扁 */
 }
 
 .satellite-inner-blue {
