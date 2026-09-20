@@ -56,7 +56,7 @@
     } catch(e) {}
   }
 
-  // 苹果手机安全相册选择器（原生直接调起）
+  // 苹果手机安全相册选择器
   function pickUserPhoto(callback) {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -182,7 +182,6 @@
     bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard);
   }
 
-  // 渲染浮球真实形态（无任何默认假图）
   function applyOrbAppearance(orb) {
     if (!orb) orb = document.getElementById('portalOrb');
     if (!orb) return;
@@ -211,9 +210,9 @@
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 78;
+    var radius = 70;
 
-    var arcOffsets = [-1.42, -0.76, 0, 0.66, 1.32];
+    var arcOffsets = [-1.52, -0.86, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
@@ -238,16 +237,14 @@
       orb.classList.toggle('open');
       syncSatellites();
     }
-    function closeOrb() {
-      orb.classList.remove('open');
-      syncSatellites();
-    }
 
+    // 点击主球：展开或收起
     orb.addEventListener('click', function () {
       if (orb._isDragged) return;
       toggleOrbOpen();
     });
 
+    // 点击卫星圆钮：打开对应功能面板，但绝不自动收起围绕图标！
     satellites.forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         if (this._hasRotated) {
@@ -256,7 +253,6 @@
         }
         e.stopPropagation();
         var portalType = this.dataset.portal;
-        closeOrb();
 
         if (portalType === 'arch') {
           panelMask.classList.remove('show');
@@ -277,11 +273,13 @@
       });
     });
 
+    // 点击背景遮罩关闭面板，图标依然保持展开
     panelMask.addEventListener('click', function () {
       panelMask.classList.remove('show');
       panelCard.classList.remove('show');
     });
 
+    // 点击面板右上角叉号关闭面板，图标依然保持展开
     var closeBtn = panelCard.querySelector('#panelCloseBtn');
     if (closeBtn) {
       closeBtn.addEventListener('click', function () {
@@ -407,7 +405,7 @@
     })();
   }
 
-  // ============ 5. 其余面板渲染中枢 ============
+  // ============ 5. 面板渲染中枢 ============
   function openFeaturePanel(type, panelMask, panelCard) {
     panelMask.classList.add('show');
     panelCard.classList.add('show');
@@ -572,7 +570,6 @@
     });
   }
 
-  // 浮球样式定制面板（彻底消灭一切假图，直连相册选择）
   function renderOrbStyleSettings(container) {
     var orb = document.getElementById('portalOrb');
 
@@ -585,7 +582,6 @@
       : '<span style="font-size:18px;font-weight:bold;color:#888;">+</span>';
 
     container.innerHTML = ''
-      // 样式 1：默认球（居中墨墨给的照片）
       + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
       + '  <div class="orb-style-preview-box" style="background:rgba(255,255,255,0.9); border:1px solid #cbd5e1;"><img src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>'
       + '  <div class="orb-style-info-col">'
@@ -594,7 +590,6 @@
       + '  </div>'
       + '</div>'
 
-      // 样式 2：黑边框相框 + 自定义照片
       + '<div class="orb-style-row ' + (orbConfig.mode === 'blackframe' ? 'active' : '') + '" data-set-orb="blackframe">'
       + '  <div class="orb-style-preview-box" style="border:2px solid #111; overflow:hidden; background:#ffffff;">' + framePreviewInner + '</div>'
       + '  <div class="orb-style-info-col">'
@@ -604,7 +599,6 @@
       + '  <button class="orb-upload-btn-sm" data-upload="frame" type="button">' + (orbConfig.frameImg ? '换图' : '上传') + '</button>'
       + '</div>'
 
-      // 样式 3：完全纯净透明底 PNG 立绘
       + '<div class="orb-style-row ' + (orbConfig.mode === 'pngstandee' ? 'active' : '') + '" data-set-orb="pngstandee">'
       + '  <div class="orb-style-preview-box" style="background:transparent; border:1px dashed #cbd5e1;">' + standeePreviewInner + '</div>'
       + '  <div class="orb-style-info-col">'
