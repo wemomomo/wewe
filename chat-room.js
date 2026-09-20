@@ -34,11 +34,15 @@
       historyLimit: 20,        // 记忆深度/历史轮数 (0表示不限制，最高1000)
       innerVoice: true,        // 心声流露开关
       voiceLevel: 'normal',    // 'normal'(平常) | 'obsession'(迷恋·深度)
-      mainLang: '简体中文',
-      bilingual: false,
-      biLang: 'English',
-      biStyle: 'bracket',
-      minimax: false,
+      mainLang: '简体中文',     // 主要语言
+      bilingual: false,        // 双语模式
+      biLang: 'English',       // 双语翻译目标语言
+      biStyle: 'bracket',      // 'bracket'(括号附注) | 'newline'(另起一行)
+      minimax: false,          // MiniMax 语音开关
+      mmVoiceId: '',           // MiniMax Voice ID
+      mmApiKey: '',            // MiniMax API Key
+      mmSpeed: 1,              // 语速 0.5 ~ 2.0
+      mmPitch: 0,              // 音调 -12 ~ +12
       proactive: false,
       proMinInterval: 15,
       proMaxInterval: 120,
@@ -159,7 +163,7 @@
     return info;
   }
 
-  // ============ 3. 消息智能切分 ============
+  // ============ 3. 消息切分与错误翻译 ============
   function smartSplitMessages(text) {
     text = (text || '').trim();
     if (!text) return [];
@@ -230,8 +234,19 @@
     var maxM = Math.max(1, cfg.maxMsgs || 3);
 
     var parts = [];
-    parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。');
+    var mainLang = cfg.mainLang || '简体中文';
+    parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。主要使用' + mainLang + '进行交流。');
     parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实生活气息。严禁长篇大论。');
+
+    // 双语模式指令
+    if (cfg.bilingual) {
+      var biLang = cfg.biLang || 'English';
+      if (cfg.biStyle === 'newline') {
+        parts.push('【双语模式】：每条消息下方另起一行附带' + biLang + '翻译。');
+      } else {
+        parts.push('【双语模式】：每条消息后使用括号附带' + biLang + '翻译。');
+      }
+    }
 
     // 注入当前背景与场景补充
     if (cfg.sceneText && cfg.sceneText.trim()) {
@@ -656,10 +671,46 @@
       + '  </div>'
       + '</div>'
 
-      // 05. API 对话配置
+      // 05. 语言与语音 (墨墨专属补全)
       + '<div class="gothic-card">'
       + '  <div class="gothic-head-row">'
-      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 05</span><span class="gothic-sec-title">API 对话配置</span></div>'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 05</span><span class="gothic-sec-title">语言与语音</span></div>'
+      + '    <span class="gothic-sec-en">Language & TTS</span>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">主要语言</span>'
+      + '    <select class="gothic-select" id="cfgMainLang"><option' + sv('mainLang','简体中文') + '>简体中文</option><option' + sv('mainLang','繁體中文') + '>繁體中文</option><option' + sv('mainLang','粤语') + '>粤语</option><option' + sv('mainLang','English') + '>English</option><option' + sv('mainLang','日本語') + '>日本語</option><option' + sv('mainLang','한국어') + '>한국어</option></select>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <div class="gothic-row-label-col"><span class="gothic-label">双语模式</span><span class="gothic-desc">每条消息附带双语翻译</span></div>'
+      + '    <div class="wx-switch' + (cfg.bilingual ? ' on' : '') + '" id="swBilingual"><div class="wx-switch-knob"></div></div>'
+      + '  </div>'
+      + '  <div id="secBiSub" style="' + (cfg.bilingual ? '' : 'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px; display:flex; flex-direction:column; gap:8px;">'
+      + '    <div class="gothic-row"><span>翻译为</span><select class="gothic-select" id="cfgBiLang"><option' + sv('biLang','English') + '>English</option><option' + sv('biLang','日本語') + '>日本語</option><option' + sv('biLang','한국어') + '>한국어</option><option' + sv('biLang','繁體中文') + '>繁體中文</option><option' + sv('biLang','粤语') + '>粤语</option></select></div>'
+      + '    <div class="gothic-row"><span>显示方式</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="bracket"' + (cfg.biStyle==='bracket'?' checked':'') + '><span class="cr-radio-circle"></span> 括号附注</label><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="newline"' + (cfg.biStyle==='newline'?' checked':'') + '><span class="cr-radio-circle"></span> 另起一行</label></div></div>'
+      + '  </div>'
+      + '  <div class="gothic-row" style="border-top:1px dashed rgba(20,22,25,0.08); padding-top:8px;">'
+      + '    <div class="gothic-row-label-col"><span class="gothic-label">MiniMax 语音</span><span class="gothic-desc">TTS 真实语音合成</span></div>'
+      + '    <div class="wx-switch' + (cfg.minimax ? ' on' : '') + '" id="swMinimax"><div class="wx-switch-knob"></div></div>'
+      + '  </div>'
+      + '  <div id="secMmSub" style="' + (cfg.minimax ? '' : 'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px; display:flex; flex-direction:column; gap:8px;">'
+      + '    <div class="gothic-row"><span>Voice ID</span><input class="gothic-input" id="cfgMmVoice" placeholder="粘贴 MiniMax Voice ID..." value="' + esc(cfg.mmVoiceId || '') + '"></div>'
+      + '    <div class="gothic-row"><span>API Key</span><input class="gothic-input" id="cfgMmKey" placeholder="MiniMax API Key..." value="' + esc(cfg.mmApiKey || '') + '"></div>'
+      + '    <div class="metric-gauge-box">'
+      + '      <div class="gauge-head"><span class="gauge-title">语速</span><span class="gauge-val-tag" id="txtMmSpeedVal">' + (cfg.mmSpeed || 1) + 'x</span></div>'
+      + '      <div class="gauge-slider-deck"><span class="gauge-bound">0.5x</span><input class="gothic-range" id="cfgMmSpeed" type="range" min="0.5" max="2" step="0.1" value="' + (cfg.mmSpeed || 1) + '"><span class="gauge-bound">2.0x</span></div>'
+      + '    </div>'
+      + '    <div class="metric-gauge-box">'
+      + '      <div class="gauge-head"><span class="gauge-title">音调</span><span class="gauge-val-tag" id="txtMmPitchVal">' + ((cfg.mmPitch || 0) > 0 ? '+' : '') + (cfg.mmPitch || 0) + '</span></div>'
+      + '      <div class="gauge-slider-deck"><span class="gauge-bound">-12</span><input class="gothic-range" id="cfgMmPitch" type="range" min="-12" max="12" step="1" value="' + (cfg.mmPitch || 0) + '"><span class="gauge-bound">+12</span></div>'
+      + '    </div>'
+      + '  </div>'
+      + '</div>'
+
+      // 06. API 对话配置
+      + '<div class="gothic-card">'
+      + '  <div class="gothic-head-row">'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 06</span><span class="gothic-sec-title">API 对话配置</span></div>'
       + '    <span class="gothic-sec-en">API Mode</span>'
       + '  </div>'
       + '  <div class="gothic-row">'
@@ -672,10 +723,10 @@
       + '  </div>'
       + '</div>'
 
-      // 06. 情境与天气感知
+      // 07. 情境与天气感知
       + '<div class="gothic-card">'
       + '  <div class="gothic-head-row">'
-      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 06</span><span class="gothic-sec-title">情境与天气感知</span></div>'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 07</span><span class="gothic-sec-title">情境与天气感知</span></div>'
       + '    <span class="gothic-sec-en">Atmosphere</span>'
       + '  </div>'
       + '  <div class="gothic-row">'
@@ -692,10 +743,10 @@
       + '  </div>'
       + '</div>'
 
-      // 07. 表情包生成 API 通道
+      // 08. 表情包生成 API 通道
       + '<div class="gothic-card">'
       + '  <div class="gothic-head-row">'
-      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 07</span><span class="gothic-sec-title">表情包生成 API 通道</span></div>'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 08</span><span class="gothic-sec-title">表情包生成 API 通道</span></div>'
       + '    <span class="gothic-sec-en">Sticker Gen</span>'
       + '  </div>'
       + '  <div class="gothic-row">'
@@ -1338,6 +1389,29 @@
         if (txtP) txtP.textContent = cfg.presPenalty;
       }
 
+      // 语言与语音
+      cfg.mainLang = gv('cfgMainLang') || '简体中文';
+      cfg.bilingual = stage.querySelector('#swBilingual') ? stage.querySelector('#swBilingual').classList.contains('on') : false;
+      cfg.biLang = gv('cfgBiLang') || 'English';
+      var rdoBiStyle = stage.querySelector('input[name="rdoBiStyle"]:checked');
+      cfg.biStyle = rdoBiStyle ? rdoBiStyle.value : 'bracket';
+
+      cfg.minimax = stage.querySelector('#swMinimax') ? stage.querySelector('#swMinimax').classList.contains('on') : false;
+      cfg.mmVoiceId = gv('cfgMmVoice') || '';
+      cfg.mmApiKey = gv('cfgMmKey') || '';
+      var mmSpeedEl = stage.querySelector('#cfgMmSpeed');
+      if (mmSpeedEl) {
+        cfg.mmSpeed = parseFloat(mmSpeedEl.value) || 1;
+        var txtSpd = stage.querySelector('#txtMmSpeedVal');
+        if (txtSpd) txtSpd.textContent = cfg.mmSpeed + 'x';
+      }
+      var mmPitchEl = stage.querySelector('#cfgMmPitch');
+      if (mmPitchEl) {
+        cfg.mmPitch = parseInt(mmPitchEl.value, 10) || 0;
+        var txtPtc = stage.querySelector('#txtMmPitchVal');
+        if (txtPtc) txtPtc.textContent = (cfg.mmPitch > 0 ? '+' : '') + cfg.mmPitch;
+      }
+
       cfg.apiMode = stage.querySelector('#swIndividualApi') && stage.querySelector('#swIndividualApi').classList.contains('on') ? 'individual' : 'global';
       cfg.apiSelect = gv('cfgApiSelect') || '';
       cfg.timeWeather = stage.querySelector('#swTimeWeather') ? stage.querySelector('#swTimeWeather').classList.contains('on') : true;
@@ -1370,6 +1444,14 @@
           var rowVoice = stage.querySelector('#rowVoiceLevel');
           if (rowVoice) rowVoice.style.display = this.classList.contains('on') ? 'flex' : 'none';
         }
+        if (this.id === 'swBilingual') {
+          var secBi = stage.querySelector('#secBiSub');
+          if (secBi) secBi.style.display = this.classList.contains('on') ? 'flex' : 'none';
+        }
+        if (this.id === 'swMinimax') {
+          var secMm = stage.querySelector('#secMmSub');
+          if (secMm) secMm.style.display = this.classList.contains('on') ? 'flex' : 'none';
+        }
         syncSettingFields();
       });
     });
@@ -1390,7 +1472,7 @@
       });
     });
 
-    stage.querySelectorAll('input[name="rdoVoiceLevel"]').forEach(function(r) {
+    stage.querySelectorAll('input[name="rdoVoiceLevel"], input[name="rdoBiStyle"]').forEach(function(r) {
       r.addEventListener('change', syncSettingFields);
     });
 
