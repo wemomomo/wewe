@@ -4,44 +4,50 @@
 /* ======================================================== */
 
 .wx-cr-beautify-mask {
-  position: fixed;
-  inset: 0;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  z-index: 15000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 16px;
+  z-index: 15000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px 16px !important;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 .wx-cr-beautify-mask.show {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .wx-cr-beautify-card {
-  width: 100%;
-  max-width: 340px;
-  max-height: 75vh;
+  width: 100% !important;
+  max-width: 340px !important;
+  max-height: 75vh !important;
   background: rgba(255, 255, 255, 0.5) !important;
   backdrop-filter: blur(6px) !important;
   -webkit-backdrop-filter: blur(6px) !important;
-  border-radius: 24px;
+  border-radius: 24px !important;
   border: 1px solid rgba(255, 255, 255, 0.8) !important;
   box-shadow: 0 16px 45px rgba(0, 0, 0, 0.1) !important;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
   transform: scale(0.92);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
 }
 .wx-cr-beautify-mask.show .wx-cr-beautify-card {
-  transform: scale(1);
+  transform: scale(1) !important;
 }
 
 .wx-cr-btf-body {
@@ -77,8 +83,14 @@
   border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
 }
 
+.btf-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
 .btf-sec-roman {
-  font-family: 'Caveat', cursive;
+  font-family: 'Caveat', cursive, sans-serif;
   font-size: 19px;
   font-weight: 700;
   color: #111111;
@@ -92,30 +104,11 @@
 }
 
 .btf-sec-en {
-  font-family: 'Caveat', cursive !important;
+  font-family: 'Caveat', cursive, sans-serif !important;
   font-size: 17px !important;
   font-weight: 700 !important;
   color: #555555;
   letter-spacing: 1px;
-}
-
-.btf-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 0;
-}
-
-.btf-label {
-  font-size: 13.5px !important;
-  font-weight: 700;
-  color: #111111;
-}
-
-.btf-desc {
-  font-size: 12px !important;
-  color: #555555 !important;
-  line-height: 1.4;
 }
 
 .btf-preview-box {
@@ -132,6 +125,7 @@
   position: relative;
   background-size: cover;
   background-position: center;
+  box-sizing: border-box;
 }
 
 .btf-preview-tip {
