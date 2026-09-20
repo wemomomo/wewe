@@ -1721,47 +1721,45 @@
       }
     });
 
-    // 长按消息两行黑色悬浮菜单
+        // ============ 长按菜单核心重构 (撤回/翻译/拍一拍/含本条全删的重发) ============
     var ctxMenu = stage.querySelector('#wxCrCtxMenu');
     var ctxMask = stage.querySelector('#wxCrCtxMask');
     var currentCtxIdx = -1;
+    var pressTimer = null, pressStartX = 0, pressStartY = 0, isPressScrolling = false;
 
     function dismissCtxMenu() {
       if (ctxMenu) ctxMenu.style.display = 'none';
       if (ctxMask) ctxMask.classList.remove('show');
       currentCtxIdx = -1;
     }
-
     if (ctxMask) ctxMask.addEventListener('click', dismissCtxMenu);
 
-    var pressTimer = null;
     stage.addEventListener('touchstart', function(e) {
       var bubble = e.target.closest('[data-bubble-idx]');
       if (!bubble) return;
+      pressStartX = e.touches[0].clientX; pressStartY = e.touches[0].clientY; isPressScrolling = false;
       var idx = parseInt(bubble.dataset.bubbleIdx, 10);
+      if (pressTimer) clearTimeout(pressTimer);
 
       pressTimer = setTimeout(function () {
+        if (isPressScrolling) return;
         currentCtxIdx = idx;
         var targetMsg = chatMessages[idx];
         if (!targetMsg) return;
+        if (navigator.vibrate) navigator.vibrate(12);
 
         var isUser = (targetMsg.role === 'user' || targetMsg.sender === 'user');
-
-        // 第一行：常用操作与社交
         var row1 = '<div class="cr-ctx-menu-row">'
           + '<div class="cr-ctx-item" data-ctx-act="quote"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>引用</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span></div>'
-          + '<div class="cr-ctx-item" data-ctx-act="edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>编辑</span></div>';
+          + '<div class="cr-ctx-item" data-ctx-act="translate"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg><span>翻译</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="pat"><svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/></svg><span>拍一拍</span></div>'
+          + '</div>';
 
-        if (!isUser) {
-          row1 += '<div class="cr-ctx-item" data-ctx-act="fav"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>收藏</span></div>'
-            + '<div class="cr-ctx-item" data-ctx-act="share"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>转发</span></div>';
-        }
-        row1 += '</div>';
-
-        // 第二行：重发与删除类
-        var row2 = '<div class="cr-ctx-menu-row">'
-          + '<div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>' + (isUser ? '重发' : '重现') + '</span></div>'
+        var row2 = '<div class="cr-ctx-menu-row">';
+        if (isUser) row2 += '<div class="cr-ctx-item" data-ctx-act="recall"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span>撤回</span></div>';
+        row2 += '<div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>' + (isUser ? '重发' : '重现') + '</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>编辑</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg><span>删除</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="delFromHere"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><polyline points="8 21 12 17 16 21"/></svg><span>后面全删</span></div>'
           + '</div>';
@@ -1769,27 +1767,30 @@
         if (ctxMenu) {
           ctxMenu.innerHTML = row1 + row2;
           bindCtxItemClicks();
-
           var rect = bubble.getBoundingClientRect();
-          var top = Math.max(70, rect.top);
           var left = Math.min(window.innerWidth - 130, Math.max(130, rect.left + rect.width / 2));
-
-          ctxMenu.style.top = top + 'px';
-          ctxMenu.style.left = left + 'px';
-          ctxMenu.style.display = 'flex';
+          if (rect.top < 110) { ctxMenu.style.top = (rect.bottom + 8) + 'px'; ctxMenu.style.transform = 'translate(-50%, 0)'; }
+          else { ctxMenu.style.top = (rect.top - 8) + 'px'; ctxMenu.style.transform = 'translate(-50%, -100%)'; }
+          ctxMenu.style.left = left + 'px'; ctxMenu.style.display = 'flex';
         }
         if (ctxMask) ctxMask.classList.add('show');
-      }, 450);
-    });
+      }, 400);
+    }, { passive: true });
 
-    stage.addEventListener('touchend', function() {
-      clearTimeout(pressTimer);
-    });
+    stage.addEventListener('touchmove', function(e) {
+      if (!pressTimer) return;
+      if (Math.abs(e.touches[0].clientX - pressStartX) > 6 || Math.abs(e.touches[0].clientY - pressStartY) > 6) {
+        isPressScrolling = true; clearTimeout(pressTimer); pressTimer = null;
+      }
+    }, { passive: true });
+
+    stage.addEventListener('touchend', function() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } });
 
     function bindCtxItemClicks() {
       if (!ctxMenu) return;
       ctxMenu.querySelectorAll('[data-ctx-act]').forEach(function(item) {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
           var act = this.dataset.ctxAct;
           var targetMsg = chatMessages[currentCtxIdx];
           dismissCtxMenu();
@@ -1797,57 +1798,61 @@
 
           if (act === 'quote') {
             replyingMsg = targetMsg;
-            input.placeholder = '回复 ' + (targetMsg.sender === 'user' ? '自己' : currentChatChar.name) + '...';
+            input.placeholder = '回复 ' + (targetMsg.sender === 'user' ? '自己' : (currentChatChar ? currentChatChar.name : 'Ta')) + '...';
             input.focus();
           } else if (act === 'copy') {
             var textToCopy = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(textToCopy);
-            }
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(textToCopy);
             if (window.AppNav) window.AppNav.showToast('已复制到剪贴板');
+          } else if (act === 'translate') {
+            if (targetMsg.translation) { delete targetMsg.translation; renderMessages(); return; }
+            var rawText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
+            var api = getActiveApi(currentChatChar.id);
+            if (!api || !api.url || !api.key) { if (window.AppNav) window.AppNav.showToast('请先配置 API 接口'); return; }
+            fetch(api.url.replace(/\/+$/, '') + '/chat/completions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + api.key },
+              body: JSON.stringify({ model: api.model, messages: [{ role: 'system', content: '精准翻译。中文翻英文，非中文翻简体中文。只输出译文。' }, { role: 'user', content: rawText }], temperature: 0.3 })
+            }).then(function(r){ return r.json(); }).then(function(d){
+              var trans = d.choices && d.choices[0] && d.choices[0].message ? d.choices[0].message.content : '';
+              if (trans) { targetMsg.translation = trans.trim(); saveChatMessages(currentChatChar.id); renderMessages(); }
+            }).catch(function(){ if (window.AppNav) window.AppNav.showToast('翻译异常，请检查网络'); });
+          } else if (act === 'pat') {
+            var who = targetMsg.sender === 'user' ? '自己' : (currentChatChar.name || 'Ta');
+            chatMessages.push({ isSystem: true, text: '你拍了拍「' + who + '」', ts: Date.now() });
+            saveChatMessages(currentChatChar.id); renderMessages();
+          } else if (act === 'recall') {
+            var recalledText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
+            chatMessages.splice(currentCtxIdx, 1, { isSystem: true, text: '你撤回了一条消息', recalledContent: recalledText, ts: Date.now() });
+            saveChatMessages(currentChatChar.id); renderMessages();
+            input.value = recalledText; input.focus();
           } else if (act === 'edit') {
             var oldText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
-            var newText = prompt('编辑这条消息：', oldText);
+            var newText = prompt('编辑这条消息内容：', oldText);
             if (newText !== null && newText.trim()) {
-              targetMsg.content = newText.trim();
-              targetMsg.cleanContent = newText.trim();
-              saveChatMessages(currentChatChar.id);
-              renderMessages();
+              targetMsg.content = newText.trim(); targetMsg.cleanContent = newText.trim();
+              saveChatMessages(currentChatChar.id); renderMessages();
             }
-          } else if (act === 'fav') {
-            if (window.AppNav) window.AppNav.showToast('✦ 已加入我的微信收藏 ✦');
-          } else if (act === 'share') {
-            if (window.AppNav) window.AppNav.showToast('✦ 消息转发功能已就绪 ✦');
           } else if (act === 'del') {
             chatMessages.splice(currentCtxIdx, 1);
-            saveChatMessages(currentChatChar.id);
-            renderMessages();
+            saveChatMessages(currentChatChar.id); renderMessages();
           } else if (act === 'delFromHere') {
             if (confirm('确定删除此条消息之后的所有记录吗？')) {
               chatMessages.splice(currentCtxIdx + 1);
-              saveChatMessages(currentChatChar.id);
-              renderMessages();
-              if (window.AppNav) window.AppNav.showToast('已删除此条之后的所有消息');
+              saveChatMessages(currentChatChar.id); renderMessages();
             }
           } else if (act === 'resend') {
-            if (targetMsg.role === 'user' || targetMsg.sender === 'user') {
-              var userText = targetMsg.cleanContent || targetMsg.content || targetMsg.text;
-              chatMessages.splice(currentCtxIdx);
-              chatMessages.push({
-                role: 'user',
-                sender: 'user',
-                content: userText,
-                ts: Date.now()
-              });
+            if (abortCtrl) { abortCtrl.abort(); abortCtrl = null; }
+            isStreaming = false; updateTypingUI(false);
+            var isUserMsg = (targetMsg.role === 'user' || targetMsg.sender === 'user');
+            if (isUserMsg) {
+              var userText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
+              chatMessages.splice(currentCtxIdx); // 包含本条及后续全删
+              chatMessages.push({ role: 'user', sender: 'user', content: userText, ts: Date.now() });
             } else {
-              var startIdx = currentCtxIdx;
-              while (startIdx > 0 && (chatMessages[startIdx - 1].role === 'assistant' || chatMessages[startIdx - 1].sender === 'char')) {
-                startIdx--;
-              }
-              chatMessages.splice(startIdx);
+              chatMessages.splice(currentCtxIdx); // 包含本条及后续全删
             }
-            saveChatMessages(currentChatChar.id);
-            renderMessages();
+            saveChatMessages(currentChatChar.id); renderMessages();
             requestAIStream();
           }
         });
