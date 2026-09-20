@@ -12,19 +12,67 @@
     return 'wx_chat_logs_' + (charId || 'default');
   }
 
-  function getLogs(charId) {
-    try {
-      return JSON.parse(localStorage.getItem(getLogKey(charId)) || '[]');
-    } catch (e) {
-      return [];
+  // ============ 从 AppDB 获取当前激活的角色 ============
+  function fetchCurrentActiveChar(callback) {
+    function doFetch() {
+      if (!window.AppDB) {
+        if (callback) callback(null);
+        return;
+      }
+      window.AppDB.get('character_archives_list_v1', function (cList) {
+        var charList = Array.isArray(cList) ? cList.filter(function (c) {
+          return !c.id || !c.id.startsWith('user_');
+        }) : [];
+
+        if (!charList.length) {
+          if (callback) callback(null);
+          return;
+        }
+
+        // 1. 若当前在聊天中，优先选用当前聊天的角色
+        if (window._chatActiveCharId) {
+          var found = charList.find(function (c) { return c.id === window._chatActiveCharId; });
+          if (found) { if (callback) callback(found); return; }
+        }
+
+        // 2. 否则读取当前激活角色 ID
+        window.AppDB.get('character_archive_active_id_v1', function (activeCId) {
+          var activeChar = null;
+          if (activeCId) {
+            activeChar = charList.find(function (c) { return c.id === activeCId; });
+          }
+          if (!activeChar) activeChar = charList[0];
+          if (callback) callback(activeChar);
+        });
+      });
+    }
+
+    if (window._dbReady) {
+      doFetch();
+    } else {
+      window.addEventListener('dbReady', doFetch, { once: true });
     }
   }
 
-  function saveLogs(charId, list) {
-    try {
-      localStorage.setItem(getLogKey(charId), JSON.stringify(list.slice(0, MAX_LOGS)));
-    } catch (e) {}
-    if (window.AppDB) window.AppDB.save(getLogKey(charId), list.slice(0, MAX_LOGS));
+  // ============ 1. 日志记录与读取 (纯 AppDB) ============
+  function getLogs(charId, callback) {
+    if (!window.AppDB) {
+      if (callback) callback([]);
+      return;
+    }
+    window.AppDB.get(getLogKey(charId), function (val) {
+      var list = Array.isArray(val) ? val : [];
+      if (callback) callback(list);
+    });
+  }
+
+  function saveLogs(charId, list, callback) {
+    var sliced = list.slice(0, MAX_LOGS);
+    if (window.AppDB) {
+      window.AppDB.save(getLogKey(charId), sliced, callback);
+    } else {
+      if (callback) callback();
+    }
   }
 
   // 粗略估算 Token
@@ -36,10 +84,8 @@
     return Math.ceil(zh * 1.3 + en * 0.3);
   }
 
-  // ============ 1. 日志记录核心 ============
   function recordRequest(data) {
     var charId = data.charId || 'default';
-    var logs = getLogs(charId);
     var now = new Date();
     var timeStr = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + 
                   (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + 
@@ -62,7 +108,7 @@
       charId: charId,
       charName: data.charName || '角色',
       model: data.model || '默认模型',
-      status: 'pending', // 'pending' | 'success' | 'error'
+      status: 'pending',
       temperature: data.temperature !== undefined ? data.temperature : 0.85,
       promptTokens: promptTokens,
       completionTokens: 0,
@@ -73,42 +119,49 @@
       durationMs: 0
     };
 
-    logs.unshift(newEntry);
-    saveLogs(charId, logs);
+    getLogs(charId, function (logs) {
+      logs.unshift(newEntry);
+      saveLogs(charId, logs);
+    });
+
     return logId;
   }
 
   function recordResponse(charId, logId, res) {
-    var logs = getLogs(charId);
-    var item = logs.find(function(l) { return l.id === logId; });
-    if (!item) return;
+    getLogs(charId, function (logs) {
+      var item = logs.find(function(l) { return l.id === logId; });
+      if (!item) return;
 
-    item.status = res.isError ? 'error' : 'success';
-    item.rawResponse = res.rawText || '';
-    item.errorMsg = res.errorMsg || '';
-    item.completionTokens = estimateTokens(res.rawText || '');
-    item.durationMs = Date.now() - item.timestamp;
+      item.status = res.isError ? 'error' : 'success';
+      item.rawResponse = res.rawText || '';
+      item.errorMsg = res.errorMsg || '';
+      item.completionTokens = estimateTokens(res.rawText || '');
+      item.durationMs = Date.now() - item.timestamp;
 
-    saveLogs(charId, logs);
+      saveLogs(charId, logs);
+    });
   }
 
-  function clearLogs(charId) {
-    saveLogs(charId, []);
+  function clearLogs(charId, callback) {
+    saveLogs(charId, [], callback);
   }
 
   // ============ 2. 全屏独立日志页面渲染 ============
   function openLoggerStage(charObj) {
-    var charList = [];
-    try {
-      charList = JSON.parse(localStorage.getItem('character_archives_list_v1') || '[]');
-    } catch (e) {}
-
-    var activeChar = charObj || charList.find(function (c) { return c.id === window._chatActiveCharId; }) || charList[0];
-    if (!activeChar) {
-      if (window.AppNav) window.AppNav.showToast('请先在档案中录入角色设定');
-      return;
+    if (charObj) {
+      doRenderLoggerStage(charObj);
+    } else {
+      fetchCurrentActiveChar(function (activeChar) {
+        if (!activeChar) {
+          if (window.AppNav) window.AppNav.showToast('请先在档案中录入角色设定');
+          return;
+        }
+        doRenderLoggerStage(activeChar);
+      });
     }
+  }
 
+  function doRenderLoggerStage(activeChar) {
     var existingStage = document.getElementById('wxLoggerStage');
     if (existingStage) existingStage.remove();
 
@@ -146,68 +199,69 @@
     var body = stage.querySelector('#loggerStageBody');
     if (!body) return;
 
-    var logs = getLogs(charData.id);
-    if (!logs.length) {
-      body.innerHTML = '<div class="logger-empty-stage">'
-        + '<div class="logger-empty-icon">📜</div>'
-        + '<div class="logger-empty-title">暂无交互日志</div>'
-        + '<p class="logger-empty-desc">当你与「' + esc(charData.name) + '」交谈时，系统发出的完整上下文、AI原始回复及 Token 消耗都会清晰记录在此处。</p>'
-        + '</div>';
-      return;
-    }
-
-    var html = '<div class="logger-feed-wrap">';
-
-    logs.forEach(function (item, idx) {
-      var isSuccess = item.status === 'success';
-      var isError = item.status === 'error';
-      var statusBadge = isSuccess 
-        ? '<span class="logger-status-tag success">成功 · ' + (item.durationMs ? (item.durationMs / 1000).toFixed(1) + 's' : '0.0s') + '</span>'
-        : (isError ? '<span class="logger-status-tag error">失败</span>' : '<span class="logger-status-tag pending">传输中...</span>');
-
-      var totalTokens = (item.promptTokens || 0) + (item.completionTokens || 0);
-
-      // 上下文消息预览
-      var msgsHtml = '';
-      if (Array.isArray(item.messages)) {
-        msgsHtml = item.messages.map(function(m) {
-          var roleCls = m.role === 'system' ? 'system' : (m.role === 'user' ? 'user' : 'assistant');
-          var roleName = m.role === 'system' ? '系统设定 (System)' : (m.role === 'user' ? '用户 (User)' : '角色 (Assistant)');
-          return '<div class="log-dialogue-item ' + roleCls + '">'
-            + '<div class="log-role-label">' + roleName + '</div>'
-            + '<div class="log-bubble-content">' + esc(m.content) + '</div>'
-            + '</div>';
-        }).join('');
+    getLogs(charData.id, function (logs) {
+      if (!logs.length) {
+        body.innerHTML = '<div class="logger-empty-stage">'
+          + '<div class="logger-empty-icon">📜</div>'
+          + '<div class="logger-empty-title">暂无交互日志</div>'
+          + '<p class="logger-empty-desc">当你与「' + esc(charData.name) + '」交谈时，系统发出的完整上下文、AI原始回复及 Token 消耗都会清晰记录在此处。</p>'
+          + '</div>';
+        return;
       }
 
-      html += '<div class="logger-card-item' + (idx === 0 ? ' expanded' : '') + '" data-log-idx="' + idx + '">'
-        + '  <div class="logger-card-header">'
-        + '    <div class="logger-card-meta-left">'
-        + '      <span class="logger-time-stamp">' + esc(item.timeStr) + '</span>'
-        + '      <span class="logger-model-pill">' + esc(item.model) + '</span>'
-        + '    </div>'
-        + '    <div class="logger-card-meta-right">'
-        +        statusBadge
-        + '      <span class="logger-tokens-badge">~' + totalTokens + ' Tokens</span>'
-        + '      <span class="logger-chevron">▾</span>'
-        + '    </div>'
-        + '  </div>'
-        + '  <div class="logger-card-details">'
-        + (item.errorMsg ? '<div class="logger-error-banner">⚠️ 报错信息：' + esc(item.errorMsg) + '</div>' : '')
-        + '    <div class="logger-detail-section">'
-        + '      <div class="logger-sec-label">📥 原始模型回复 (Raw Response)</div>'
-        + '      <div class="logger-code-terminal">' + esc(item.rawResponse || '(暂无返回或仍在生成中)') + '</div>'
-        + '    </div>'
-        + '    <div class="logger-detail-section">'
-        + '      <div class="logger-sec-label">📤 完整发送上下文 (Context · ' + (item.messages ? item.messages.length : 0) + ' 条)</div>'
-        + '      <div class="logger-context-feed">' + msgsHtml + '</div>'
-        + '    </div>'
-        + '  </div>'
-        + '</div>';
-    });
+      var html = '<div class="logger-feed-wrap">';
 
-    html += '</div>';
-    body.innerHTML = html;
+      logs.forEach(function (item, idx) {
+        var isSuccess = item.status === 'success';
+        var isError = item.status === 'error';
+        var statusBadge = isSuccess 
+          ? '<span class="logger-status-tag success">成功 · ' + (item.durationMs ? (item.durationMs / 1000).toFixed(1) + 's' : '0.0s') + '</span>'
+          : (isError ? '<span class="logger-status-tag error">失败</span>' : '<span class="logger-status-tag pending">传输中...</span>');
+
+        var totalTokens = (item.promptTokens || 0) + (item.completionTokens || 0);
+
+        // 上下文消息预览
+        var msgsHtml = '';
+        if (Array.isArray(item.messages)) {
+          msgsHtml = item.messages.map(function(m) {
+            var roleCls = m.role === 'system' ? 'system' : (m.role === 'user' ? 'user' : 'assistant');
+            var roleName = m.role === 'system' ? '系统设定 (System)' : (m.role === 'user' ? '用户 (User)' : '角色 (Assistant)');
+            return '<div class="log-dialogue-item ' + roleCls + '">'
+              + '<div class="log-role-label">' + roleName + '</div>'
+              + '<div class="log-bubble-content">' + esc(m.content) + '</div>'
+              + '</div>';
+          }).join('');
+        }
+
+        html += '<div class="logger-card-item' + (idx === 0 ? ' expanded' : '') + '" data-log-idx="' + idx + '">'
+          + '  <div class="logger-card-header">'
+          + '    <div class="logger-card-meta-left">'
+          + '      <span class="logger-time-stamp">' + esc(item.timeStr) + '</span>'
+          + '      <span class="logger-model-pill">' + esc(item.model) + '</span>'
+          + '    </div>'
+          + '    <div class="logger-card-meta-right">'
+          +        statusBadge
+          + '      <span class="logger-tokens-badge">~' + totalTokens + ' Tokens</span>'
+          + '      <span class="logger-chevron">▾</span>'
+          + '    </div>'
+          + '  </div>'
+          + '  <div class="logger-card-details">'
+          + (item.errorMsg ? '<div class="logger-error-banner">⚠️ 报错信息：' + esc(item.errorMsg) + '</div>' : '')
+          + '    <div class="logger-detail-section">'
+          + '      <div class="logger-sec-label">📥 原始模型回复 (Raw Response)</div>'
+          + '      <div class="logger-code-terminal">' + esc(item.rawResponse || '(暂无返回或仍在生成中)') + '</div>'
+          + '    </div>'
+          + '    <div class="logger-detail-section">'
+          + '      <div class="logger-sec-label">📤 完整发送上下文 (Context · ' + (item.messages ? item.messages.length : 0) + ' 条)</div>'
+          + '      <div class="logger-context-feed">' + msgsHtml + '</div>'
+          + '    </div>'
+          + '  </div>'
+          + '</div>';
+      });
+
+      html += '</div>';
+      body.innerHTML = html;
+    });
   }
 
   function bindStageEvents(stage, charData) {
@@ -232,9 +286,10 @@
             confirmText: '清空',
             isDanger: true
           }, function () {
-            clearLogs(charData.id);
-            renderLoggerList(stage, charData);
-            if (window.AppNav) window.AppNav.showToast('日志已清空');
+            clearLogs(charData.id, function () {
+              renderLoggerList(stage, charData);
+              if (window.AppNav) window.AppNav.showToast('日志已清空');
+            });
           });
         }
       });
