@@ -1,0 +1,329 @@
+
+/* ======================================================== */
+/* 角色记忆手账与三栏时空回廊 (Memory Corridor) - 高定版     */
+/* ======================================================== */
+
+/* 1. 记忆长廊全屏遮罩层 */
+.wx-mem-corridor-mask {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 18000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  box-sizing: border-box;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wx-mem-corridor-mask.show {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* 2. 手账主卡片 */
+.wx-mem-corridor-panel {
+  width: 100%;
+  max-width: 360px;
+  height: 80vh;
+  max-height: 680px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* 顶栏 */
+.mem-corridor-header {
+  padding: 16px 18px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.12);
+  background: #fbfbfc;
+  flex-shrink: 0;
+}
+.mem-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mem-header-script {
+  font-family: 'Caveat', cursive, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #888888;
+  line-height: 1;
+}
+.mem-header-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111111;
+  letter-spacing: 1px;
+}
+.mem-close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #888888;
+  cursor: pointer;
+  padding: 4px;
+}
+.mem-close-btn:active {
+  opacity: 0.5;
+}
+
+/* 3. 记忆列表滚动视口 */
+.mem-corridor-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mem-corridor-body::-webkit-scrollbar {
+  display: none;
+}
+
+.mem-empty-box {
+  padding: 40px 16px;
+  text-align: center;
+  color: #8e8e93;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   4. 三栏时空手账卡片 (左: 轨迹 | 中: 心念 | 右: 溯源)
+========================================================= */
+.mem-trio-card {
+  position: relative;
+  background: #f8f8fa;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 12px 10px;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+/* 路线 1：左侧时间与行动轨迹 */
+.mem-col-left {
+  flex: 3;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mem-date-badge {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: #111111;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+.mem-track-text {
+  font-size: 11.5px;
+  color: #444444;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* 中轴分割线与星芒节点 */
+.mem-spine-divider {
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.15) 20%, rgba(0, 0, 0, 0.15) 80%, transparent);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mem-star-node {
+  font-size: 7px;
+  color: #111111;
+  background: #f8f8fa;
+  padding: 2px 0;
+}
+
+/* 路线 2：右侧心理想法与交谈综述 */
+.mem-col-mid {
+  flex: 4;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.mem-thought-quote {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111111;
+  line-height: 1.45;
+  font-style: italic;
+  word-break: break-word;
+}
+.mem-summary-sub {
+  font-size: 11px;
+  color: #777777;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* 路线 3：最右侧归档溯源触发点 */
+.mem-col-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 2px;
+}
+.mem-archive-btn {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 6px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #111111;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.mem-archive-btn:active {
+  background: #111111;
+  color: #ffffff;
+}
+.mem-archive-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+.mem-archive-btn span {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* =========================================================
+   5. 对话原貌归档溯源弹窗 (二级回溯抽屉)
+========================================================= */
+.mem-archive-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.mem-archive-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mem-archive-panel {
+  width: 100%;
+  height: 75%;
+  background: #ffffff;
+  border-radius: 18px 18px 0 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mem-archive-modal.show .mem-archive-panel {
+  transform: translateY(0);
+}
+
+.mem-archive-head {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+.mem-archive-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #111111;
+}
+.mem-archive-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #888888;
+  cursor: pointer;
+}
+
+.mem-archive-msgs {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mem-archive-msgs::-webkit-scrollbar {
+  display: none;
+}
+
+.archive-bubble-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+}
+.archive-bubble-row.user-side {
+  align-items: flex-end;
+}
+
+.archive-speaker {
+  font-size: 10px;
+  color: #8e8e93;
+  font-family: monospace;
+}
+.archive-bubble {
+  max-width: 78%;
+  padding: 8px 11px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  border-radius: 8px;
+  background: #f2f2f7;
+  color: #111111;
+  word-break: break-word;
+}
+.archive-bubble-row.user-side .archive-bubble {
+  background: #111111;
+  color: #ffffff;
+}
+
+
+
