@@ -27,46 +27,72 @@
   // 初始月牙扇形中心朝向
   var currentArcCenterAngle = -Math.PI * 0.75;
 
-  function loadOrbConfig() {
-    try {
-      var saved = localStorage.getItem(ORB_CONFIG_KEY);
-      if (saved) orbConfig = Object.assign(orbConfig, JSON.parse(saved));
-    } catch(e) {}
+  // ============ 1. 彻底纯 IndexedDB (AppDB) 存储机制 ============
+  function loadOrbConfig(callback) {
+    function doLoad() {
+      if (window.AppDB) {
+        window.AppDB.get(ORB_CONFIG_KEY, function (val) {
+          if (val && typeof val === 'object') {
+            orbConfig = Object.assign(orbConfig, val);
+          }
+          applyOrbAppearance();
+          if (callback) callback();
+        });
+      } else {
+        if (callback) callback();
+      }
+    }
+
+    if (window._dbReady) {
+      doLoad();
+    } else {
+      window.addEventListener('dbReady', doLoad, { once: true });
+    }
   }
 
   function saveOrbConfig() {
-    try {
-      localStorage.setItem(ORB_CONFIG_KEY, JSON.stringify(orbConfig));
-    } catch(e) {}
-    if (window.AppDB) window.AppDB.save(ORB_CONFIG_KEY, orbConfig);
+    if (window.AppDB) {
+      window.AppDB.save(ORB_CONFIG_KEY, orbConfig);
+    }
   }
 
-  // 历史立绘手账库
-  function getStandeeHistory() {
-    try {
-      return JSON.parse(localStorage.getItem(STANDEE_HISTORY_KEY) || '[]');
-    } catch(e) {
-      return [];
+  function getStandeeHistory(callback) {
+    function doFetch() {
+      if (window.AppDB) {
+        window.AppDB.get(STANDEE_HISTORY_KEY, function (val) {
+          var list = Array.isArray(val) ? val : [];
+          if (callback) callback(list);
+        });
+      } else {
+        if (callback) callback([]);
+      }
+    }
+
+    if (window._dbReady) {
+      doFetch();
+    } else {
+      window.addEventListener('dbReady', doFetch, { once: true });
     }
   }
 
   function saveStandeeHistory(list) {
-    try {
-      localStorage.setItem(STANDEE_HISTORY_KEY, JSON.stringify(list));
-    } catch(e) {}
-    if (window.AppDB) window.AppDB.save(STANDEE_HISTORY_KEY, list);
+    if (window.AppDB) {
+      window.AppDB.save(STANDEE_HISTORY_KEY, list);
+    }
   }
 
-  function addStandeeToHistory(url) {
-    if (!url || !url.trim()) return;
+  function addStandeeToHistory(url, callback) {
+    if (!url || !url.trim()) { if (callback) callback(); return; }
     var clean = url.trim();
-    var list = getStandeeHistory();
-    list = list.filter(function(item) { return item !== clean; });
-    list.unshift(clean);
-    saveStandeeHistory(list);
+    getStandeeHistory(function (list) {
+      list = list.filter(function (item) { return item !== clean; });
+      list.unshift(clean);
+      saveStandeeHistory(list);
+      if (callback) callback(list);
+    });
   }
 
-  // 纯净 PNG 相册直传（免裁剪，保留透明通道）
+  // 纯净 PNG 相册直传（保留透明通道并适度高清轻量化）
   function pickRawPngPhoto(callback) {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -83,7 +109,29 @@
       var reader = new FileReader();
       reader.onload = function (evt) {
         if (fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
-        callback(evt.target.result);
+        var img = new Image();
+        img.onload = function () {
+          var maxSide = 320;
+          var w = img.width;
+          var h = img.height;
+          if (w > maxSide || h > maxSide) {
+            if (w > h) {
+              h = Math.round((h * maxSide) / w);
+              w = maxSide;
+            } else {
+              w = Math.round((w * maxSide) / h);
+              h = maxSide;
+            }
+          }
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          callback(canvas.toDataURL('image/png'));
+        };
+        img.src = evt.target.result;
       };
       reader.readAsDataURL(file);
     };
@@ -122,7 +170,7 @@
     fileInput.click();
   }
 
-  // ============ 核心：拦截档案退出，确保原路返回来源 App（绝不跳回桌面） ============
+  // ============ 2. 原路返回来源 App 挂钩 ============
   function hookAppNavReturn() {
     if (!window.AppNav || window.AppNav._hookedPortalReturn) return;
     window.AppNav._hookedPortalReturn = true;
@@ -139,7 +187,7 @@
       return originalShowPage(targetPage);
     };
 
-        document.addEventListener('click', function (e) {
+    document.addEventListener('click', function (e) {
       var backBtn = e.target.closest('#archShellBackBtn');
       if (backBtn) {
         var savedOrigin = sessionStorage.getItem('portal_return_origin_app');
@@ -149,7 +197,6 @@
           sessionStorage.removeItem('portal_return_origin_app');
           window.AppNav.showPage(savedOrigin);
 
-          // 核心：如果之前是从聊天点进去的，返回时把聊天窗口重新亮出来！
           var chatStage = document.getElementById('wxChatRoomStage');
           if (chatStage) {
             chatStage.style.display = 'flex';
@@ -168,11 +215,10 @@
     }
   }
 
-  // 单例 DOM 构建（关停便签，只保留 4 个圆钮）
+  // ============ 3. 构建单例 DOM (全新顺序：记忆、日志、API、档案、外观) ============
   function ensurePortalDOM() {
     if (document.getElementById('portalOrb')) return;
 
-    loadOrbConfig();
     hookAppNavReturn();
 
     var orb = document.createElement('div');
@@ -187,21 +233,20 @@
       + '  <span class="satellite-label-top">记忆</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>'
-      + '<div class="satellite-item-wrap" data-idx="1" data-portal="api">'
+      + '<div class="satellite-item-wrap" data-idx="1" data-portal="log">'
+      + '  <span class="satellite-label-top">日志</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
+      + '</div>'
+      + '<div class="satellite-item-wrap" data-idx="2" data-portal="api">'
       + '  <span class="satellite-label-top">API</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>'
-      + '<div class="satellite-item-wrap" data-idx="2" data-portal="arch">'
+      + '<div class="satellite-item-wrap" data-idx="3" data-portal="arch">'
       + '  <span class="satellite-label-top">档案</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>'
-          + '<div class="satellite-item-wrap" data-idx="3" data-portal="orbStyle">'
-      + '  <span class="satellite-label-top">浮球</span>'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
-      + '</div>'
-      // 👇 新增第 5 个卫星圆钮：日志
-      + '<div class="satellite-item-wrap" data-idx="4" data-portal="log">'
-      + '  <span class="satellite-label-top">日志</span>'
+      + '<div class="satellite-item-wrap" data-idx="4" data-portal="orbStyle">'
+      + '  <span class="satellite-label-top">外观</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>';
 
@@ -229,9 +274,13 @@
 
     applyOrbAppearance(orb);
     bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard);
+
+    // 数据库异步安全加载
+    loadOrbConfig(function () {
+      applyOrbAppearance(orb);
+    });
   }
 
-  // 渲染浮球外观：默认完全透明 PNG，绝无白色背景
   function applyOrbAppearance(orb) {
     if (!orb) orb = document.getElementById('portalOrb');
     if (!orb) return;
@@ -256,15 +305,15 @@
     }
   }
 
-  // 4 个卫星圆环围绕排布（精准 70px 半径）
+  // ============ 4. 更加舒展宽松的五星排布算法 ============
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 70;
 
-        // 5 个圆钮的匀称扇形弧度
-    var arcOffsets = [-1.15, -0.58, 0, 0.58, 1.15];
+    // 半径扩大至 88px，间距弧度彻底拉开，彻底告别拥挤重叠
+    var radius = 88;
+    var arcOffsets = [-1.4, -0.7, 0, 0.7, 1.4];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
@@ -304,7 +353,31 @@
         e.stopPropagation();
         var portalType = this.dataset.portal;
 
-            // 1. 点击【档案】：前往全屏档案编辑
+        // 1. 记忆：进入全屏三栏记忆手账长廊
+        if (portalType === 'mem') {
+          panelMask.classList.remove('show');
+          panelCard.classList.remove('show');
+          orb.classList.remove('open');
+          syncSatellites();
+          if (window.WxChatMemory && window.WxChatMemory.open) {
+            window.WxChatMemory.open();
+          }
+          return;
+        }
+
+        // 2. 日志：进入全屏黑匣子交互日志
+        if (portalType === 'log') {
+          panelMask.classList.remove('show');
+          panelCard.classList.remove('show');
+          orb.classList.remove('open');
+          syncSatellites();
+          if (window.WxLogger && window.WxLogger.open) {
+            window.WxLogger.open();
+          }
+          return;
+        }
+
+        // 3. 档案：直接进入全屏档案编辑
         if (portalType === 'arch') {
           panelMask.classList.remove('show');
           panelCard.classList.remove('show');
@@ -317,30 +390,7 @@
           return;
         }
 
-        // 2. 点击【记忆】：直接打开全新全屏三栏手账长廊
-        if (portalType === 'mem') {
-          panelMask.classList.remove('show');
-          panelCard.classList.remove('show');
-          orb.classList.remove('open');
-          syncSatellites();
-          if (window.WxChatMemory && window.WxChatMemory.open) {
-            window.WxChatMemory.open();
-          }
-          return;
-        }
-
-        // 3. 点击【日志】：直接打开全新全屏黑匣子交互日志
-        if (portalType === 'log') {
-          panelMask.classList.remove('show');
-          panelCard.classList.remove('show');
-          orb.classList.remove('open');
-          syncSatellites();
-          if (window.WxLogger && window.WxLogger.open) {
-            window.WxLogger.open();
-          }
-          return;
-        }
-
+        // 4. API & 外观：调起快捷面板
         openFeaturePanel(portalType, panelMask, panelCard);
       });
     });
@@ -358,7 +408,7 @@
       });
     }
 
-    // 悬浮球自由平移拖拽（启用 passive 避免卡顿）
+    // 自由拖拽
     (function initOrbGesture() {
       var startX = 0, startY = 0, initialLeft = 0, initialTop = 0, hasMoved = false;
 
@@ -417,7 +467,7 @@
       });
     })();
 
-    // 旋转卫星弧度手势
+    // 弧度旋转
     (function initArcWheelRotation() {
       var touchedSat = null;
       var startTouchAngle = 0;
@@ -475,8 +525,8 @@
     })();
   }
 
-  // ============ 5. 功能面板中枢 ============
-    function openFeaturePanel(type, panelMask, panelCard) {
+  // ============ 5. 面板调度 ============
+  function openFeaturePanel(type, panelMask, panelCard) {
     panelMask.classList.add('show');
     panelCard.classList.add('show');
 
@@ -484,84 +534,15 @@
     var panelSubTag = panelCard.querySelector('#panelSubTag');
     var panelBody = panelCard.querySelector('#panelBody');
 
-    if (type === 'mem') {
-      panelSubTag.textContent = '~ Memories ~';
-      panelTitle.textContent = '✦ 角色记忆时间轴 ✦';
-      renderMemoryCorridor(panelBody);
-    } else if (type === 'api') {
+    if (type === 'api') {
       panelSubTag.textContent = '~ Endpoints ~';
       panelTitle.textContent = '✦ API 接口快捷切换 ✦';
       renderApiSwitcher(panelBody);
     } else if (type === 'orbStyle') {
       panelSubTag.textContent = '~ Skin Studio ~';
-      panelTitle.textContent = '✦ 浮球样式定制 ✦';
+      panelTitle.textContent = '✦ 悬浮球外观定制 ✦';
       renderOrbStyleSettings(panelBody);
-    } else if (type === 'log') {
-      panelSubTag.textContent = '~ System Logs ~';
-      panelTitle.textContent = '✦ 后台交互日志 ✦';
-      if (window.ChatLogger) {
-        window.ChatLogger.renderPortalView(panelBody);
-      }
     }
-  }
-
-  function renderMemoryCorridor(container) {
-    var charList = [];
-    try {
-      charList = JSON.parse(localStorage.getItem('character_archives_list_v1') || '[]');
-    } catch(e) {}
-    var activeCharId = window._chatActiveCharId || (charList.length ? charList[0].id : null);
-    var activeChar = charList.find(function (c) { return c.id === activeCharId; }) || charList[0];
-
-    if (!activeChar) {
-      container.innerHTML = '<div class="mem-empty-box"><span>✦ 暂无角色档案，请先在档案中创建 ✦</span></div>';
-      return;
-    }
-
-    var memories = [];
-    if (window.WxChatMemory && window.WxChatMemory.getMemories) {
-      memories = window.WxChatMemory.getMemories(activeChar.id);
-    }
-
-    var listHtml = '';
-    if (!memories.length) {
-      listHtml = '<div class="mem-empty-box"><span>✦ 「' + esc(activeChar.name) + '」暂无往昔手账，今夜午夜将凝结第一篇回忆 ✦</span></div>';
-    } else {
-      listHtml = memories.map(function (mem) {
-        return '<div class="mem-trio-card">'
-          + '<div class="mem-col-left">'
-          + '  <span class="mem-date-badge">' + esc(mem.dateStr) + '</span>'
-          + '  <div class="mem-track-text">' + esc(mem.track) + '</div>'
-          + '</div>'
-          + '<div class="mem-spine-divider"><span class="mem-star-node">✦</span></div>'
-          + '<div class="mem-col-mid">'
-          + '  <div class="mem-thought-quote">“ ' + esc(mem.thoughts) + ' ”</div>'
-          + '  <div class="mem-summary-sub">共话：' + esc(mem.summary) + '</div>'
-          + '</div>'
-          + '<div class="mem-col-right">'
-          + '  <button class="mem-archive-btn" data-archive-date="' + esc(mem.dateStr) + '" data-char-id="' + esc(activeChar.id) + '" type="button">'
-          + '    <span>溯源</span>'
-          + '  </button>'
-          + '</div>'
-          + '</div>';
-      }).join('');
-    }
-
-    container.innerHTML = listHtml;
-
-    container.querySelectorAll('.mem-archive-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var dKey = this.dataset.archiveDate;
-        var cId = this.dataset.charId;
-        var archiveMsgs = [];
-        try {
-          archiveMsgs = JSON.parse(localStorage.getItem('wx_chat_archive_' + cId + '_' + dKey) || '[]');
-        } catch(e) {}
-        if (window.AppNav) {
-          window.AppNav.showToast(dKey + ' 包含 ' + archiveMsgs.length + ' 条原始对话记录');
-        }
-      });
-    });
   }
 
   function renderApiSwitcher(container) {
@@ -570,7 +551,7 @@
     try {
       apiConfigs = JSON.parse(localStorage.getItem('api_configs') || '[]');
       activeApi = JSON.parse(localStorage.getItem('active_api') || 'null');
-    } catch(e) {}
+    } catch (e) {}
 
     if (!apiConfigs.length) {
       container.innerHTML = '<div class="mem-empty-box"><span>暂无已存接口，请在「设置 - API 配置」中添加</span></div>';
@@ -593,9 +574,7 @@
         var chosenName = this.dataset.apiName;
         var chosen = apiConfigs.find(function (a) { return a.name === chosenName; });
         if (chosen) {
-          try {
-            localStorage.setItem('active_api', JSON.stringify(chosen));
-          } catch(e) {}
+          try { localStorage.setItem('active_api', JSON.stringify(chosen)); } catch (e) {}
           if (window.AppDB) window.AppDB.save('active_api', chosen);
           if (window.AppNav) window.AppNav.showToast('已切换为接口: ' + chosen.name);
           renderApiSwitcher(container);
@@ -604,208 +583,208 @@
     });
   }
 
-  // 浮球样式定制面板（含 PNG URL 输入 & 历史立绘手账架带复制按钮）
+  // 悬浮球外观定制面板（纯 IndexedDB 存储）
   function renderOrbStyleSettings(container) {
     var orb = document.getElementById('portalOrb');
-    var standeeHistory = getStandeeHistory();
 
-    var framePreviewInner = orbConfig.frameImg
-      ? '<img src="' + esc(orbConfig.frameImg) + '" style="width:100%;height:100%;object-fit:cover;">'
-      : '<span style="font-size:18px;font-weight:bold;color:#111;">+</span>';
+    getStandeeHistory(function (standeeHistory) {
+      var framePreviewInner = orbConfig.frameImg
+        ? '<img src="' + esc(orbConfig.frameImg) + '" style="width:100%;height:100%;object-fit:cover;">'
+        : '<span style="font-size:18px;font-weight:bold;color:#111;">+</span>';
 
-    var standeePreviewInner = orbConfig.standeePng
-      ? '<img src="' + esc(orbConfig.standeePng) + '" style="width:100%;height:100%;object-fit:contain;">'
-      : '<span style="font-size:18px;font-weight:bold;color:#888;">+</span>';
+      var standeePreviewInner = orbConfig.standeePng
+        ? '<img src="' + esc(orbConfig.standeePng) + '" style="width:100%;height:100%;object-fit:contain;">'
+        : '<span style="font-size:18px;font-weight:bold;color:#888;">+</span>';
 
-    var historyShelfHtml = '';
-    if (standeeHistory.length) {
-      historyShelfHtml = '<div class="standee-panel-title-row"><span class="standee-panel-title">历史立绘手账架 (' + standeeHistory.length + ')</span></div>'
-        + '<div class="standee-history-shelf">'
-        + standeeHistory.map(function(imgUrl, idx) {
-            var isCur = (orbConfig.standeePng === imgUrl && orbConfig.mode === 'pngstandee');
-            return '<div class="standee-history-item-wrap">'
-              + '  <div class="standee-history-card' + (isCur ? ' active' : '') + '" data-pick-history="' + esc(imgUrl) + '">'
-              + '    <img class="standee-history-img" src="' + esc(imgUrl) + '" alt="历史立绘">'
-              + '    <span class="standee-del-x" data-del-history="' + idx + '">✕</span>'
-              + '  </div>'
-              + '  <button class="standee-copy-link-btn" data-copy-link="' + esc(imgUrl) + '" type="button" title="复制链接">'
-              + '    <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-              + '  </button>'
-              + '</div>';
-          }).join('')
+      var historyShelfHtml = '';
+      if (standeeHistory.length) {
+        historyShelfHtml = '<div class="standee-panel-title-row"><span class="standee-panel-title">历史立绘手账架 (' + standeeHistory.length + ')</span></div>'
+          + '<div class="standee-history-shelf">'
+          + standeeHistory.map(function (imgUrl, idx) {
+              var isCur = (orbConfig.standeePng === imgUrl && orbConfig.mode === 'pngstandee');
+              return '<div class="standee-history-item-wrap">'
+                + '  <div class="standee-history-card' + (isCur ? ' active' : '') + '" data-pick-history="' + esc(imgUrl) + '">'
+                + '    <img class="standee-history-img" src="' + esc(imgUrl) + '" alt="历史立绘">'
+                + '    <span class="standee-del-x" data-del-history="' + idx + '">✕</span>'
+                + '  </div>'
+                + '  <button class="standee-copy-link-btn" data-copy-link="' + esc(imgUrl) + '" type="button" title="复制链接">'
+                + '    <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+                + '  </button>'
+                + '</div>';
+            }).join('')
+          + '</div>';
+      }
+
+      container.innerHTML = ''
+        // 样式 1：默认透明球
+        + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
+        + '  <div class="orb-style-preview-box" style="background:transparent;"><img src="https://iili.io/nTN7lxs.md.png" style="width:100%;height:100%;object-fit:contain;"></div>'
+        + '  <div class="orb-style-info-col">'
+        + '    <div class="orb-style-title">默认样式</div>'
+        + '    <div class="orb-style-desc">专属荔枝蓝猫猫</div>'
+        + '  </div>'
+        + '</div>'
+
+        // 样式 2：黑边框相框
+        + '<div class="orb-style-row ' + (orbConfig.mode === 'blackframe' ? 'active' : '') + '" data-set-orb="blackframe">'
+        + '  <div class="orb-style-preview-box" data-trigger-upload="frame" style="border:2px solid #111; overflow:hidden; background:#ffffff;">' + framePreviewInner + '</div>'
+        + '  <div class="orb-style-info-col">'
+        + '    <div class="orb-style-title">黑框照片</div>'
+        + '    <div class="orb-style-desc">经典黑边相框，点击左侧头像上传并剪裁照片。</div>'
+        + '  </div>'
+        + '</div>'
+
+        // 样式 3：透明立绘 PNG
+        + '<div class="orb-style-row ' + (orbConfig.mode === 'pngstandee' ? 'active' : '') + '" data-set-orb="pngstandee">'
+        + '  <div class="orb-style-preview-box" data-trigger-upload="png" style="background:transparent; border:1px dashed #cbd5e1;">' + standeePreviewInner + '</div>'
+        + '  <div class="orb-style-info-col">'
+        + '    <div class="orb-style-title">透明立绘 PNG</div>'
+        + '    <div class="orb-style-desc">点击左侧相册直传，或在下方输入链接与调阅历史。</div>'
+        + '  </div>'
+        + '</div>'
+
+        // 链接上传与历史
+        + '<div class="standee-custom-panel">'
+        + '  <div class="standee-panel-title-row">'
+        + '    <span class="standee-panel-title">链接上传 PNG 立绘</span>'
+        + '  </div>'
+        + '  <div class="standee-url-input-wrap">'
+        + '    <input class="standee-url-input" id="standeeUrlInput" type="text" placeholder="粘贴透明 PNG 图像链接...">'
+        + '    <button class="standee-btn" id="standeeApplyUrlBtn" type="button">应用</button>'
+        + '    <button class="standee-btn outline" id="standeePickLocalBtn" type="button">相册</button>'
+        + '  </div>'
+        + '  ' + historyShelfHtml
         + '</div>';
-    }
 
-    container.innerHTML = ''
-      // 样式 1：默认透明球
-      + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
-      + '  <div class="orb-style-preview-box" style="background:transparent;"><img src="https://iili.io/nTN7lxs.md.png" style="width:100%;height:100%;object-fit:contain;"></div>'
-      + '  <div class="orb-style-info-col">'
-      + '    <div class="orb-style-title">默认样式</div>'
-      + '    <div class="orb-style-desc">专属荔枝蓝猫猫</div>'
-      + '  </div>'
-      + '</div>'
-
-      // 样式 2：黑边框相框（调起 1:1 裁剪）
-      + '<div class="orb-style-row ' + (orbConfig.mode === 'blackframe' ? 'active' : '') + '" data-set-orb="blackframe">'
-      + '  <div class="orb-style-preview-box" data-trigger-upload="frame" style="border:2px solid #111; overflow:hidden; background:#ffffff;">' + framePreviewInner + '</div>'
-      + '  <div class="orb-style-info-col">'
-      + '    <div class="orb-style-title">黑框照片</div>'
-      + '    <div class="orb-style-desc">经典黑边相框，点击左侧头像上传并剪裁照片。</div>'
-      + '  </div>'
-      + '</div>'
-
-      // 样式 3：完全纯净透明底 PNG 立绘
-      + '<div class="orb-style-row ' + (orbConfig.mode === 'pngstandee' ? 'active' : '') + '" data-set-orb="pngstandee">'
-      + '  <div class="orb-style-preview-box" data-trigger-upload="png" style="background:transparent; border:1px dashed #cbd5e1;">' + standeePreviewInner + '</div>'
-      + '  <div class="orb-style-info-col">'
-      + '    <div class="orb-style-title">透明立绘 PNG</div>'
-      + '    <div class="orb-style-desc">点击左侧相册直传，或在下方输入链接与调阅历史。</div>'
-      + '  </div>'
-      + '</div>'
-
-      // PNG 立绘专属 URL 输入与历史架
-      + '<div class="standee-custom-panel">'
-      + '  <div class="standee-panel-title-row">'
-      + '    <span class="standee-panel-title">链接上传 PNG 立绘</span>'
-      + '  </div>'
-      + '  <div class="standee-url-input-wrap">'
-      + '    <input class="standee-url-input" id="standeeUrlInput" type="text" placeholder="粘贴透明 PNG 图像链接...">'
-      + '    <button class="standee-btn" id="standeeApplyUrlBtn" type="button">应用</button>'
-      + '    <button class="standee-btn outline" id="standeePickLocalBtn" type="button">相册</button>'
-      + '  </div>'
-      + '  ' + historyShelfHtml
-      + '</div>';
-
-    function triggerFramePick() {
-      pickAndCropFramePhoto(function (base64) {
-        orbConfig.frameImg = base64;
-        orbConfig.mode = 'blackframe';
-        saveOrbConfig();
-        applyOrbAppearance(orb);
-        renderOrbStyleSettings(container);
-        if (window.AppNav) window.AppNav.showToast('照片已更新');
-      });
-    }
-
-    function triggerPngPick() {
-      pickRawPngPhoto(function (base64) {
-        orbConfig.standeePng = base64;
-        orbConfig.mode = 'pngstandee';
-        addStandeeToHistory(base64);
-        saveOrbConfig();
-        applyOrbAppearance(orb);
-        renderOrbStyleSettings(container);
-        if (window.AppNav) window.AppNav.showToast('透明立绘已更新');
-      });
-    }
-
-    // URL 应用
-    var urlInput = container.querySelector('#standeeUrlInput');
-    var applyUrlBtn = container.querySelector('#standeeApplyUrlBtn');
-    var pickLocalBtn = container.querySelector('#standeePickLocalBtn');
-
-    if (applyUrlBtn && urlInput) {
-      applyUrlBtn.addEventListener('click', function () {
-        var urlVal = urlInput.value.trim();
-        if (!urlVal) {
-          if (window.AppNav) window.AppNav.showToast('请先粘贴立绘链接');
-          return;
-        }
-        orbConfig.standeePng = urlVal;
-        orbConfig.mode = 'pngstandee';
-        addStandeeToHistory(urlVal);
-        saveOrbConfig();
-        applyOrbAppearance(orb);
-        renderOrbStyleSettings(container);
-        if (window.AppNav) window.AppNav.showToast('立绘链接已应用并归档');
-      });
-    }
-
-    if (pickLocalBtn) {
-      pickLocalBtn.addEventListener('click', triggerPngPick);
-    }
-
-    // 点击历史立绘卡片换装
-    container.querySelectorAll('[data-pick-history]').forEach(function(card) {
-      card.addEventListener('click', function(e) {
-        if (e.target.closest('.standee-del-x') || e.target.closest('.standee-copy-link-btn')) return;
-        var chosenUrl = this.dataset.pickHistory;
-        orbConfig.standeePng = chosenUrl;
-        orbConfig.mode = 'pngstandee';
-        saveOrbConfig();
-        applyOrbAppearance(orb);
-        renderOrbStyleSettings(container);
-        if (window.AppNav) window.AppNav.showToast('已切换至该立绘');
-      });
-    });
-
-    // 复制立绘链接到剪贴板
-    container.querySelectorAll('[data-copy-link]').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var link = this.dataset.copyLink;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(link);
-        } else {
-          var ta = document.createElement('textarea');
-          ta.value = link;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-        }
-        if (window.AppNav) window.AppNav.showToast('链接已复制到剪贴板');
-      });
-    });
-
-    // 删除单张历史立绘
-    container.querySelectorAll('[data-del-history]').forEach(function(xBtn) {
-      xBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var delIdx = parseInt(this.dataset.delHistory, 10);
-        var list = getStandeeHistory();
-        var removed = list.splice(delIdx, 1)[0];
-        saveStandeeHistory(list);
-        if (orbConfig.standeePng === removed) {
-          orbConfig.standeePng = list.length ? list[0] : '';
+      function triggerFramePick() {
+        pickAndCropFramePhoto(function (base64) {
+          orbConfig.frameImg = base64;
+          orbConfig.mode = 'blackframe';
           saveOrbConfig();
           applyOrbAppearance(orb);
-        }
-        renderOrbStyleSettings(container);
+          renderOrbStyleSettings(container);
+          if (window.AppNav) window.AppNav.showToast('照片已更新');
+        });
+      }
+
+      function triggerPngPick() {
+        pickRawPngPhoto(function (base64) {
+          orbConfig.standeePng = base64;
+          orbConfig.mode = 'pngstandee';
+          saveOrbConfig();
+          applyOrbAppearance(orb);
+          addStandeeToHistory(base64, function () {
+            renderOrbStyleSettings(container);
+          });
+          if (window.AppNav) window.AppNav.showToast('透明立绘已更新');
+        });
+      }
+
+      var urlInput = container.querySelector('#standeeUrlInput');
+      var applyUrlBtn = container.querySelector('#standeeApplyUrlBtn');
+      var pickLocalBtn = container.querySelector('#standeePickLocalBtn');
+
+      if (applyUrlBtn && urlInput) {
+        applyUrlBtn.addEventListener('click', function () {
+          var urlVal = urlInput.value.trim();
+          if (!urlVal) {
+            if (window.AppNav) window.AppNav.showToast('请先粘贴立绘链接');
+            return;
+          }
+          orbConfig.standeePng = urlVal;
+          orbConfig.mode = 'pngstandee';
+          saveOrbConfig();
+          applyOrbAppearance(orb);
+          addStandeeToHistory(urlVal, function () {
+            renderOrbStyleSettings(container);
+          });
+          if (window.AppNav) window.AppNav.showToast('立绘链接已应用并归档');
+        });
+      }
+
+      if (pickLocalBtn) {
+        pickLocalBtn.addEventListener('click', triggerPngPick);
+      }
+
+      container.querySelectorAll('[data-pick-history]').forEach(function (card) {
+        card.addEventListener('click', function (e) {
+          if (e.target.closest('.standee-del-x') || e.target.closest('.standee-copy-link-btn')) return;
+          var chosenUrl = this.dataset.pickHistory;
+          orbConfig.standeePng = chosenUrl;
+          orbConfig.mode = 'pngstandee';
+          saveOrbConfig();
+          applyOrbAppearance(orb);
+          renderOrbStyleSettings(container);
+          if (window.AppNav) window.AppNav.showToast('已切换至该立绘');
+        });
       });
-    });
 
-    container.querySelectorAll('[data-set-orb]').forEach(function (row) {
-      row.addEventListener('click', function (e) {
-        var chosenMode = this.dataset.setOrb;
-        var uploadTarget = e.target.closest('[data-trigger-upload]');
+      container.querySelectorAll('[data-copy-link]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var link = this.dataset.copyLink;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link);
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = link;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
+          if (window.AppNav) window.AppNav.showToast('链接已复制到剪贴板');
+        });
+      });
 
-        if (uploadTarget) {
-          var targetType = uploadTarget.dataset.triggerUpload;
-          if (targetType === 'frame') triggerFramePick();
-          else if (targetType === 'png') triggerPngPick();
-          return;
-        }
+      container.querySelectorAll('[data-del-history]').forEach(function (xBtn) {
+        xBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var delIdx = parseInt(this.dataset.delHistory, 10);
+          getStandeeHistory(function (list) {
+            var removed = list.splice(delIdx, 1)[0];
+            saveStandeeHistory(list);
+            if (orbConfig.standeePng === removed) {
+              orbConfig.standeePng = list.length ? list[0] : '';
+              saveOrbConfig();
+              applyOrbAppearance(orb);
+            }
+            renderOrbStyleSettings(container);
+          });
+        });
+      });
 
-        if (chosenMode === 'blackframe' && !orbConfig.frameImg) {
-          triggerFramePick();
-          return;
-        }
-        if (chosenMode === 'pngstandee' && !orbConfig.standeePng) {
-          triggerPngPick();
-          return;
-        }
+      container.querySelectorAll('[data-set-orb]').forEach(function (row) {
+        row.addEventListener('click', function (e) {
+          var chosenMode = this.dataset.setOrb;
+          var uploadTarget = e.target.closest('[data-trigger-upload]');
 
-        orbConfig.mode = chosenMode;
-        saveOrbConfig();
-        applyOrbAppearance(orb);
-        renderOrbStyleSettings(container);
+          if (uploadTarget) {
+            var targetType = uploadTarget.dataset.triggerUpload;
+            if (targetType === 'frame') triggerFramePick();
+            else if (targetType === 'png') triggerPngPick();
+            return;
+          }
+
+          if (chosenMode === 'blackframe' && !orbConfig.frameImg) {
+            triggerFramePick();
+            return;
+          }
+          if (chosenMode === 'pngstandee' && !orbConfig.standeePng) {
+            triggerPngPick();
+            return;
+          }
+
+          orbConfig.mode = chosenMode;
+          saveOrbConfig();
+          applyOrbAppearance(orb);
+          renderOrbStyleSettings(container);
+        });
       });
     });
   }
 
-  // ============ 6. 初始化 ============
+  // ============ 6. 核心初始化 ============
   function initPortalEngine() {
     ensurePortalDOM();
   }
@@ -816,7 +795,7 @@
     initPortalEngine();
   }
 
-  window.addEventListener('pageChange', function(e) {
+  window.addEventListener('pageChange', function (e) {
     initPortalEngine();
     if (e.detail && e.detail.page === 'archive') {
       setTimeout(syncArchiveBackAttribute, 60);
