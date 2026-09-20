@@ -1100,12 +1100,22 @@
 }
 .wx-cr-set-body::-webkit-scrollbar { display: none; }
 
-/* 底部真实占位垫片 */
+/* 底部滚动区缓冲垫片 */
 .settings-bottom-spacer {
   display: block !important;
   width: 100% !important;
-  height: 32px !important;
-  min-height: 32px !important;
+  height: 12px !important;
+  min-height: 12px !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 核心：大卡片底部的固定留白托底条，形成上下对称的视觉安全边框 */
+.sanctuary-bottom-deck {
+  width: 100% !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  background: transparent !important;
   flex-shrink: 0 !important;
   pointer-events: none !important;
 }
