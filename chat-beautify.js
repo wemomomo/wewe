@@ -26,8 +26,36 @@
     if (window.AppDB) window.AppDB.save('wx_char_beautify_' + charId, cfg);
   }
 
-  function renderBeautifyDOM(stage, currentChar) {
-    var setBody = stage.querySelector('#wxCrBtfBody');
+  function ensureBeautifyMask(currentChar) {
+    var existing = document.getElementById('wxCrBeautifyModalMask');
+    if (existing) return existing;
+
+    var mask = document.createElement('div');
+    mask.className = 'wx-cr-beautify-mask';
+    mask.id = 'wxCrBeautifyModalMask';
+
+    mask.innerHTML = '<div class="wx-cr-beautify-card" id="wxCrBeautifyCard">'
+      + '  <div class="sanctuary-header-luxury">'
+      + '    <div class="header-main-action-row">'
+      + '      <div class="header-left-spacer"></div>'
+      + '      <div class="header-center-art-col">'
+      + '        <span class="art-script-motto">Atelier</span>'
+      + '        <div class="art-title-chinese"><span class="star-dot">✦</span>' + esc(currentChar.name || '角色') + ' · 美化中枢<span class="star-dot">✦</span></div>'
+      + '      </div>'
+      + '      <button class="header-pure-close" id="wxCrBtfCloseBtn" type="button" title="关闭"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>'
+      + '    </div>'
+      + '    <div class="header-bottom-ruler-deck"><span class="ruler-line"></span><span class="ruler-center-tag">✦ VISUAL STUDIO ✦</span><span class="ruler-line"></span></div>'
+      + '  </div>'
+      + '  <div class="wx-cr-btf-body" id="wxCrBtfBody"></div>'
+      + '  <div class="sanctuary-bottom-deck"></div>'
+      + '</div>';
+
+    document.body.appendChild(mask);
+    return mask;
+  }
+
+  function renderBeautifyDOM(mask, currentChar) {
+    var setBody = mask.querySelector('#wxCrBtfBody');
     if (!setBody) return;
 
     var cfg = getBeautifyCfg(currentChar.id);
@@ -68,6 +96,7 @@
   }
 
   function applyBeautify(stage, currentChar) {
+    if (!stage || !currentChar) return;
     var cfg = getBeautifyCfg(currentChar.id);
     var chatBody = stage.querySelector('#wxCrBody');
     if (!chatBody) return;
@@ -89,12 +118,22 @@
     });
   }
 
-  function bindBeautifyEvents(stage, currentChar) {
+  function bindBeautifyEvents(mask, stage, currentChar) {
     var cfg = getBeautifyCfg(currentChar.id);
 
-    var uploadBtn = stage.querySelector('#btnUploadChatBg');
-    var previewBox = stage.querySelector('#btfBgPreview');
-    var resetBtn = stage.querySelector('#btnResetChatBg');
+    function closeBeautify() {
+      mask.classList.remove('show');
+    }
+
+    var closeBtn = mask.querySelector('#wxCrBtfCloseBtn');
+    if (closeBtn) closeBtn.onclick = closeBeautify;
+    mask.onclick = function(e) {
+      if (e.target === mask) closeBeautify();
+    };
+
+    var uploadBtn = mask.querySelector('#btnUploadChatBg');
+    var previewBox = mask.querySelector('#btfBgPreview');
+    var resetBtn = mask.querySelector('#btnResetChatBg');
 
     function pickAndSetBg() {
       var fileInput = document.createElement('input');
@@ -112,14 +151,14 @@
             window.AppCropper.open(evt.target.result, { aspectRatio: window.innerWidth / window.innerHeight }, function(cropped) {
               cfg.chatBg = cropped;
               saveBeautifyCfg(currentChar.id, cfg);
-              renderBeautifyDOM(stage, currentChar);
+              renderBeautifyDOM(mask, currentChar);
               applyBeautify(stage, currentChar);
               if (window.AppNav) window.AppNav.showToast('专属背景已生效');
             });
           } else {
             cfg.chatBg = evt.target.result;
             saveBeautifyCfg(currentChar.id, cfg);
-            renderBeautifyDOM(stage, currentChar);
+            renderBeautifyDOM(mask, currentChar);
             applyBeautify(stage, currentChar);
             if (window.AppNav) window.AppNav.showToast('专属背景已生效');
           }
@@ -130,49 +169,56 @@
       fileInput.click();
     }
 
-    if (uploadBtn) uploadBtn.addEventListener('click', pickAndSetBg);
-    if (previewBox) previewBox.addEventListener('click', pickAndSetBg);
+    if (uploadBtn) uploadBtn.onclick = pickAndSetBg;
+    if (previewBox) previewBox.onclick = pickAndSetBg;
 
     if (resetBtn) {
-      resetBtn.addEventListener('click', function() {
+      resetBtn.onclick = function() {
         cfg.chatBg = '';
         saveBeautifyCfg(currentChar.id, cfg);
-        renderBeautifyDOM(stage, currentChar);
+        renderBeautifyDOM(mask, currentChar);
         applyBeautify(stage, currentChar);
         if (window.AppNav) window.AppNav.showToast('已恢复默认纯白背景');
-      });
+      };
     }
 
-    var fontInput = stage.querySelector('#cfgBtfFontSize');
-    var opacityInput = stage.querySelector('#cfgBtfOpacity');
+    var fontInput = mask.querySelector('#cfgBtfFontSize');
+    var opacityInput = mask.querySelector('#cfgBtfOpacity');
 
     if (fontInput) {
-      fontInput.addEventListener('input', function() {
+      fontInput.oninput = function() {
         cfg.fontSize = parseInt(this.value, 10) || 15;
-        var txt = stage.querySelector('#txtBtfFontSize');
+        var txt = mask.querySelector('#txtBtfFontSize');
         if (txt) txt.textContent = cfg.fontSize + 'px';
         saveBeautifyCfg(currentChar.id, cfg);
         applyBeautify(stage, currentChar);
-      });
+      };
     }
 
     if (opacityInput) {
-      opacityInput.addEventListener('input', function() {
+      opacityInput.oninput = function() {
         cfg.bubbleOpacity = parseFloat(this.value) || 1;
-        var txt = stage.querySelector('#txtBtfOpacity');
+        var txt = mask.querySelector('#txtBtfOpacity');
         if (txt) txt.textContent = Math.round(cfg.bubbleOpacity * 100) + '%';
         saveBeautifyCfg(currentChar.id, cfg);
         applyBeautify(stage, currentChar);
-      });
+      };
     }
   }
 
+  function openBeautifyStudio(stage, currentChar) {
+    if (!currentChar) return;
+    var mask = ensureBeautifyMask(currentChar);
+    renderBeautifyDOM(mask, currentChar);
+    bindBeautifyEvents(mask, stage, currentChar);
+    mask.classList.add('show');
+  }
+
   window.WxChatBeautify = {
+    open: openBeautifyStudio,
     getCfg: getBeautifyCfg,
     saveCfg: saveBeautifyCfg,
-    render: renderBeautifyDOM,
-    apply: applyBeautify,
-    bind: bindBeautifyEvents
+    apply: applyBeautify
   };
 
 })();
