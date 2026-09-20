@@ -1,4 +1,3 @@
-
 (function () {
   'use strict';
 
@@ -6,16 +5,16 @@
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
   }
 
-  // 记录从哪个页面跳进档案的返回锚点
   window._portalReturnPage = null;
 
-  // ============ 1. 浮球形态配置与持久化 ============
   var ORB_CONFIG_KEY = 'app_floating_orb_config';
   var orbConfig = {
-    mode: 'default', // 'default' | 'blackframe' | 'pngstandee'
+    mode: 'default',
     frameImg: '',
     standeePng: ''
   };
+
+  var rotationAngle = 0; // 旋转基础角度
 
   function loadOrbConfig() {
     try {
@@ -31,7 +30,6 @@
     if (window.AppDB) window.AppDB.save(ORB_CONFIG_KEY, orbConfig);
   }
 
-  // 灵感便签数据管理
   var NOTES_STORAGE_KEY = 'app_portal_inspirations_notes';
   function getNotesList() {
     try {
@@ -47,29 +45,23 @@
     } catch(e) {}
   }
 
-  // ============ 2. 路由劫持：确保退出档案时能原路返回当前应用 ============
   function hookAppNavReturn() {
     if (!window.AppNav || window.AppNav._hookedPortal) return;
     window.AppNav._hookedPortal = true;
 
     var originalShowPage = window.AppNav.showPage;
     window.AppNav.showPage = function (targetPage) {
-      // 如果档案返回桌面，且我们记录了来源页面，则原路返回该应用
       if (targetPage === 'home' && window._portalReturnPage) {
         var returnTarget = window._portalReturnPage;
         window._portalReturnPage = null;
         return originalShowPage(returnTarget);
       }
-
-      // 如果主动跳转到其他非档案页面，重置记录
       if (targetPage !== 'archive') {
         window._portalReturnPage = null;
       }
-
       return originalShowPage(targetPage);
     };
 
-    // 捕获档案顶栏原生返回按键点击
     document.addEventListener('click', function (e) {
       var backBtn = e.target.closest('#archShellBackBtn');
       if (backBtn && window._portalReturnPage) {
@@ -82,7 +74,6 @@
     }, true);
   }
 
-  // ============ 3. 动态挂载悬浮球 DOM 骨架 ============
   function ensurePortalDOM() {
     if (document.getElementById('portalOrb')) return;
 
@@ -151,13 +142,12 @@
     bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard, fileInput);
   }
 
-  // 渲染浮球内部形态
   function applyOrbAppearance(orb) {
     if (!orb) orb = document.getElementById('portalOrb');
     if (!orb) return;
 
     var isLeft = orb.classList.contains('align-left');
-    orb.className = 'portal-floating-orb ' + (isLeft ? 'align-left' : 'align-right') + ' style-' + orbConfig.mode;
+    orb.className = 'portal-floating-orb ' + (isLeft ? 'align-left' : 'align-right') + ' style-' + orbConfig.mode + (orb.classList.contains('open') ? ' open' : '');
 
     if (orbConfig.mode === 'default') {
       orb.innerHTML = '<img class="orb-custom-icon-img" src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" alt="Orb">';
@@ -170,23 +160,42 @@
     }
   }
 
-  // ============ 4. 悬浮球交互：自由拖拽、卫星展开与直达档案 ============
+  // 计算卫星极坐标布局与圆周旋转
+  function renderSatellitesLayout(orb, satellites, baseAngle) {
+    var rect = orb.getBoundingClientRect();
+    var centerX = rect.left + rect.width / 2;
+    var centerY = rect.top + rect.height / 2;
+    var radius = 70; // 离心半径
+
+    var count = satellites.length;
+    var angleStep = (2 * Math.PI) / count;
+
+    satellites.forEach(function (sat, i) {
+      var angle = baseAngle + i * angleStep;
+      var x = Math.cos(angle) * radius;
+      var y = Math.sin(angle) * radius;
+
+      sat.style.left = centerX + 'px';
+      sat.style.top = centerY + 'px';
+      sat.style.transform = 'translate(' + (x - 19) + 'px, ' + (y - 19) + 'px) scale(' + (orb.classList.contains('open') ? 1 : 0) + ')';
+    });
+  }
+
   function bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard, fileInput) {
     var satellites = satellitesGroup.querySelectorAll('.satellite-item-wrap');
     var pendingUploadMode = '';
 
-    function updateSatellitesAnchor(left, top) {
-      satellites.forEach(function (s) {
-        s.style.left = left + 'px';
-        s.style.top = top + 'px';
-      });
+    function syncSatellites() {
+      renderSatellitesLayout(orb, satellites, rotationAngle);
     }
 
     function toggleOrbOpen() {
       orb.classList.toggle('open');
+      syncSatellites();
     }
     function closeOrb() {
       orb.classList.remove('open');
+      syncSatellites();
     }
 
     orb.addEventListener('click', function () {
@@ -196,11 +205,11 @@
 
     satellites.forEach(function (btn) {
       btn.addEventListener('click', function (e) {
+        if (btn._isSatRotated) return;
         e.stopPropagation();
         var portalType = this.dataset.portal;
         closeOrb();
 
-        // 核心：点击【档案】直接进入档案应用编辑，并记住来源页面
         if (portalType === 'arch') {
           panelMask.classList.remove('show');
           panelCard.classList.remove('show');
@@ -208,7 +217,7 @@
           var curPageEl = document.querySelector('.page.active');
           var curPage = curPageEl ? curPageEl.dataset.page : 'home';
           if (curPage !== 'archive') {
-            window._portalReturnPage = curPage; // 牢牢记住墨墨当前在哪个应用（比如美化）
+            window._portalReturnPage = curPage;
           }
 
           if (window.AppNav) {
@@ -234,15 +243,9 @@
       });
     }
 
-    // 自由拖拽与停放
+    // 1. 主悬浮球拖拽（拖动时不收起展开图标）
     (function initOrbGesture() {
       var startX = 0, startY = 0, initialLeft = 0, initialTop = 0, hasMoved = false;
-
-      function syncAnchor() {
-        var r = orb.getBoundingClientRect();
-        updateSatellitesAnchor(r.left + 6, r.top + 6);
-      }
-      syncAnchor();
 
       orb.addEventListener('touchstart', function (e) {
         var touch = e.touches[0];
@@ -261,10 +264,9 @@
         var dx = touch.clientX - startX;
         var dy = touch.clientY - startY;
 
-        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
           hasMoved = true;
           orb._isDragged = true;
-          closeOrb();
         }
         if (!hasMoved) return;
 
@@ -274,7 +276,8 @@
         orb.style.top = nextY + 'px';
         orb.style.right = 'auto';
         orb.style.bottom = 'auto';
-        updateSatellitesAnchor(nextX + 6, nextY + 6);
+
+        syncSatellites(); // 拖动时带动周边图标同步平移
       }, { passive: true });
 
       orb.addEventListener('touchend', function () {
@@ -290,12 +293,54 @@
         orb.style.top = safeY + 'px';
 
         var isLeft = (safeX + rect.width / 2 < screenW / 2);
-        orb.className = 'portal-floating-orb style-' + orbConfig.mode + (isLeft ? ' align-left' : ' align-right');
-        updateSatellitesAnchor(safeX + 6, safeY + 6);
+        orb.className = 'portal-floating-orb style-' + orbConfig.mode + (isLeft ? ' align-left' : ' align-right') + (orb.classList.contains('open') ? ' open' : '');
+        syncSatellites();
       });
     })();
 
-    // 上传图片处理
+    // 2. 图标环绕旋转手势（按住任意图标以主球为圆心转动）
+    (function initSatelliteRotation() {
+      var startAngle = 0;
+      var initRotation = 0;
+      var isRotating = false;
+
+      satellites.forEach(function (sat) {
+        sat.addEventListener('touchstart', function (e) {
+          if (!orb.classList.contains('open')) return;
+          var touch = e.touches[0];
+          var rect = orb.getBoundingClientRect();
+          var cx = rect.left + rect.width / 2;
+          var cy = rect.top + rect.height / 2;
+
+          startAngle = Math.atan2(touch.clientY - cy, touch.clientX - cx);
+          initRotation = rotationAngle;
+          isRotating = false;
+          sat._isSatRotated = false;
+        }, { passive: true });
+
+        sat.addEventListener('touchmove', function (e) {
+          if (!orb.classList.contains('open')) return;
+          var touch = e.touches[0];
+          var rect = orb.getBoundingClientRect();
+          var cx = rect.left + rect.width / 2;
+          var cy = rect.top + rect.height / 2;
+
+          var curAngle = Math.atan2(touch.clientY - cy, touch.clientX - cx);
+          var delta = curAngle - startAngle;
+
+          if (Math.abs(delta) > 0.05) {
+            isRotating = true;
+            sat._isSatRotated = true;
+          }
+
+          if (isRotating) {
+            rotationAngle = initRotation + delta;
+            syncSatellites();
+          }
+        }, { passive: true });
+      });
+    })();
+
     fileInput.addEventListener('change', function (e) {
       var file = e.target.files[0];
       if (!file) return;
@@ -318,7 +363,6 @@
     });
   }
 
-  // ============ 5. 其余面板渲染中枢 (记忆 / API / 便签 / 浮球换肤) ============
   function openFeaturePanel(type, panelMask, panelCard, fileInput) {
     panelMask.classList.add('show');
     panelCard.classList.add('show');
@@ -348,7 +392,6 @@
     }
   }
 
-  // 1. 记忆时间轴面板
   function renderMemoryCorridor(container) {
     var charList = [];
     try {
@@ -408,7 +451,6 @@
     });
   }
 
-  // 2. API 快捷切换面板
   function renderApiSwitcher(container) {
     var apiConfigs = [];
     var activeApi = null;
@@ -449,7 +491,6 @@
     });
   }
 
-  // 3. 灵感便签管理器
   function renderNotesManager(container) {
     var notes = getNotesList();
     var notesHtml = notes.map(function (txt, idx) {
@@ -488,7 +529,6 @@
     });
   }
 
-  // 4. 浮球样式定制面板
   function renderOrbStyleSettings(container, fileInput, setPendingMode) {
     var orb = document.getElementById('portalOrb');
     var frameImgSrc = orbConfig.frameImg || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
@@ -542,7 +582,6 @@
     });
   }
 
-  // ============ 6. 初始化与保活 ============
   function initPortalEngine() {
     ensurePortalDOM();
   }
