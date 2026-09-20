@@ -304,25 +304,40 @@
         e.stopPropagation();
         var portalType = this.dataset.portal;
 
-                // 点击【档案】：关闭浮球，直接前往档案编辑，并锁定原地返回路径
+            // 1. 点击【档案】：前往全屏档案编辑
         if (portalType === 'arch') {
           panelMask.classList.remove('show');
           panelCard.classList.remove('show');
-
           var origin = currentActiveAppPage || 'home';
           sessionStorage.setItem('portal_return_origin_app', origin);
-
-          // 核心：如果有打开的单聊窗口，把它暂时隐藏，让档案露出来！
           var chatStage = document.getElementById('wxChatRoomStage');
-          if (chatStage) {
-            chatStage.style.display = 'none';
-          }
-
-          if (window.AppNav) {
-            window.AppNav.showPage('archive');
-          }
-
+          if (chatStage) chatStage.style.display = 'none';
+          if (window.AppNav) window.AppNav.showPage('archive');
           setTimeout(syncArchiveBackAttribute, 60);
+          return;
+        }
+
+        // 2. 点击【记忆】：直接打开全新全屏三栏手账长廊
+        if (portalType === 'mem') {
+          panelMask.classList.remove('show');
+          panelCard.classList.remove('show');
+          orb.classList.remove('open');
+          syncSatellites();
+          if (window.WxChatMemory && window.WxChatMemory.open) {
+            window.WxChatMemory.open();
+          }
+          return;
+        }
+
+        // 3. 点击【日志】：直接打开全新全屏黑匣子交互日志
+        if (portalType === 'log') {
+          panelMask.classList.remove('show');
+          panelCard.classList.remove('show');
+          orb.classList.remove('open');
+          syncSatellites();
+          if (window.WxLogger && window.WxLogger.open) {
+            window.WxLogger.open();
+          }
           return;
         }
 
