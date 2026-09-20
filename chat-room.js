@@ -1,4 +1,3 @@
-
 (function () {
   'use strict';
 
@@ -84,12 +83,12 @@
     var now = new Date();
     var hour = now.getHours();
     var period = '深夜';
-    if (hour >= 6 && hour < 8) period = '清晨';
+    if (hour >= 5 && hour < 8) period = '清晨';
     else if (hour >= 8 && hour < 11) period = '上午';
     else if (hour >= 11 && hour < 13) period = '中午';
     else if (hour >= 13 && hour < 17) period = '下午';
     else if (hour >= 17 && hour < 19) period = '傍晚';
-    else if (hour >= 19 && hour < 24) period = '晚上';
+    else if (hour >= 19 && hour < 23) period = '晚上';
 
     var timeStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()] + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ' (' + period + ')';
     var info = '【当前时间】：' + timeStr;
