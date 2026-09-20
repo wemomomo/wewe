@@ -1307,18 +1307,18 @@
 
     stage.addEventListener('touchend', function() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } });
 
-    function bindCtxItemClicks() {
+        function bindCtxItemClicks() {
       if (!ctxMenu) return;
       ctxMenu.querySelectorAll('[data-ctx-act]').forEach(function(item) {
         item.addEventListener('click', function(e) {
           e.stopPropagation();
-                    var act = this.dataset.ctxAct;
+          var act = this.dataset.ctxAct;
           var targetIdx = currentCtxIdx;
           var targetMsg = chatMessages[targetIdx];
-          if (!targetMsg || targetIdx < 0) {
-            dismissCtxMenu();
-            return;
-          }
+
+          // 核心：先关闭悬浮小菜单，但保留 targetIdx 给确认弹窗使用
+          dismissCtxMenu();
+
           if (!targetMsg || targetIdx < 0) return;
 
           if (act === 'quote') {
@@ -1337,10 +1337,12 @@
             var oldText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
             var newText = prompt('编辑这条消息内容：', oldText);
             if (newText !== null && newText.trim()) {
-              targetMsg.content = newText.trim(); targetMsg.cleanContent = newText.trim();
-              saveChatMessages(currentChatChar.id); renderMessages();
+              targetMsg.content = newText.trim();
+              targetMsg.cleanContent = newText.trim();
+              saveChatMessages(currentChatChar.id);
+              renderMessages();
             }
-                    } else if (act === 'del') {
+          } else if (act === 'del') {
             var doDelete = function() {
               if (targetIdx >= 0) {
                 chatMessages.splice(targetIdx, 1);
@@ -1359,7 +1361,7 @@
             } else {
               doDelete();
             }
-          }          } else if (act === 'delFromHere') {
+          } else if (act === 'delFromHere') {
             var doDeleteAfter = function() {
               if (targetIdx >= 0) {
                 chatMessages.splice(targetIdx);
@@ -1372,18 +1374,19 @@
             if (window.AppDialog) {
               window.AppDialog.confirm({
                 title: '往后全删',
-                desc: '确定删除这条消息之后的所有聊天记录吗？（当前及更早的消息将完整保留）',
+                desc: '确定删除这条消息及之后的所有记录吗？',
                 confirmText: '确定清空后续',
                 isDanger: true
               }, doDeleteAfter);
             } else {
-              if (confirm('确定删除这条消息之后的所有聊天记录吗？')) {
+              if (confirm('确定删除这条消息及之后的所有记录吗？')) {
                 doDeleteAfter();
               }
             }
           } else if (act === 'resend') {
             if (abortCtrl) { abortCtrl.abort(); abortCtrl = null; }
-            isStreaming = false; updateTypingUI(false);
+            isStreaming = false;
+            updateTypingUI(false);
             var isUserMsg = (targetMsg.role === 'user' || targetMsg.sender === 'user');
             if (isUserMsg) {
               var userText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
@@ -1392,7 +1395,8 @@
             } else {
               chatMessages.splice(targetIdx);
             }
-            saveChatMessages(currentChatChar.id); renderMessages();
+            saveChatMessages(currentChatChar.id);
+            renderMessages();
             requestAIStream();
           }
         });
