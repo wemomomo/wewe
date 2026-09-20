@@ -983,39 +983,6 @@
     var backBtn = stage.querySelector('#wxCrBackBtn');
     backBtn.addEventListener('click', closeChatRoom);
 
-    function gotoArchiveCard(side) {
-      stage.style.display = 'none';
-      if (window.AppNav) {
-        window.AppNav.showPage('archive');
-        setTimeout(function() {
-          var tabBtn = document.getElementById(side === 'char' ? 'tabCharBtn' : 'tabUserBtn');
-          if (tabBtn) tabBtn.click();
-        }, 60);
-      }
-    }
-
-    function hookArchiveBack() {
-      var archBackBtn = document.getElementById('archShellBackBtn');
-      if (archBackBtn && !archBackBtn._hookedChat) {
-        archBackBtn._hookedChat = true;
-        archBackBtn.addEventListener('click', function(e) {
-          if (window._chatActiveCharId && document.getElementById('wxChatRoomStage')) {
-            e.stopPropagation();
-            if (window.AppNav) window.AppNav.showPage('wechat');
-            document.getElementById('wxChatRoomStage').style.display = 'flex';
-          }
-        }, true);
-      }
-    }
-    hookArchiveBack();
-
-    stage.addEventListener('click', function(e) {
-      var avt = e.target.closest('[data-avatar-side]');
-      if (avt) {
-        gotoArchiveCard(avt.dataset.avatarSide);
-      }
-    });
-
     var charHeadBtn = stage.querySelector('#wxCrCharHeadBtn');
     var voiceModalWrap = stage.querySelector('#wxCrVoiceModalWrap');
     var closeVoiceBtn = stage.querySelector('#wxCrCloseVoiceBtn');
