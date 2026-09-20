@@ -1,46 +1,52 @@
 
 /* ======================================================== */
-/* 全局快捷中枢悬浮球 (Floating Portal Core) - 高定纯净版     */
+/* 全局快捷中枢悬浮球 (Floating Portal Core) - 纯透明极速版   */
 /* ======================================================== */
 
 /* =========================================================
-   1. 全局悬浮球主球体
+   1. 全局悬浮球主球体 (默认完全透明无底色)
 ========================================================= */
 .portal-floating-orb {
   position: fixed;
   bottom: 120px;
   right: 18px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
+  width: 54px;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 19000;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   touch-action: none;
   box-sizing: border-box;
+  /* 核心：默认即彻底透明，无任何白底、边框、阴影、滤镜 */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 .portal-floating-orb:active {
   transform: scale(0.92);
 }
 
-.portal-floating-orb.style-default {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 
-    0 8px 24px rgba(15, 23, 42, 0.12),
-    0 2px 6px rgba(15, 23, 42, 0.06),
-    inset 0 1px 2px rgba(255, 255, 255, 1);
+/* 默认透明 PNG 图像满铺居中展示 */
+.orb-custom-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: transparent !important;
+  filter: none !important;
 }
 
+/* 仅在黑框相框形态下才显示边框与白底 */
 .portal-floating-orb.style-blackframe {
-  background: #ffffff;
-  border: 2px solid #111111;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  background: #ffffff !important;
+  border: 2px solid #111111 !important;
+  border-radius: 50%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
   overflow: hidden;
 }
 .orb-frame-img {
@@ -50,6 +56,7 @@
   display: block;
 }
 
+/* 纯净透明立绘 PNG 形态 */
 .portal-floating-orb.style-pngstandee {
   background: transparent !important;
   border: none !important;
@@ -64,14 +71,6 @@
   display: block;
   background: transparent !important;
   filter: none !important;
-}
-
-.orb-custom-icon-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
 }
 
 /* =========================================================
