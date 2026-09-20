@@ -17,6 +17,9 @@
   });
 
   var ORB_CONFIG_KEY = 'app_floating_orb_config';
+  var STANDEE_HISTORY_KEY = 'app_portal_standee_history';
+  var NOTES_STORAGE_KEY = 'app_portal_inspirations_notes';
+
   var orbConfig = {
     mode: 'default', // 'default' | 'blackframe' | 'pngstandee'
     frameImg: '',
@@ -40,8 +43,32 @@
     if (window.AppDB) window.AppDB.save(ORB_CONFIG_KEY, orbConfig);
   }
 
+  // 立绘历史手账库管理
+  function getStandeeHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(STANDEE_HISTORY_KEY) || '[]');
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveStandeeHistory(list) {
+    try {
+      localStorage.setItem(STANDEE_HISTORY_KEY, JSON.stringify(list));
+    } catch(e) {}
+    if (window.AppDB) window.AppDB.save(STANDEE_HISTORY_KEY, list);
+  }
+
+  function addStandeeToHistory(url) {
+    if (!url || !url.trim()) return;
+    var clean = url.trim();
+    var list = getStandeeHistory();
+    list = list.filter(function(item) { return item !== clean; });
+    list.unshift(clean);
+    saveStandeeHistory(list);
+  }
+
   // 灵感便签数据管理
-  var NOTES_STORAGE_KEY = 'app_portal_inspirations_notes';
   function getNotesList() {
     try {
       return JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY) || '[]');
@@ -73,7 +100,6 @@
       var reader = new FileReader();
       reader.onload = function (evt) {
         if (fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
-        // 直接交付原汁原味的 PNG 透明 Base64，不破坏透明度和比例！
         callback(evt.target.result);
       };
       reader.readAsDataURL(file);
@@ -168,19 +194,24 @@
     satellitesGroup.id = 'satellitesGroup';
     satellitesGroup.innerHTML = ''
       + '<div class="satellite-item-wrap" data-idx="0" data-portal="mem">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">记忆</div></div>'
+      + '  <span class="satellite-label-top">记忆</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="1" data-portal="api">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">API</div></div>'
+      + '  <span class="satellite-label-top">API</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="2" data-portal="arch">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">档案</div></div>'
+      + '  <span class="satellite-label-top">档案</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="3" data-portal="notes">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">便签</div></div>'
+      + '  <span class="satellite-label-top">便签</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="4" data-portal="orbStyle">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">浮球</div></div>'
+      + '  <span class="satellite-label-top">浮球</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
       + '</div>';
 
     var panelMask = document.createElement('div');
@@ -233,12 +264,12 @@
     }
   }
 
-  // 70px 紧凑围绕距离
+  // 严格设置围绕距离为 70px，圆圈中心精准对齐
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 70;
+    var radius = 70; // 👈 墨墨指定的 70 距离
 
     var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
@@ -248,8 +279,10 @@
       var x = Math.cos(angle) * radius;
       var y = Math.sin(angle) * radius;
 
-      sat.style.left = Math.round(centerX + x - 22) + 'px';
-      sat.style.top = Math.round(centerY + y - 22) + 'px';
+      // 让圆圈正中心严格位于 (centerX + x, centerY + y)
+      // 结构：标签在上(~12px) + 圆圈在下(38px)，总高度约 50px，圆心位于整体 Y: 31px, X: 19px
+      sat.style.left = Math.round(centerX + x - 19) + 'px';
+      sat.style.top = Math.round(centerY + y - 31) + 'px';
       sat.style.transform = isOpen ? 'scale(1)' : 'scale(0)';
     });
   }
@@ -594,9 +627,10 @@
     });
   }
 
-  // 浮球样式定制面板（PNG 直连原图，免裁剪绝无黑底）
+  // 浮球样式定制面板（含 PNG URL 输入 & 历史立绘手账架）
   function renderOrbStyleSettings(container) {
     var orb = document.getElementById('portalOrb');
+    var standeeHistory = getStandeeHistory();
 
     var framePreviewInner = orbConfig.frameImg
       ? '<img src="' + esc(orbConfig.frameImg) + '" style="width:100%;height:100%;object-fit:cover;">'
@@ -605,6 +639,20 @@
     var standeePreviewInner = orbConfig.standeePng
       ? '<img src="' + esc(orbConfig.standeePng) + '" style="width:100%;height:100%;object-fit:contain;">'
       : '<span style="font-size:18px;font-weight:bold;color:#888;">+</span>';
+
+    var historyShelfHtml = '';
+    if (standeeHistory.length) {
+      historyShelfHtml = '<div class="standee-panel-title-row"><span class="standee-panel-title">历史立绘手账架 (' + standeeHistory.length + ')</span></div>'
+        + '<div class="standee-history-shelf">'
+        + standeeHistory.map(function(imgUrl, idx) {
+            var isCur = (orbConfig.standeePng === imgUrl && orbConfig.mode === 'pngstandee');
+            return '<div class="standee-history-card' + (isCur ? ' active' : '') + '" data-pick-history="' + esc(imgUrl) + '">'
+              + '<img class="standee-history-img" src="' + esc(imgUrl) + '" alt="历史立绘">'
+              + '<span class="standee-del-x" data-del-history="' + idx + '">✕</span>'
+              + '</div>';
+          }).join('')
+        + '</div>';
+    }
 
     container.innerHTML = ''
       // 样式 1：默认球
@@ -625,13 +673,26 @@
       + '  </div>'
       + '</div>'
 
-      // 样式 3：完全纯净透明底 PNG 立绘（免裁剪，直接读取透明原图，绝无黑底！）
+      // 样式 3：完全纯净透明底 PNG 立绘
       + '<div class="orb-style-row ' + (orbConfig.mode === 'pngstandee' ? 'active' : '') + '" data-set-orb="pngstandee">'
       + '  <div class="orb-style-preview-box" data-trigger-upload="png" style="background:transparent; border:1px dashed #cbd5e1;">' + standeePreviewInner + '</div>'
       + '  <div class="orb-style-info-col">'
       + '    <div class="orb-style-title">透明立绘 PNG</div>'
-      + '    <div class="orb-style-desc">仅展现角色立绘，四周100%纯透明，点击左侧上传立绘原图。</div>'
+      + '    <div class="orb-style-desc">点击左侧相册直传，或在下方输入链接与调阅历史。</div>'
       + '  </div>'
+      + '</div>'
+
+      // PNG 立绘专属 URL 输入与历史架
+      + '<div class="standee-custom-panel">'
+      + '  <div class="standee-panel-title-row">'
+      + '    <span class="standee-panel-title">链接上传 PNG 立绘</span>'
+      + '  </div>'
+      + '  <div class="standee-url-input-wrap">'
+      + '    <input class="standee-url-input" id="standeeUrlInput" type="text" placeholder="粘贴透明 PNG 图像链接...">'
+      + '    <button class="standee-btn" id="standeeApplyUrlBtn" type="button">应用</button>'
+      + '    <button class="standee-btn outline" id="standeePickLocalBtn" type="button">相册</button>'
+      + '  </div>'
+      + '  ' + historyShelfHtml
       + '</div>';
 
     function triggerFramePick() {
@@ -649,12 +710,70 @@
       pickRawPngPhoto(function (base64) {
         orbConfig.standeePng = base64;
         orbConfig.mode = 'pngstandee';
+        addStandeeToHistory(base64);
         saveOrbConfig();
         applyOrbAppearance(orb);
         renderOrbStyleSettings(container);
         if (window.AppNav) window.AppNav.showToast('透明立绘已更新');
       });
     }
+
+    // URL 应用
+    var urlInput = container.querySelector('#standeeUrlInput');
+    var applyUrlBtn = container.querySelector('#standeeApplyUrlBtn');
+    var pickLocalBtn = container.querySelector('#standeePickLocalBtn');
+
+    if (applyUrlBtn && urlInput) {
+      applyUrlBtn.addEventListener('click', function () {
+        var urlVal = urlInput.value.trim();
+        if (!urlVal) {
+          if (window.AppNav) window.AppNav.showToast('请先粘贴立绘链接');
+          return;
+        }
+        orbConfig.standeePng = urlVal;
+        orbConfig.mode = 'pngstandee';
+        addStandeeToHistory(urlVal);
+        saveOrbConfig();
+        applyOrbAppearance(orb);
+        renderOrbStyleSettings(container);
+        if (window.AppNav) window.AppNav.showToast('立绘链接已应用并归档');
+      });
+    }
+
+    if (pickLocalBtn) {
+      pickLocalBtn.addEventListener('click', triggerPngPick);
+    }
+
+    // 点击历史立绘卡片直接换装
+    container.querySelectorAll('[data-pick-history]').forEach(function(card) {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.standee-del-x')) return;
+        var chosenUrl = this.dataset.pickHistory;
+        orbConfig.standeePng = chosenUrl;
+        orbConfig.mode = 'pngstandee';
+        saveOrbConfig();
+        applyOrbAppearance(orb);
+        renderOrbStyleSettings(container);
+        if (window.AppNav) window.AppNav.showToast('已切换至该立绘');
+      });
+    });
+
+    // 删除单张历史立绘
+    container.querySelectorAll('[data-del-history]').forEach(function(xBtn) {
+      xBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var delIdx = parseInt(this.dataset.delHistory, 10);
+        var list = getStandeeHistory();
+        var removed = list.splice(delIdx, 1)[0];
+        saveStandeeHistory(list);
+        if (orbConfig.standeePng === removed) {
+          orbConfig.standeePng = list.length ? list[0] : '';
+          saveOrbConfig();
+          applyOrbAppearance(orb);
+        }
+        renderOrbStyleSettings(container);
+      });
+    });
 
     container.querySelectorAll('[data-set-orb]').forEach(function (row) {
       row.addEventListener('click', function (e) {
