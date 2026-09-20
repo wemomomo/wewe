@@ -264,7 +264,7 @@
       if (charData.relation) parts.push('· 与' + userName + '的关系：\n' + charData.relation);
       if (charData.callName) parts.push('· 对' + userName + '的称呼：\n' + charData.callName);
     } else {
-      parts.push('【自由人设铁律 - 严禁冷落】：\n当前未给定固定人设，你可以按照自己的想法和偏好展现独特的灵魂与个性，自由做自己。但下达绝对铁律：严禁冷落「' + callName + '」，必须主动、真诚、充满陪伴感。');
+      parts.push('【自由人设铁律 - 严禁冷落】：\n当前未给定固定人设，你可以按照自己的想法和偏好展现独特的灵魂与个性，自由做自己。但下达绝对铁律：严禁冷落「' + callName + '」。');
     }
 
     if (cfg.proLevelMode === 'auto') {
