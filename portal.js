@@ -162,15 +162,15 @@
     }
   }
 
-  // 核心：保持一开始设定的“优雅月牙半包围”弧度形态
+  // 舒展美观的月牙半包围算法（加大离心距离与分布弧度）
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 70; // 黄金贴合离心半径
+    var radius = 88; // 拉大离心半径，留出舒适间距
 
-    // 月牙扇形跨度偏移：5个图标保持一开始设定的半弧度环绕（绝不是均匀铺开）
-    var arcOffsets = [-1.15, -0.58, 0, 0.58, 1.15];
+    // 扇形分布弧度略微舒展
+    var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
@@ -178,7 +178,6 @@
       var x = Math.cos(angle) * radius;
       var y = Math.sin(angle) * radius;
 
-      // 核心修复：直接把真实物理坐标写在 left 和 top 上，彻底杜绝被任何 CSS 动画吸回中心！
       sat.style.left = Math.round(centerX + x - 19) + 'px';
       sat.style.top = Math.round(centerY + y - 19) + 'px';
       sat.style.transform = isOpen ? 'scale(1)' : 'scale(0)';
@@ -302,7 +301,6 @@
         var isLeft = (safeX + rect.width / 2 < screenW / 2);
         orb.className = 'portal-floating-orb style-' + orbConfig.mode + (isLeft ? ' align-left' : ' align-right') + (orb.classList.contains('open') ? ' open' : '');
 
-        // 智能朝向：在左侧时月牙朝向右上，在右侧时月牙朝向左上
         if (!orb._hasCustomRotated) {
           currentArcCenterAngle = isLeft ? (-Math.PI * 0.25) : (-Math.PI * 0.75);
         }
@@ -310,7 +308,7 @@
       });
     })();
 
-    // 2. 核心手势：按住任意图标，带动整个月牙弧度以悬浮球为圆心整体转动！
+    // 2. 按住任意图标以悬浮球为圆心整体顺畅转动
     (function initArcWheelRotation() {
       var touchedSat = null;
       var startTouchAngle = 0;
