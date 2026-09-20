@@ -36,9 +36,8 @@
       voiceLevel: 'normal',    // 'normal'(平常) | 'obsession'(迷恋·深度)
       mainLang: '简体中文',     // 主要语言
       bilingual: false,        // 双语模式
-            biLang: 'English',
+      biLang: 'English',       // 双语翻译目标语言
       biStyle: 'bracket',      // 'bracket'(括号附注) | 'newline'(另起一行)
-      enFont: 'default',       // 'default' | 'caveat' | 'pinyon' | 'alex'
       minimax: false,          // MiniMax 语音开关
       mmVoiceId: '',           // MiniMax Voice ID
       mmApiKey: '',            // MiniMax API Key
@@ -688,8 +687,7 @@
       + '  </div>'
       + '  <div id="secBiSub" style="' + (cfg.bilingual ? '' : 'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px; display:flex; flex-direction:column; gap:8px;">'
       + '    <div class="gothic-row"><span>翻译为</span><select class="gothic-select" id="cfgBiLang"><option' + sv('biLang','English') + '>English</option><option' + sv('biLang','日本語') + '>日本語</option><option' + sv('biLang','한국어') + '>한국어</option><option' + sv('biLang','繁體中文') + '>繁體中文</option><option' + sv('biLang','粤语') + '>粤语</option></select></div>'
-            + '    <div class="gothic-row"><span>显示方式</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="bracket"' + (cfg.biStyle==='bracket'?' checked':'') + '><span class="cr-radio-circle"></span> 括号附注</label><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="newline"' + (cfg.biStyle==='newline'?' checked':'') + '><span class="cr-radio-circle"></span> 另起一行</label></div></div>'
-      + '    <div class="gothic-row"><span>英文字体</span><select class="gothic-select" id="cfgEnFont"><option value="default"' + (cfg.enFont==='default'?' selected':'') + '>默认字体 (Sans)</option><option value="caveat"' + (cfg.enFont==='caveat'?' selected':'') + '>手写体 (Caveat)</option><option value="pinyon"' + (cfg.enFont==='pinyon'?' selected':'') + '>华丽宫廷贵族铜版体 (Pinyon Script)</option><option value="alex"' + (cfg.enFont==='alex'?' selected':'') + '>优雅流线墨水软笔体 (Alex Brush)</option></select></div>'
+      + '    <div class="gothic-row"><span>显示方式</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="bracket"' + (cfg.biStyle==='bracket'?' checked':'') + '><span class="cr-radio-circle"></span> 括号附注</label><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="newline"' + (cfg.biStyle==='newline'?' checked':'') + '><span class="cr-radio-circle"></span> 另起一行</label></div></div>'
       + '  </div>'
       + '  <div class="gothic-row" style="border-top:1px dashed rgba(20,22,25,0.08); padding-top:8px;">'
       + '    <div class="gothic-row-label-col"><span class="gothic-label">MiniMax 语音</span><span class="gothic-desc">TTS 真实语音合成</span></div>'
@@ -793,41 +791,7 @@
       }
     }
 
-        return { text: raw || '...', voiceObj: voiceObj };
-  }
-
-  // 格式化气泡双语排版（中文在上，虚线隔开，英文在下并应用选定英文字体）
-  function formatBubbleContent(rawContent, cfg) {
-    if (!cfg || !cfg.bilingual || cfg.biStyle !== 'newline') {
-      return esc(rawContent);
-    }
-
-    var fontClass = 'font-default';
-    if (cfg.enFont === 'caveat') fontClass = 'font-caveat';
-    else if (cfg.enFont === 'pinyon') fontClass = 'font-pinyon';
-    else if (cfg.enFont === 'alex') fontClass = 'font-alex';
-
-    var lines = rawContent.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
-    if (lines.length >= 2) {
-      var zhPart = lines[0];
-      var enPart = lines.slice(1).join(' ');
-      return '<div class="bilingual-newline-box">'
-        + '<div class="bilingual-main-text">' + esc(zhPart) + '</div>'
-        + '<div class="bilingual-divider-dash"></div>'
-        + '<div class="bilingual-trans-text ' + fontClass + '">' + esc(enPart) + '</div>'
-        + '</div>';
-    }
-
-    var bracketMatch = rawContent.match(/^([^\(（]+)[\(（]([^\)）]+)[\)）]$/);
-    if (bracketMatch) {
-      return '<div class="bilingual-newline-box">'
-        + '<div class="bilingual-main-text">' + esc(bracketMatch[1].trim()) + '</div>'
-        + '<div class="bilingual-divider-dash"></div>'
-        + '<div class="bilingual-trans-text ' + fontClass + '">' + esc(bracketMatch[2].trim()) + '</div>'
-        + '</div>';
-    }
-
-    return esc(rawContent);
+    return { text: raw || '...', voiceObj: voiceObj };
   }
 
   function renderMessages() {
@@ -902,10 +866,9 @@
         var quoteHtml = m.quote ? '<div class="wx-msg-quote-bar">' + esc(m.quote) + '</div>' : '';
         var tailTimeHtml = (idx === total - 1) ? '<div class="bubble-tail-timestamp">' + fmtTime(m.ts || Date.now()) + '</div>' : '';
 
-                var formattedContent = formatBubbleContent(content, cfg);
         html += '<div class="wx-msg-bubble-item" data-bubble-idx="' + globalIdx + '">'
           + quoteHtml
-          + formattedContent
+          + esc(content)
           + heartHtml
           + '</div>'
           + tailTimeHtml;
@@ -1433,7 +1396,6 @@
       cfg.biLang = gv('cfgBiLang') || 'English';
       var rdoBiStyle = stage.querySelector('input[name="rdoBiStyle"]:checked');
       cfg.biStyle = rdoBiStyle ? rdoBiStyle.value : 'bracket';
-      cfg.enFont = gv('cfgEnFont') || 'default';
 
       cfg.minimax = stage.querySelector('#swMinimax') ? stage.querySelector('#swMinimax').classList.contains('on') : false;
       cfg.mmVoiceId = gv('cfgMmVoice') || '';
@@ -1541,20 +1503,21 @@
       });
     }
 
-    // 绘图模型拉取按钮
+        // 绘图模型拉取按钮 (高定优雅下拉列表)
     var fetchImgBtn = stage.querySelector('#btnFetchImgModels');
     if (fetchImgBtn) {
       fetchImgBtn.addEventListener('click', function() {
         var api = getActiveApi(currentChatChar.id);
         if (!api || !api.url || !api.key) {
-          if (window.AppNav) window.AppNav.showToast('请先配置并启用接口');
+          if (window.AppNav) window.AppNav.showToast('请先在设置中配置并启用 API 接口');
           return;
         }
-        if (window.AppNav) window.AppNav.showToast('正在获取绘图模型...');
+        if (window.AppNav) window.AppNav.showToast('正在获取模型列表...');
+
         fetch(api.url.replace(/\/+$/, '') + '/models', {
           headers: { 'Authorization': 'Bearer ' + api.key }
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(data) {
           var raw = data.data || data;
           var models = [];
@@ -1564,18 +1527,46 @@
               if (id) models.push(id);
             }
           }
-          if (models.length) {
-            var mName = prompt('请选择或填入绘图模型：\n' + models.slice(0, 15).join('\n'), models[0]);
-            if (mName) {
-              stage.querySelector('#cfgImgModel').value = mName.trim();
-              syncSettingFields();
-            }
-          } else {
-            if (window.AppNav) window.AppNav.showToast('未拉取到模型列表');
+          if (!models.length) {
+            if (window.AppNav) window.AppNav.showToast('未检测到可用模型');
+            return;
           }
+
+          // 弹出高定列表浮层
+          var existingPicker = document.getElementById('wxCrModelPickerMask');
+          if (existingPicker) existingPicker.remove();
+
+          var pickerMask = document.createElement('div');
+          pickerMask.id = 'wxCrModelPickerMask';
+          pickerMask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+          var listHtml = models.map(function(m) {
+            return '<div class="cr-model-pick-item" style="padding:10px 12px;font-size:13px;font-weight:600;color:#111;border-bottom:1px solid rgba(0,0,0,0.05);cursor:pointer;">' + esc(m) + '</div>';
+          }).join('');
+
+          pickerMask.innerHTML = '<div style="width:100%;max-width:300px;max-height:60vh;background:#ffffff;border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,0.2);">'
+            + '<div style="padding:12px 16px;font-size:14px;font-weight:800;color:#111;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:center;"><span>选择绘图模型</span><span id="closeModelPicker" style="cursor:pointer;color:#888;">✕</span></div>'
+            + '<div style="flex:1;overflow-y:auto;padding:4px 8px;">' + listHtml + '</div>'
+            + '</div>';
+
+          document.body.appendChild(pickerMask);
+
+          pickerMask.addEventListener('click', function(e) {
+            if (e.target === pickerMask || e.target.id === 'closeModelPicker') pickerMask.remove();
+          });
+
+          pickerMask.querySelectorAll('.cr-model-pick-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+              var chosen = this.textContent.trim();
+              stage.querySelector('#cfgImgModel').value = chosen;
+              syncSettingFields();
+              pickerMask.remove();
+              if (window.AppNav) window.AppNav.showToast('已选定模型: ' + chosen);
+            });
+          });
         })
         .catch(function(err) {
-          if (window.AppNav) window.AppNav.showToast('拉取失败: ' + err.message);
+          if (window.AppNav) window.AppNav.showToast('获取失败: ' + err.message);
         });
       });
     }
