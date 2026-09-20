@@ -1313,7 +1313,7 @@
         item.addEventListener('click', function(e) {
           e.stopPropagation();
           var act = this.dataset.ctxAct;
-          var targetIdx = currentCtxIdx; // 重点：先存下被点击的真实消息索引
+          var targetIdx = currentCtxIdx;
           var targetMsg = chatMessages[targetIdx];
           dismissCtxMenu();
           if (!targetMsg || targetIdx < 0) return;
