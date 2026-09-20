@@ -629,24 +629,34 @@
         + '</div>'
         + '<div class="wx-msg-bubbles-col">';
 
+            // 1. 先在整组消息里智能搜寻心声对象
+      var groupVoiceObj = null;
+      var groupVoiceIdx = -1;
+      if (!isUser) {
+        g.msgs.forEach(function(item) {
+          var m = item.msg;
+          if (!m.voiceObj) {
+            var parsed = parseDossierVoice(m.cleanContent || m.content || m.text || '');
+            m.voiceObj = parsed.voiceObj;
+            m.cleanContent = parsed.text;
+          }
+          if (m.voiceObj) {
+            groupVoiceObj = m.voiceObj;
+            groupVoiceIdx = item.globalIdx;
+          }
+        });
+      }
+
       var total = g.msgs.length;
       g.msgs.forEach(function(item, idx) {
         var m = item.msg;
         var globalIdx = item.globalIdx;
         var content = m.cleanContent || m.content || m.text || '';
-        var voiceObj = m.voiceObj || null;
 
-        if (!isUser && !voiceObj) {
-          var parsed = parseDossierVoice(content);
-          content = parsed.text;
-          voiceObj = parsed.voiceObj;
-          m.voiceObj = voiceObj;
-          m.cleanContent = content;
-        }
-
+        // 2. 只要整组包含心声，就在最后一个气泡旁显示爱心
         var heartHtml = '';
-        if (!isUser && voiceObj && idx === total - 1) {
-          heartHtml = '<span class="voice-heart-trigger" data-voice-idx="' + globalIdx + '" title="点击查看当下心声">'
+        if (!isUser && groupVoiceObj && idx === total - 1) {
+          heartHtml = '<span class="voice-heart-trigger" data-voice-idx="' + groupVoiceIdx + '" title="点击查看当下心声">'
             + '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>'
             + '</span>';
         }
