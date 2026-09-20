@@ -665,7 +665,7 @@
     if (nextBtn) nextBtn.style.opacity = (currentVoicePageIdx < currentVoiceList.length - 1) ? '1' : '0.3';
   }
 
-  // ============ 9. 事件绑定与上下文菜单 ============
+  // ============ 9. 事件绑定与上下文菜单 (彻底修复索引与弹窗) ============
   function bindChatEvents(stage) {
     function closeChatRoom() {
       if (abortCtrl) abortCtrl.abort();
@@ -679,7 +679,7 @@
 
     stage.querySelector('#wxCrBackBtn').addEventListener('click', closeChatRoom);
 
-    // 顶栏两大悬浮抽屉呼出（直接调用独立模块）
+    // 顶栏两大悬浮抽屉呼出
     stage.querySelector('#wxCrMoreBtn').addEventListener('click', function() {
       if (window.WxChatSettings && window.WxChatSettings.open) {
         window.WxChatSettings.open(currentChatChar, function(isProactiveOn) {
@@ -796,7 +796,7 @@
     plusBtn.addEventListener('click', function(e) { e.stopPropagation(); upwardTray.classList.toggle('show'); plusBtn.classList.toggle('open'); });
     chatBody.addEventListener('click', function() { upwardTray.classList.remove('show'); plusBtn.classList.remove('open'); dismissCtxMenu(); });
 
-    // 长按菜单 (4列对称排布)
+    // 长按菜单
     var ctxMenu = stage.querySelector('#wxCrCtxMenu'), ctxMask = stage.querySelector('#wxCrCtxMask'), currentCtxIdx = -1;
     var pressTimer = null, pressStartX = 0, pressStartY = 0, isPressScrolling = false;
 
@@ -861,9 +861,11 @@
       ctxMenu.querySelectorAll('[data-ctx-act]').forEach(function(item) {
         item.addEventListener('click', function(e) {
           e.stopPropagation();
-          var act = this.dataset.ctxAct, targetMsg = chatMessages[currentCtxIdx];
+          var act = this.dataset.ctxAct;
+          var targetIdx = currentCtxIdx; // 重点：先牢牢存下选中的真实索引
+          var targetMsg = chatMessages[targetIdx];
           dismissCtxMenu();
-          if (!targetMsg) return;
+          if (!targetMsg || targetIdx < 0) return;
 
           if (act === 'quote') {
             replyingMsg = targetMsg; input.placeholder = '回复 ' + (targetMsg.sender === 'user' ? '自己' : (currentChatChar ? currentChatChar.name : 'Ta')) + '...'; input.focus();
@@ -883,10 +885,42 @@
               saveChatMessages(currentChatChar.id); renderMessages();
             }
           } else if (act === 'del') {
-            chatMessages.splice(currentCtxIdx, 1); saveChatMessages(currentChatChar.id); renderMessages();
+            var doDelete = function() {
+              chatMessages.splice(targetIdx, 1);
+              saveChatMessages(currentChatChar.id);
+              renderMessages();
+              if (window.AppNav) window.AppNav.showToast('消息已删除');
+            };
+            if (window.AppDialog) {
+              window.AppDialog.confirm({
+                title: '删除消息',
+                desc: '确定删除这条消息吗？',
+                confirmText: '确认删除',
+                isDanger: true
+              }, doDelete);
+            } else {
+              doDelete();
+            }
           } else if (act === 'delFromHere') {
-            if (confirm('确定删除此条消息之后的所有记录吗？')) {
-              chatMessages.splice(currentCtxIdx + 1); saveChatMessages(currentChatChar.id); renderMessages();
+            var doDeleteAfter = function() {
+              // 精准只删除这条之后的记录，保留当前这条与之前的
+              chatMessages.splice(targetIdx + 1);
+              saveChatMessages(currentChatChar.id);
+              renderMessages();
+              if (window.AppNav) window.AppNav.showToast('已删除后续所有消息');
+            };
+
+            if (window.AppDialog) {
+              window.AppDialog.confirm({
+                title: '往后全删',
+                desc: '确定删除这条消息之后的所有聊天记录吗？（当前及更早的消息将完整保留）',
+                confirmText: '确定清空后续',
+                isDanger: true
+              }, doDeleteAfter);
+            } else {
+              if (confirm('确定删除这条消息之后的所有聊天记录吗？')) {
+                doDeleteAfter();
+              }
             }
           } else if (act === 'resend') {
             if (abortCtrl) { abortCtrl.abort(); abortCtrl = null; }
@@ -894,10 +928,10 @@
             var isUserMsg = (targetMsg.role === 'user' || targetMsg.sender === 'user');
             if (isUserMsg) {
               var userText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
-              chatMessages.splice(currentCtxIdx);
+              chatMessages.splice(targetIdx);
               chatMessages.push({ role: 'user', sender: 'user', content: userText, ts: Date.now() });
             } else {
-              chatMessages.splice(currentCtxIdx);
+              chatMessages.splice(targetIdx);
             }
             saveChatMessages(currentChatChar.id); renderMessages();
             requestAIStream();
