@@ -15,8 +15,8 @@
     standeePng: ''
   };
 
-  // 基础起始弧度（初始让第1个在左侧稍偏下展开）
-  var currentBaseAngle = Math.PI * 0.85;
+  // 初始月牙扇形中心朝向：默认贴右侧时，月牙朝向左上方 (-135°)
+  var currentArcCenterAngle = -Math.PI * 0.75;
 
   function loadOrbConfig() {
     try {
@@ -162,25 +162,26 @@
     }
   }
 
-  // 计算 5 个卫星极坐标位置：以悬浮球中心为圆心
-  function renderSatellitesLayout(orb, satellites, baseAngle) {
+  // 核心：保持一开始设定的“优雅月牙半包围”弧度形态
+  function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 68; // 离心适中半径
+    var radius = 70; // 黄金贴合离心半径
 
-    var count = satellites.length;
-    var angleStep = (2 * Math.PI) / count;
+    // 月牙扇形跨度偏移：5个图标保持一开始设定的半弧度环绕（绝不是均匀铺开）
+    var arcOffsets = [-1.15, -0.58, 0, 0.58, 1.15];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
-      var angle = baseAngle + i * angleStep;
+      var angle = centerAngle + arcOffsets[i];
       var x = Math.cos(angle) * radius;
       var y = Math.sin(angle) * radius;
 
-      sat.style.left = centerX + 'px';
-      sat.style.top = centerY + 'px';
-      sat.style.transform = 'translate(' + (x - 19) + 'px, ' + (y - 19) + 'px) scale(' + (isOpen ? 1 : 0) + ')';
+      // 核心修复：直接把真实物理坐标写在 left 和 top 上，彻底杜绝被任何 CSS 动画吸回中心！
+      sat.style.left = Math.round(centerX + x - 19) + 'px';
+      sat.style.top = Math.round(centerY + y - 19) + 'px';
+      sat.style.transform = isOpen ? 'scale(1)' : 'scale(0)';
     });
   }
 
@@ -189,7 +190,7 @@
     var pendingUploadMode = '';
 
     function syncSatellites() {
-      renderSatellitesLayout(orb, satellites, currentBaseAngle);
+      renderSatellitesLayout(orb, satellites, currentArcCenterAngle);
     }
 
     function toggleOrbOpen() {
@@ -208,8 +209,8 @@
 
     satellites.forEach(function (btn) {
       btn.addEventListener('click', function (e) {
-        if (btn._isSatRotated) {
-          btn._isSatRotated = false;
+        if (this._hasRotated) {
+          this._hasRotated = false;
           return;
         }
         e.stopPropagation();
@@ -249,7 +250,7 @@
       });
     }
 
-    // 1. 主悬浮球自由拖拽（拖动过程中绝不收起展开的卫星）
+    // 1. 悬浮球自由拖拽（拖拽时不收起围绕图标）
     (function initOrbGesture() {
       var startX = 0, startY = 0, initialLeft = 0, initialTop = 0, hasMoved = false;
 
@@ -300,63 +301,69 @@
 
         var isLeft = (safeX + rect.width / 2 < screenW / 2);
         orb.className = 'portal-floating-orb style-' + orbConfig.mode + (isLeft ? ' align-left' : ' align-right') + (orb.classList.contains('open') ? ' open' : '');
+
+        // 智能朝向：在左侧时月牙朝向右上，在右侧时月牙朝向左上
+        if (!orb._hasCustomRotated) {
+          currentArcCenterAngle = isLeft ? (-Math.PI * 0.25) : (-Math.PI * 0.75);
+        }
         syncSatellites();
       });
     })();
 
-    // 2. 核心修复：按住任意图标 1:1 绝对跟随手指转圈！
-    (function initDirectFingerRotation() {
+    // 2. 核心手势：按住任意图标，带动整个月牙弧度以悬浮球为圆心整体转动！
+    (function initArcWheelRotation() {
       var touchedSat = null;
-      var touchedIdx = 0;
-      var hasRotated = false;
-      var angleStep = (2 * Math.PI) / 5;
+      var startTouchAngle = 0;
+      var startArcAngle = 0;
+      var isSpinning = false;
 
       satellites.forEach(function (sat) {
         sat.addEventListener('touchstart', function (e) {
           if (!orb.classList.contains('open')) return;
           var touch = e.touches[0];
-          touchedSat = sat;
-          touchedIdx = parseInt(sat.dataset.idx, 10);
-          hasRotated = false;
-          sat._isSatRotated = false;
+          var rect = orb.getBoundingClientRect();
+          var cx = rect.left + rect.width / 2;
+          var cy = rect.top + rect.height / 2;
 
-          // 立即给组加上无动画过渡 class，确保手指划动时 0 延迟跟随！
+          touchedSat = sat;
+          startTouchAngle = Math.atan2(touch.clientY - cy, touch.clientX - cx);
+          startArcAngle = currentArcCenterAngle;
+          isSpinning = false;
+          sat._hasRotated = false;
+
           satellitesGroup.classList.add('is-rotating');
-        }, { passive: false });
+        }, { passive: true });
       });
 
       window.addEventListener('touchmove', function (e) {
         if (!touchedSat || !orb.classList.contains('open')) return;
-        // 阻止 iOS 默认页面滚动，让手指完全专注于旋转
-        if (e.cancelable) e.preventDefault();
-
         var touch = e.touches[0];
         var rect = orb.getBoundingClientRect();
         var cx = rect.left + rect.width / 2;
         var cy = rect.top + rect.height / 2;
 
-        // 当前触摸点相对于悬浮球中心的绝对弧度
-        var currentFingerAngle = Math.atan2(touch.clientY - cy, touch.clientX - cx);
+        var curTouchAngle = Math.atan2(touch.clientY - cy, touch.clientX - cx);
+        var delta = curTouchAngle - startTouchAngle;
 
-        // 核心公式：将按住的这个图标的角度，死死对齐在手指所在的方向！
-        currentBaseAngle = currentFingerAngle - (touchedIdx * angleStep);
+        if (Math.abs(delta) > 0.04) {
+          isSpinning = true;
+          touchedSat._hasRotated = true;
+          orb._hasCustomRotated = true;
+        }
 
-        hasRotated = true;
-        touchedSat._isSatRotated = true;
-
-        syncSatellites();
-      }, { passive: false });
+        if (isSpinning) {
+          currentArcCenterAngle = startArcAngle + delta;
+          syncSatellites();
+        }
+      }, { passive: true });
 
       window.addEventListener('touchend', function () {
         if (!touchedSat) return;
         satellitesGroup.classList.remove('is-rotating');
-        touchedSat = null;
-      });
-
-      window.addEventListener('touchcancel', function () {
-        if (!touchedSat) return;
-        satellitesGroup.classList.remove('is-rotating');
-        touchedSat = null;
+        setTimeout(function () {
+          if (touchedSat) touchedSat._hasRotated = false;
+          touchedSat = null;
+        }, 80);
       });
     })();
 
