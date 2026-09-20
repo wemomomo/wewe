@@ -83,7 +83,7 @@
     } catch(e) {}
   }
 
-  // 1. 纯净 PNG 立绘直选通道（免裁剪，100% 保护透明通道，绝不转 JPEG 黑底）
+  // 1. 纯净 PNG 立绘直选通道
   function pickRawPngPhoto(callback) {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -194,24 +194,24 @@
     satellitesGroup.id = 'satellitesGroup';
     satellitesGroup.innerHTML = ''
       + '<div class="satellite-item-wrap" data-idx="0" data-portal="mem">'
-      + '  <span class="satellite-label-top">记忆</span>'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
+      + '  <span class="satellite-label-radial">记忆</span>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="1" data-portal="api">'
-      + '  <span class="satellite-label-top">API</span>'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
+      + '  <span class="satellite-label-radial">API</span>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="2" data-portal="arch">'
-      + '  <span class="satellite-label-top">档案</span>'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
+      + '  <span class="satellite-label-radial">档案</span>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="3" data-portal="notes">'
-      + '  <span class="satellite-label-top">便签</span>'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
+      + '  <span class="satellite-label-radial">便签</span>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="4" data-portal="orbStyle">'
-      + '  <span class="satellite-label-top">浮球</span>'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
+      + '  <span class="satellite-label-radial">浮球</span>'
       + '</div>';
 
     var panelMask = document.createElement('div');
@@ -264,12 +264,13 @@
     }
   }
 
-  // 严格设置围绕距离为 70px，圆圈中心精准对齐
+  // 严格设置 70px 半径，且让名字标签永远位于图标外端（径向发射对齐）
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 70; // 👈 墨墨指定的 70 距离
+    var radius = 70; // 墨墨指定的 70 距离
+    var labelDist = 26; // 名字向外延伸贴在图标外端的距离
 
     var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
@@ -279,11 +280,18 @@
       var x = Math.cos(angle) * radius;
       var y = Math.sin(angle) * radius;
 
-      // 让圆圈正中心严格位于 (centerX + x, centerY + y)
-      // 结构：标签在上(~12px) + 圆圈在下(38px)，总高度约 50px，圆心位于整体 Y: 31px, X: 19px
+      // 圆圈绝对坐标
       sat.style.left = Math.round(centerX + x - 19) + 'px';
-      sat.style.top = Math.round(centerY + y - 31) + 'px';
+      sat.style.top = Math.round(centerY + y - 19) + 'px';
       sat.style.transform = isOpen ? 'scale(1)' : 'scale(0)';
+
+      // 核心算法：名字永远沿着 (cos(angle), sin(angle)) 的外侧射线方向贴在最外端！
+      var label = sat.querySelector('.satellite-label-radial');
+      if (label) {
+        var lx = Math.cos(angle) * labelDist;
+        var ly = Math.sin(angle) * labelDist;
+        label.style.transform = 'translate(calc(-50% + ' + Math.round(lx) + 'px), calc(-50% + ' + Math.round(ly) + 'px))';
+      }
     });
   }
 
@@ -627,7 +635,7 @@
     });
   }
 
-  // 浮球样式定制面板（含 PNG URL 输入 & 历史立绘手账架）
+  // 浮球样式定制面板
   function renderOrbStyleSettings(container) {
     var orb = document.getElementById('portalOrb');
     var standeeHistory = getStandeeHistory();
@@ -718,7 +726,6 @@
       });
     }
 
-    // URL 应用
     var urlInput = container.querySelector('#standeeUrlInput');
     var applyUrlBtn = container.querySelector('#standeeApplyUrlBtn');
     var pickLocalBtn = container.querySelector('#standeePickLocalBtn');
@@ -744,7 +751,6 @@
       pickLocalBtn.addEventListener('click', triggerPngPick);
     }
 
-    // 点击历史立绘卡片直接换装
     container.querySelectorAll('[data-pick-history]').forEach(function(card) {
       card.addEventListener('click', function(e) {
         if (e.target.closest('.standee-del-x')) return;
@@ -758,7 +764,6 @@
       });
     });
 
-    // 删除单张历史立绘
     container.querySelectorAll('[data-del-history]').forEach(function(xBtn) {
       xBtn.addEventListener('click', function(e) {
         e.stopPropagation();
