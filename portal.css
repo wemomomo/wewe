@@ -1,3 +1,4 @@
+
 /* ======================================================== */
 /* 全局快捷中枢悬浮球 (Floating Portal Core) - 高定纯净版     */
 /* ======================================================== */
@@ -76,7 +77,7 @@
 }
 
 /* =========================================================
-   2. 5 个环绕圆按钮 (44px 加大，文字居中嵌入圆内)
+   2. 5 个环绕圆按钮 (38px正圆 + 小星芒 + 名称在上方)
 ========================================================= */
 .portal-satellites-group {
   position: fixed;
@@ -88,14 +89,15 @@
 .satellite-item-wrap {
   position: fixed;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 2px;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
   z-index: 18995;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: auto;
   touch-action: none !important;
   user-select: none;
   -webkit-user-select: none;
@@ -111,17 +113,28 @@
   transition: none !important;
 }
 
-/* 外层白底大正圆 (44px) */
+/* 位于上方的名称标签 */
+.satellite-label-top {
+  font-size: 10px;
+  font-weight: 800;
+  color: #334155;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+}
+
+/* 38px 纯正圆 */
 .satellite-circle-btn {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
   flex-shrink: 0;
   transition: transform 0.15s ease;
   box-sizing: border-box;
@@ -130,19 +143,18 @@
   transform: scale(0.9);
 }
 
-/* 内层浅蓝圆芯，文字居中 (32px) */
+/* 24px 浅蓝内芯 + 9px 精致微小星芒 */
 .satellite-inner-blue {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #eaf2fa;
-  color: #0f172a;
+  color: #000000;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
+  font-size: 9px;
+  font-weight: 900;
   line-height: 1;
   box-sizing: border-box;
 }
@@ -237,6 +249,90 @@
 }
 .panel-content-body::-webkit-scrollbar { display: none; }
 
+/* 记忆三栏手账卡片 */
+.mem-trio-card {
+  background: #f8f8fa;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+  padding: 12px 10px;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.mem-col-left {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mem-date-badge {
+  font-family: monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #111111;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 5px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+.mem-track-text {
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.4;
+}
+.mem-spine-divider {
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.15) 80%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mem-star-node {
+  font-size: 7px;
+  color: #111111;
+  background: #f8f8fa;
+  padding: 2px 0;
+}
+.mem-col-mid {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mem-thought-quote {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #0f172a;
+  font-style: italic;
+  line-height: 1.4;
+}
+.mem-summary-sub {
+  font-size: 10.5px;
+  color: #64748b;
+  line-height: 1.35;
+}
+.mem-col-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mem-archive-btn {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 6px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
 /* API 卡片 */
 .api-card-pill {
   display: flex;
@@ -312,7 +408,9 @@
   align-items: flex-start;
 }
 
-/* 浮球样式定制行 (点击左侧大预览框直接换图剪裁) */
+/* =========================================================
+   4. 浮球定制面板 (含 PNG URL 输入 & 历史立绘手账架)
+========================================================= */
 .orb-style-row {
   padding: 12px 14px;
   background: #f8fafc;
@@ -357,4 +455,119 @@
   font-size: 11px;
   color: #64748b;
   line-height: 1.35;
+}
+
+/* 立绘链接输入与历史记录容器 */
+.standee-custom-panel {
+  background: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.standee-panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.standee-panel-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.standee-url-input-wrap {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.standee-url-input {
+  flex: 1;
+  height: 34px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  color: #111111;
+  outline: none;
+  font-family: inherit;
+}
+.standee-btn {
+  height: 34px;
+  padding: 0 12px;
+  background: #111111;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.standee-btn:active {
+  opacity: 0.6;
+}
+.standee-btn.outline {
+  background: #ffffff;
+  color: #111111;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+/* 历史立绘卡片架 (横向滚动条) */
+.standee-history-shelf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  scrollbar-width: none;
+}
+.standee-history-shelf::-webkit-scrollbar { display: none; }
+
+.standee-history-card {
+  position: relative;
+  width: 54px;
+  height: 68px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 4px;
+  box-sizing: border-box;
+  transition: all 0.18s ease;
+}
+.standee-history-card.active {
+  border-color: #111111;
+  background: #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.standee-history-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.standee-del-x {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #111111;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
