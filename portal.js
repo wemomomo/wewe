@@ -195,8 +195,13 @@
       + '  <span class="satellite-label-top">档案</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>'
-      + '<div class="satellite-item-wrap" data-idx="3" data-portal="orbStyle">'
-      + '  <span class="satellite-label-top">外观</span>'
+          + '<div class="satellite-item-wrap" data-idx="3" data-portal="orbStyle">'
+      + '  <span class="satellite-label-top">浮球</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
+      + '</div>'
+      // 👇 新增第 5 个卫星圆钮：日志
+      + '<div class="satellite-item-wrap" data-idx="4" data-portal="log">'
+      + '  <span class="satellite-label-top">日志</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>';
 
@@ -258,8 +263,8 @@
     var centerY = rect.top + rect.height / 2;
     var radius = 70;
 
-    // 4 个圆钮的匀称扇形弧度
-    var arcOffsets = [-0.99, -0.33, 0.33, 0.99];
+        // 5 个圆钮的匀称扇形弧度
+    var arcOffsets = [-1.15, -0.58, 0, 0.58, 1.15];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
@@ -456,7 +461,7 @@
   }
 
   // ============ 5. 功能面板中枢 ============
-  function openFeaturePanel(type, panelMask, panelCard) {
+    function openFeaturePanel(type, panelMask, panelCard) {
     panelMask.classList.add('show');
     panelCard.classList.add('show');
 
@@ -474,8 +479,14 @@
       renderApiSwitcher(panelBody);
     } else if (type === 'orbStyle') {
       panelSubTag.textContent = '~ Skin Studio ~';
-      panelTitle.textContent = '✦ 悬浮球样式定制 ✦';
+      panelTitle.textContent = '✦ 浮球样式定制 ✦';
       renderOrbStyleSettings(panelBody);
+    } else if (type === 'log') {
+      panelSubTag.textContent = '~ System Logs ~';
+      panelTitle.textContent = '✦ 后台交互日志 ✦';
+      if (window.ChatLogger) {
+        window.ChatLogger.renderPortalView(panelBody);
+      }
     }
   }
 
