@@ -1312,10 +1312,13 @@
       ctxMenu.querySelectorAll('[data-ctx-act]').forEach(function(item) {
         item.addEventListener('click', function(e) {
           e.stopPropagation();
-          var act = this.dataset.ctxAct;
+                    var act = this.dataset.ctxAct;
           var targetIdx = currentCtxIdx;
           var targetMsg = chatMessages[targetIdx];
-          dismissCtxMenu();
+          if (!targetMsg || targetIdx < 0) {
+            dismissCtxMenu();
+            return;
+          }
           if (!targetMsg || targetIdx < 0) return;
 
           if (act === 'quote') {
@@ -1337,12 +1340,14 @@
               targetMsg.content = newText.trim(); targetMsg.cleanContent = newText.trim();
               saveChatMessages(currentChatChar.id); renderMessages();
             }
-          } else if (act === 'del') {
+                    } else if (act === 'del') {
             var doDelete = function() {
-              chatMessages.splice(targetIdx, 1);
-              saveChatMessages(currentChatChar.id);
-              renderMessages();
-              if (window.AppNav) window.AppNav.showToast('消息已删除');
+              if (targetIdx >= 0) {
+                chatMessages.splice(targetIdx, 1);
+                saveChatMessages(currentChatChar.id);
+                renderMessages();
+                if (window.AppNav) window.AppNav.showToast('消息已删除');
+              }
             };
             if (window.AppDialog) {
               window.AppDialog.confirm({
@@ -1354,12 +1359,14 @@
             } else {
               doDelete();
             }
-          } else if (act === 'delFromHere') {
+          }          } else if (act === 'delFromHere') {
             var doDeleteAfter = function() {
-              chatMessages.splice(targetIdx + 1);
-              saveChatMessages(currentChatChar.id);
-              renderMessages();
-              if (window.AppNav) window.AppNav.showToast('已删除后续所有消息');
+              if (targetIdx >= 0) {
+                chatMessages.splice(targetIdx);
+                saveChatMessages(currentChatChar.id);
+                renderMessages();
+                if (window.AppNav) window.AppNav.showToast('已删除后续所有消息');
+              }
             };
 
             if (window.AppDialog) {
