@@ -3,6 +3,8 @@
 /* Chat 单聊高定顶栏与手账对话区 (Chat Room Core)            */
 /* ======================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
+
 .wx-chat-room-stage {
   position: fixed !important;
   top: 0 !important;
@@ -11,10 +13,7 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  /* 墨墨要求 9：白色半透明毛玻璃背景 */
-  background: rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(25px) !important;
-  -webkit-backdrop-filter: blur(25px) !important;
+  background: #ffffff !important;
   z-index: 10000 !important;
   display: flex;
   flex-direction: column;
@@ -53,14 +52,15 @@
 }
 
 /* =========================================================
-   1. 纯白极简顶栏 (彻底删除下边框横线，拉开签名间距)
+   1. 纯白极简顶栏
 ========================================================= */
 .wx-cr-header {
   position: relative;
-  height: calc(58px + var(--safe-top));
+  height: calc(56px + var(--safe-top));
   padding-top: var(--safe-top);
-  background: transparent !important;
-  /* 墨墨要求 10：彻底删除顶部横线 */
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: none !important;
   display: flex;
   align-items: center;
@@ -126,9 +126,6 @@
   font-size: 13px;
   color: #8e8e93;
 }
-.salon-avatar-badge .salon-mini-wax {
-  display: none !important;
-}
 
 /* 标题绝对正中居中 */
 .wx-cr-title-col {
@@ -139,8 +136,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* 墨墨要求 11：名字与签名拉开舒适距离 */
-  gap: 4px !important;
+  gap: 3px;
   text-align: center;
   max-width: 55%;
   z-index: 1;
@@ -158,7 +154,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  line-height: 1.1;
 }
 
 .char-signature-sub {
@@ -246,20 +241,20 @@
 }
 
 /* =========================================================
-   2. 聊天消息区 (纯白通透 + 经典尖角统一朝上气泡)
+   2. 聊天消息区
 ========================================================= */
 .wx-cr-body {
   flex: 1;
   width: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 14px 12px 20px;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   position: relative;
   box-sizing: border-box;
-  background: transparent !important;
+  background: #ffffff !important;
 }
 
 .wx-cr-body::-webkit-scrollbar {
@@ -273,7 +268,7 @@
   font-weight: 700;
   font-family: monospace;
   color: #8e8e93;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   padding: 3px 10px;
   border-radius: 10px;
   line-height: 1.2;
@@ -314,7 +309,7 @@
   object-fit: cover;
 }
 
-/* 气泡列严格受控在对方头像范围之内 */
+/* 气泡列严格受控 */
 .wx-msg-bubbles-col {
   max-width: 68% !important;
   display: flex;
@@ -325,7 +320,7 @@
   align-items: flex-end;
 }
 
-/* 墨墨要求 15：恢复最初最经典的尖角统一朝上气泡 (角色左上尖角，用户右上尖角) */
+/* 经典尖角统一朝上气泡 */
 .wx-msg-bubble-item {
   position: relative;
   padding: 10px 13px;
@@ -336,19 +331,19 @@
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
-  border-radius: 2px 14px 14px 14px !important; /* 👈 角色尖角统一朝上 */
+  border-radius: 2px 14px 14px 14px !important;
 }
 
-/* 用户气泡：右上尖角朝上 */
+/* 用户气泡 */
 .wx-msg-group.user-side .wx-msg-bubble-item {
   background: #141619;
   color: #ffffff;
   border: none;
   box-shadow: 0 3px 12px rgba(20, 22, 25, 0.12);
-  border-radius: 14px 2px 14px 14px !important; /* 👈 用户尖角统一朝上 */
+  border-radius: 14px 2px 14px 14px !important;
 }
 
-/* 墨墨要求 13：每轮最后一条气泡尾巴下方的精巧时间戳 */
+/* 尾巴下方精巧时间戳 */
 .bubble-tail-timestamp {
   font-size: 9.5px;
   font-family: monospace;
@@ -573,7 +568,7 @@
 }
 
 /* =========================================================
-   5. 底部栏
+   5. 底部栏 (输入框 #f8f8fa + 大加号 28px)
 ========================================================= */
 .chat-footer-clean {
   background: transparent !important;
@@ -693,7 +688,7 @@
 }
 
 /* =========================================================
-   6. 【彻底无遮罩】双栏心声手账卡片 (动作 + 独立心愿)
+   6. 【彻底无遮罩】双栏心声手账卡片
 ========================================================= */
 .voice-transparent-wrap {
   position: absolute;
@@ -880,7 +875,7 @@
 }
 
 /* =========================================================
-   7. 角色专属全功能设置 (正中间弹出卡片，字号加大)
+   7. 全新重构手账设定顶栏与卡片容器
 ========================================================= */
 .wx-cr-settings-mask {
   position: fixed;
@@ -920,166 +915,92 @@
   transform: scale(1);
 }
 
-.wx-cr-set-header {
-  height: 52px;
+/* 新顶栏结构 */
+.sanctuary-header-luxury {
+  position: relative;
+  padding-top: 16px;
+  padding-bottom: 10px;
+  padding-left: 20px;
+  padding-right: 18px;
   background: #ffffff;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
-  font-size: 15.5px;
-  font-weight: 800;
-  color: #1a1c22;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+  flex-direction: column;
+  gap: 6px;
   flex-shrink: 0;
+  z-index: 20;
 }
 
-.wx-cr-set-close {
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: #8e8e93;
-  cursor: pointer;
-  padding: 4px;
-}
-
-.wx-cr-set-body {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 14px 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.wx-cr-set-body::-webkit-scrollbar { display: none; }
-
-.cr-set-card-group {
-  background: #f8f8fa;
-  border-radius: 14px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* 墨墨要求 1：分类标题字号加大 */
-.cr-set-card-title {
-  font-size: 13px !important;
-  font-weight: 900 !important;
-  color: #1a1c22 !important;
-  letter-spacing: 0.5px;
-}
-
-.cr-set-card-row {
+.header-main-action-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 0;
-  font-size: 13.5px;
-  color: #1a1c22;
-  font-weight: 600;
-}
-.cr-set-label { font-size: 13.5px; font-weight: 600; color: #1a1c22; }
-.cr-set-desc { font-size: 10.5px; color: #8e8e93; font-weight: normal; margin-top: 1px; }
-
-/* 墨墨要求 2：场景多行文本框扩大到 4 行 */
-.cr-set-textarea {
   width: 100%;
-  min-height: 84px !important;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12.5px;
-  color: #1a1c22;
-  outline: none;
-  font-family: inherit;
-  resize: none;
-  box-sizing: border-box;
-  line-height: 1.45;
+  min-height: 38px;
 }
 
-.cr-expand-icon-btn {
-  background: none;
-  border: none;
-  color: #8e8e93;
-  cursor: pointer;
-  padding: 2px 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.header-left-spacer {
+  width: 28px;
+  height: 28px;
+  visibility: hidden;
 }
-.cr-expand-icon-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.2; fill: none; }
 
-.cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input {
-  border: 1px solid rgba(0,0,0,0.08);
-  background: #ffffff;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 12.5px;
-  color: #1a1c22;
-  outline: none;
-  font-family: inherit;
-}
-.cr-set-num-input { width: 55px; text-align: center; }
-.cr-set-time-input { width: 85px; text-align: center; }
-
-/* 墨墨要求 7：真实城市输入框缩窄 */
-.cr-set-input { text-align: right; max-width: 110px !important; }
-
-/* 墨墨要求 3 & 6：大模型参数与历史轮数滑块卡片 */
-.cr-param-box {
+.header-center-art-col {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 0;
-  border-top: 0.5px dashed rgba(0, 0, 0, 0.06);
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+  pointer-events: none;
 }
-.cr-param-box:first-of-type { border-top: none; }
-.cr-param-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+.art-script-motto {
+  font-family: 'Caveat', cursive;
+  font-size: 16px;
+  font-weight: 700;
+  color: #8e8e93;
+  letter-spacing: 0.8px;
+  line-height: 1;
 }
-.cr-param-name { font-size: 12.5px; font-weight: 700; color: #1a1c22; }
-.cr-param-val { font-size: 12px; font-family: monospace; font-weight: 800; color: #1a1c22; }
-.cr-param-desc { font-size: 10px; color: #8e8e93; line-height: 1.35; }
-.cr-param-range-wrap {
+.art-title-chinese {
+  font-size: 18px;
+  font-weight: 900;
+  color: #141619;
+  letter-spacing: 2px;
+  text-indent: 2px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 2px;
+  gap: 6px;
+  line-height: 1.2;
 }
-.cr-param-hint { font-size: 9.5px; color: #9ca3af; font-weight: 600; white-space: nowrap; }
-
-.cr-range-slider {
-  flex: 1;
-  accent-color: #1a1c22;
+.art-title-chinese .star-dot {
+  font-size: 8px;
+  color: #141619;
+  transform: translateY(-1px);
 }
 
-.cr-fetch-btn {
-  width: 26px;
-  height: 26px;
-  background: #1a1c22;
-  color: #ffffff;
+.header-pure-close {
+  width: 28px;
+  height: 28px;
   border: none;
-  border-radius: 50%;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  color: #141619;
   padding: 0;
-  flex-shrink: 0;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.cr-fetch-btn:active {
-  transform: scale(0.88);
-  opacity: 0.7;
+.header-pure-close:active {
+  opacity: 0.4;
+  transform: scale(0.9);
 }
-.cr-fetch-btn svg {
-  width: 14px;
-  height: 14px;
+.header-pure-close svg {
+  width: 18px;
+  height: 18px;
   stroke: currentColor;
   stroke-width: 2.2;
   fill: none;
@@ -1087,29 +1008,241 @@
   stroke-linejoin: round;
 }
 
-.cr-set-chips-wrap {
+.header-bottom-ruler-deck {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding-top: 4px;
+}
+.ruler-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(20, 22, 25, 0.15) 20%, rgba(20, 22, 25, 0.15) 80%, transparent);
+}
+.ruler-center-tag {
+  font-family: 'Caveat', cursive;
+  font-size: 15px;
+  font-weight: 700;
+  color: #64748b;
+  padding: 0 10px;
+  background: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.wx-cr-set-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.wx-cr-set-body::-webkit-scrollbar { display: none; }
+
+.gothic-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(20, 22, 25, 0.14);
+  border-radius: 12px;
+  padding: 14px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.02);
+}
+
+.gothic-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(20, 22, 25, 0.12);
+}
+.gothic-title-group {
+  display: flex;
+  align-items: baseline;
   gap: 6px;
 }
-.cr-set-chip {
-  cursor: pointer;
+.gothic-sec-roman {
+  font-family: 'Caveat', cursive;
+  font-size: 18px;
+  font-weight: 700;
+  color: #141619;
 }
-.cr-set-chip input { display: none; }
-.cr-set-chip span {
-  display: inline-block;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: #ffffff;
-  border: 1px solid rgba(0,0,0,0.08);
+.gothic-sec-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #141619;
+  letter-spacing: 1px;
+}
+.gothic-sec-en {
+  font-family: 'Caveat', cursive !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #8e8e93;
+  letter-spacing: 1px;
+}
+
+.scripture-textarea-wrap {
+  background: #fdfdfd;
+  border: 1px solid rgba(20, 22, 25, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.scripture-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.scripture-label {
+  font-size: 11.5px;
+  font-weight: 700;
   color: #64748b;
-  font-weight: 600;
 }
-.cr-set-chip input:checked + span {
-  background: #1a1c22;
+
+/* 墨墨要求：全屏手札文字删除，只留纯净符号 */
+.scripture-expand-btn {
+  background: none;
+  border: 1px solid #141619;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 10px;
+  color: #141619;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scripture-expand-btn svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2.4; fill: none; }
+
+.scripture-textarea {
+  width: 100%;
+  min-height: 84px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #141619;
+  resize: none;
+  font-family: inherit;
+}
+.scripture-textarea::placeholder { color: #cbd5e1; font-size: 12px; }
+
+.gothic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+.gothic-row-label-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gothic-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #141619;
+}
+.gothic-desc {
+  font-size: 10px;
+  color: #8e8e93;
+}
+
+.metric-gauge-box {
+  background: #fdfdfd;
+  border: 1px solid rgba(20, 22, 25, 0.1);
+  border-radius: 8px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gauge-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.gauge-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #141619;
+}
+.gauge-val-tag {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 900;
+  background: #141619;
   color: #ffffff;
-  border-color: #1a1c22;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.gauge-desc {
+  font-size: 9.5px;
+  color: #8e8e93;
+  line-height: 1.35;
+}
+.gauge-slider-deck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+.gauge-bound {
+  font-size: 9px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #94a3b8;
+}
+.gothic-range {
+  flex: 1;
+  accent-color: #141619;
+}
+
+/* 单选框：黑线白底 + 黑色实心小圆点 */
+.cr-custom-radio {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  color: #141619 !important;
+  font-weight: 600 !important;
+  user-select: none !important;
+}
+.cr-custom-radio input[type="radio"] {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+.cr-radio-circle {
+  width: 15px !important;
+  height: 15px !important;
+  border-radius: 50% !important;
+  border: 1.4px solid #141619 !important;
+  background: #ffffff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+}
+.cr-custom-radio input[type="radio"]:checked + .cr-radio-circle::after {
+  content: '' !important;
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  background: #141619 !important;
 }
 
 .wx-switch {
@@ -1122,9 +1255,7 @@
   transition: background 0.25s;
   flex-shrink: 0;
 }
-.wx-switch.on {
-  background: #1a1c22;
-}
+.wx-switch.on { background: #141619; }
 .wx-switch-knob {
   position: absolute;
   top: 2px;
@@ -1136,53 +1267,58 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.wx-switch.on .wx-switch-knob {
-  transform: translateX(14px);
-}
+.wx-switch.on .wx-switch-knob { transform: translateX(14px); }
 
-/* =========================================================
-   墨墨要求 5：单选框精修（黑线白底圆圈 + 选中时内嵌黑色圆点）
-========================================================= */
-.cr-custom-radio {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  cursor: pointer !important;
-  font-size: 12.5px !important;
-  color: #1a1c22 !important;
-  font-weight: 600 !important;
-  user-select: none !important;
+.gothic-input, .gothic-select {
+  border: 1px solid rgba(20, 22, 25, 0.2);
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #141619;
+  outline: none;
+  font-weight: 600;
 }
+.gothic-input.num { width: 55px; text-align: center; }
+.gothic-input.city { width: 95px; text-align: right; }
 
-.cr-custom-radio input[type="radio"] {
-  display: none !important;
-  opacity: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-  position: absolute !important;
-  pointer-events: none !important;
+.disc-action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #141619;
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
 }
+.disc-action-btn:active { transform: scale(0.88); }
+.disc-action-btn svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.2; fill: none; }
 
-/* 黑色线条 + 白色填充的外圈 */
-.cr-radio-circle {
-  width: 16px !important;
-  height: 16px !important;
-  border-radius: 50% !important;
-  border: 1.5px solid #1a1c22 !important;
-  background: #ffffff !important;
-  box-sizing: border-box !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-  transition: all 0.2s ease !important;
+.gothic-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
 }
-
-/* 选中状态：中间内嵌一个纯黑实心小圆点 */
-.cr-custom-radio input[type="radio"]:checked + .cr-radio-circle::after {
-  content: '' !important;
-  width: 6px !important;
-  height: 6px !important;
-  border-radius: 50% !important;
-  background: #1a1c22 !important;
+.gothic-chip { cursor: pointer; }
+.gothic-chip input { display: none; }
+.gothic-chip span {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid rgba(20, 22, 25, 0.15);
+  color: #475569;
+  font-weight: 600;
+}
+.gothic-chip input:checked + span {
+  background: #141619;
+  color: #ffffff;
+  border-color: #141619;
 }
