@@ -6,6 +6,13 @@
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
   }
 
+  // 判断是否为 HTTP / HTTPS 真实网络 URL
+  function isNetworkUrl(str) {
+    if (!str) return false;
+    var s = String(str).trim().toLowerCase();
+    return s.indexOf('http://') === 0 || s.indexOf('https://') === 0;
+  }
+
   // 记录来源页面，确保从悬浮球进档案后退出能原路返回
   var currentActiveAppPage = 'home';
   window.addEventListener('pageChange', function (e) {
@@ -27,7 +34,7 @@
   // 初始月牙扇形中心朝向
   var currentArcCenterAngle = -Math.PI * 0.75;
 
-  // ============ 1. 彻底纯 IndexedDB (AppDB) 存储机制 ============
+  // ============ 1. 纯 IndexedDB (AppDB) 存储机制 ============
   function loadOrbConfig(callback) {
     function doLoad() {
       if (window.AppDB) {
@@ -215,7 +222,7 @@
     }
   }
 
-  // ============ 3. 构建单例 DOM (全新顺序：记忆、日志、API、档案、外观) ============
+  // ============ 3. 构建单例 DOM (顺序：记忆、日志、API、档案、外观) ============
   function ensurePortalDOM() {
     if (document.getElementById('portalOrb')) return;
 
@@ -305,15 +312,14 @@
     }
   }
 
-  // ============ 4. 更加舒展宽松的五星排布算法 ============
+  // ============ 4. 围绕排布算法 (半径固定 70px) ============
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
 
-    // 半径扩大至 88px，间距弧度彻底拉开，彻底告别拥挤重叠
-    var radius = 88;
-    var arcOffsets = [-1.4, -0.7, 0, 0.7, 1.4];
+    var radius = 70;
+    var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
@@ -583,7 +589,7 @@
     });
   }
 
-  // 悬浮球外观定制面板（纯 IndexedDB 存储）
+  // 悬浮球外观定制面板（只有真实网络 URL 才提供复制小图标）
   function renderOrbStyleSettings(container) {
     var orb = document.getElementById('portalOrb');
 
@@ -602,14 +608,19 @@
           + '<div class="standee-history-shelf">'
           + standeeHistory.map(function (imgUrl, idx) {
               var isCur = (orbConfig.standeePng === imgUrl && orbConfig.mode === 'pngstandee');
+              var isNet = isNetworkUrl(imgUrl); // 💡 判断是否为真实网络链接
+              var copyBtnHtml = isNet
+                ? '<button class="standee-copy-link-btn" data-copy-link="' + esc(imgUrl) + '" type="button" title="复制链接">'
+                  + '  <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+                  + '</button>'
+                : '';
+
               return '<div class="standee-history-item-wrap">'
                 + '  <div class="standee-history-card' + (isCur ? ' active' : '') + '" data-pick-history="' + esc(imgUrl) + '">'
                 + '    <img class="standee-history-img" src="' + esc(imgUrl) + '" alt="历史立绘">'
                 + '    <span class="standee-del-x" data-del-history="' + idx + '">✕</span>'
                 + '  </div>'
-                + '  <button class="standee-copy-link-btn" data-copy-link="' + esc(imgUrl) + '" type="button" title="复制链接">'
-                + '    <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-                + '  </button>'
+                +    copyBtnHtml
                 + '</div>';
             }).join('')
           + '</div>';
@@ -719,10 +730,13 @@
         });
       });
 
+      // 仅对带有复制按钮的项生效
       container.querySelectorAll('[data-copy-link]').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
           var link = this.dataset.copyLink;
+          if (!isNetworkUrl(link)) return;
+
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(link);
           } else {
