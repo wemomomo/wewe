@@ -249,8 +249,8 @@
     var body = document.getElementById('dataPageContent');
     if(!body) return;
     body.innerHTML = '<div class="data-section">'
-      + '<div class="data-item" id="dataExport"><div class="data-item-icon export"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><div class="data-item-text"><div class="data-item-title">导出数据</div><div class="data-item-desc">导出完整美化包与配置数据</div></div></div>'
-      + '<div class="data-item" id="dataImport"><div class="data-item-icon import"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="data-item-text"><div class="data-item-title">导入数据</div><div class="data-item-desc">导入美化包并完全覆盖应用</div></div></div>'
+      + '<div class="data-item" id="dataExport"><div class="data-item-icon export"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><div class="data-item-text"><div class="data-item-title">导出数据</div><div class="data-item-desc">导出完整全生态备份数据包</div></div></div>'
+      + '<div class="data-item" id="dataImport"><div class="data-item-icon import"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="data-item-text"><div class="data-item-title">导入数据</div><div class="data-item-desc">导入备份数据并完全覆盖还原</div></div></div>'
       + '<div class="data-item" id="dataClear"><div class="data-item-icon danger"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></div><div class="data-item-text"><div class="data-item-title danger">清除所有数据</div><div class="data-item-desc">恢复初始出厂设置</div></div></div>'
       + '</div>';
 
@@ -299,66 +299,101 @@
     });
   }
 
-  var VISUAL_THEME_KEYS = [
+  // ============ 全局完整数据键名注册表 (全生态一网打尽) ============
+  var ALL_SYSTEM_DATA_KEYS = [
+    // 1. 桌面美化与组件排版
     'card_state', 'card_bg', 'card_avatar', 
     'message_avatar', 'message_preview', 'msg_badge_state',
     'couple_data', 'couple_style_state',
-    'tabbar_state', 'drag_order', 'home_bg_img'
+    'tabbar_state', 'drag_order', 'home_bg_img', 'beautify_settings',
+
+    // 2. 档案系统 (用户 + 角色 + 羁绊绑定)
+    'user_archives_list_v3',
+    'user_archive_active_id_v3',
+    'character_archives_list_v1',
+    'character_archive_active_id_v1',
+
+    // 3. 世界书、预设、正则与色彩主题
+    'app_worldbooks_data',
+    'app_presets_data',
+    'app_regex_data',
+    'app_wb_themes',
+
+    // 4. 微信系统 (多账号映射、激活身份、自定义顶底栏背景、朋友圈背景)
+    'app_wechat_accounts_map',
+    'app_wechat_active_user_id',
+    'app_wechat_custom_bgs',
+    'app_wechat_curve_style',
+
+    // 5. API 接口配置
+    'api_configs',
+    'active_api'
   ];
 
-  var CONFIG_DATA_KEYS = ['api_configs', 'active_api', 'app_worldbooks_data', 'app_presets_data', 'app_regex_data'];
-
+  // ============ 导出完整数据包 ============
   function exportAllData() {
-    var allKeys = VISUAL_THEME_KEYS.concat(CONFIG_DATA_KEYS);
     var result = {
-      version: '2.0',
-      exportTime: new Date().toISOString()
+      app: 'Niveous',
+      version: '3.0',
+      exportTime: new Date().toISOString(),
+      data: {}
     };
     var done = 0;
 
-    allKeys.forEach(function(key) {
+    ALL_SYSTEM_DATA_KEYS.forEach(function(key) {
       if (window.AppDB) {
         window.AppDB.get(key, function(val) {
-          result[key] = (val !== undefined) ? val : null;
+          if (val !== undefined && val !== null) {
+            result.data[key] = val;
+          }
           done++;
-          if (done === allKeys.length) {
+          if (done === ALL_SYSTEM_DATA_KEYS.length) {
             var blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
             a.href = url;
-            a.download = 'niveous-data-' + new Date().toISOString().slice(0, 10) + '.json';
+            a.download = 'niveous-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            if (window.AppNav) window.AppNav.showToast('数据包导出成功');
+            if (window.AppNav) window.AppNav.showToast('✦ 全生态数据备份成功 ✦');
           }
         });
       }
     });
   }
 
-  function importAllData(data) {
-    if (!data || typeof data !== 'object') {
+  // ============ 导入完整数据包 (无缝还原) ============
+  function importAllData(parsedJson) {
+    if (!parsedJson || typeof parsedJson !== 'object') {
       if (window.AppNav) window.AppNav.showToast('无效的数据包文件');
       return;
     }
 
-    var allKeys = VISUAL_THEME_KEYS.concat(CONFIG_DATA_KEYS);
+    var sourceData = parsedJson.data && typeof parsedJson.data === 'object' ? parsedJson.data : parsedJson;
     var done = 0;
 
-    allKeys.forEach(function(key) {
+    ALL_SYSTEM_DATA_KEYS.forEach(function(key) {
       if (window.AppDB) {
-        if (data.hasOwnProperty(key) && data[key] !== null && data[key] !== undefined && data[key] !== '') {
-          window.AppDB.save(key, data[key], function() { checkDone(); });
+        if (sourceData.hasOwnProperty(key) && sourceData[key] !== null && sourceData[key] !== undefined && sourceData[key] !== '') {
+          window.AppDB.save(key, sourceData[key], function() { checkDone(); });
         } else {
-          window.AppDB.delete(key, function() { checkDone(); });
+          checkDone();
         }
       }
     });
 
     function checkDone() {
       done++;
-      if (done === allKeys.length) {
-        if (window.AppNav) window.AppNav.showToast('数据应用成功，正在刷新');
+      if (done === ALL_SYSTEM_DATA_KEYS.length) {
+        try {
+          if (sourceData.api_configs) localStorage.setItem('api_configs', JSON.stringify(sourceData.api_configs));
+          if (sourceData.active_api) localStorage.setItem('active_api', JSON.stringify(sourceData.active_api));
+          if (sourceData.beautify_settings) localStorage.setItem('app_beautify_cache', JSON.stringify(sourceData.beautify_settings));
+        } catch(e) {}
+
+        if (window.AppNav) window.AppNav.showToast('✦ 数据还原成功，即将刷新 ✦');
         setTimeout(function() { location.reload(); }, 600);
       }
     }
@@ -372,7 +407,6 @@
   function loadApiData(callback) {
     if (!window.AppDB) { if(callback) callback(); return; }
     
-    // 双重回退：先从 IndexedDB 读，读不到从 localStorage 读
     window.AppDB.get('api_configs', function(val) {
       if (val && Array.isArray(val) && val.length) {
         apiConfigs = val;
