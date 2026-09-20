@@ -159,7 +159,7 @@
     return info;
   }
 
-  // ============ 3. 消息切分与错误翻译 ============
+  // ============ 3. 消息智能切分 ============
   function smartSplitMessages(text) {
     text = (text || '').trim();
     if (!text) return [];
@@ -259,11 +259,11 @@
     var tw = buildTimeWeather(cfg);
     if (tw) parts.push(tw);
 
-    // 墨墨要求 4 & 12：心声流露程度规范（平常 vs 迷恋·深度）+ 支持 1 至 3 条心声
+    // 心声流露程度规范（平常 vs 迷恋·深度）+ 支持 1 至 3 条心声
     if (cfg.innerVoice) {
       var isObsession = (cfg.voiceLevel === 'obsession');
       if (isObsession) {
-        parts.push('【心声规范 - 迷恋（深度）】：\n触及欲望的本质、占有欲的根源；用最少的字传递最浓的情绪，点到即止。心声中展现出对「' + callName + '」深刻的渴望与隐秘的情愫。可输出1至3条精炼心声，条目间用顿号或分号隔开。\n输出格式：\n[心声: 1至3条内心真实暗涌 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
+        parts.push('【心声规范 - 迷恋（深度）】：\n欲望的本质、占有欲的根源；用最少的字传递最浓的情绪，点到即止。心声中展现出对「' + callName + '」深刻的渴望与隐秘的情愫。可输出1至3条精炼心声，条目间用顿号或分号隔开。\n输出格式：\n[心声: 1至3条内心真实暗涌 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
       } else {
         parts.push('【心声规范 - 平常】：\n展现自然真实的生活气息与内心情绪，可输出1至3条精炼心声，条目间用顿号或分号隔开。\n输出格式：\n[心声: 1至3条内心真实独白 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
       }
@@ -285,7 +285,7 @@
     var apiMsgs = [{ role: 'system', content: promptObj.systemPrompt }];
 
     var maxCtx = parseInt(cfg.historyLimit, 10);
-    var ctx = (maxCtx > 0) ? history.slice(-maxCtx) : history; // 0 表示不限制历史消息
+    var ctx = (maxCtx > 0) ? history.slice(-maxCtx) : history;
 
     var histMsgs = [];
     ctx.forEach(function(m) {
@@ -345,7 +345,7 @@
     if (charBio.length > 24) charBio = charBio.slice(0, 24) + '...';
 
     stage.innerHTML = ''
-      // 1. 顶栏 (无横线，角色名与个签拉开距离)
+      // 1. 顶栏 (角色名与个签拉开距离)
       + '<div class="wx-cr-header">'
       + '  <div class="wx-cr-left-group">'
       + '    <button class="wx-cr-back-btn" id="wxCrBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
@@ -390,7 +390,7 @@
       + '<div class="upward-tray-overlay" id="wxCrUpwardTray">'
       + '  <div class="tray-slider-container" id="wxCrTraySlider">'
       + '    <div class="tray-page-grid">'
-      + renderTrayItem('sticker', '表情包', '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>')
+      + renderTrayItem('sticker', '表情包', '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>')
       + renderTrayItem('album', '照片', '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>')
       + renderTrayItem('camera', '拍摄', '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>')
       + renderTrayItem('call', '通话', '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>')
@@ -431,7 +431,7 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 【彻底无遮罩】双栏心声手账卡片 (动作 + 独立心愿)
+      // 5. 双栏心声卡片 (支持左右翻页)
       + '<div class="voice-transparent-wrap" id="wxCrVoiceModalWrap">'
       + '  <div class="voice-dossier-card" id="wxCrVoiceCard">'
       + '    <div class="card-tape-deco"></div>'
@@ -466,13 +466,30 @@
       + '  </div>'
       + '</div>'
 
-      // 6. 角色专属设定中枢
+      // 6. 角色专属设定中枢 (新顶栏结构)
       + '<div class="wx-cr-settings-mask" id="wxCrSetMask">'
       + '  <div class="wx-cr-settings-card" id="wxCrSetCard">'
-    + '    <div class="wx-cr-set-header">'
-+ '      <span class="wx-cr-set-title">设定与参数</span>'
-+ '      <button class="wx-cr-set-close" id="wxCrSetCloseBtn" type="button">✕</button>'
-+ '    </div>'
+      + '    <div class="sanctuary-header-luxury">'
+      + '      <div class="header-main-action-row">'
+      + '        <div class="header-left-spacer"></div>'
+      + '        <div class="header-center-art-col">'
+      + '          <span class="art-script-motto">~ character studio ~</span>'
+      + '          <div class="art-title-chinese">'
+      + '            <span class="star-dot">✦</span>'
+      + '            <span>设定与参数</span>'
+      + '            <span class="star-dot">✦</span>'
+      + '          </div>'
+      + '        </div>'
+      + '        <button class="header-pure-close" id="wxCrSetCloseBtn" type="button" title="关闭">'
+      + '          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+      + '        </button>'
+      + '      </div>'
+      + '      <div class="header-bottom-ruler-deck">'
+      + '        <div class="ruler-line"></div>'
+      + '        <span class="ruler-center-tag">' + esc(currentChatChar.name || 'Character') + '\'s Profile Configuration</span>'
+      + '        <div class="ruler-line"></div>'
+      + '      </div>'
+      + '    </div>'
       + '    <div class="wx-cr-set-body" id="wxCrSetBody"></div>'
       + '  </div>'
       + '</div>'
@@ -510,7 +527,7 @@
 
     var stkStylesHtml = STK_STYLES.map(function(s) {
       var checked = (cfg.stickerStyles && cfg.stickerStyles.indexOf(s) >= 0) ? ' checked' : '';
-      return '<label class="cr-set-chip"><input type="checkbox" data-stk-style="' + s + '"' + checked + '><span>' + s + '</span></label>';
+      return '<label class="gothic-chip"><input type="checkbox" data-stk-style="' + s + '"' + checked + '><span>' + s + '</span></label>';
     }).join('');
 
     var apiList = [];
@@ -527,93 +544,173 @@
 
     var histVal = parseInt(cfg.historyLimit, 10);
     if (isNaN(histVal)) histVal = 20;
-    var histText = (histVal === 0) ? '不限制' : (histVal + ' 轮');
+    var histText = (histVal === 0) ? ' (不限制)' : ' 轮';
 
     setBody.innerHTML = ''
-      // 0. 当前场景（背景补充）与记忆深度滑块
-      + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">场景与记忆</div>'
-      + '  <div class="cr-set-card-row" style="flex-direction:column;align-items:stretch;gap:6px;">'
-      + '    <div style="display:flex;justify-content:space-between;align-items:center;">'
-      + '      <span class="cr-set-label">当前场景（背景补充）</span>'
-      + '      <button class="cr-expand-icon-btn" id="btnExpandScene" type="button" title="放大编辑"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>'
+      // 01. 场景与记忆
+      + '<div class="gothic-card">'
+      + '  <div class="gothic-head-row">'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 01</span><span class="gothic-sec-title">场景与记忆</span></div>'
+      + '    <span class="gothic-sec-en">Lore & Context</span>'
+      + '  </div>'
+      + '  <div class="scripture-textarea-wrap">'
+      + '    <div class="scripture-top-bar">'
+      + '      <span class="scripture-label">当前场景（背景补充）</span>'
+      + '      <button class="scripture-expand-btn" id="btnExpandScene" type="button" title="放大手札"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>'
       + '    </div>'
-      + '    <textarea class="cr-set-textarea" id="cfgSceneText" rows="4" placeholder="补充角色此刻所处的环境、心境或特定前置剧情...">' + esc(cfg.sceneText || '') + '</textarea>'
+      + '    <textarea class="scripture-textarea" id="cfgSceneText" placeholder="在此书写角色此刻所处的具体场景、周遭氛围或特定故事背景，让每次交谈都充满沉浸感...">' + esc(cfg.sceneText || '') + '</textarea>'
       + '  </div>'
-      + '  <div class="cr-param-box">'
-      + '    <div class="cr-param-head"><span class="cr-param-name">记忆深度 / 历史轮数</span><span class="cr-param-val" id="txtHistLimitVal">' + histText + '</span></div>'
-      + '    <div class="cr-param-desc">发送给模型的历史消息轮数。滑到最左侧为不限制，最右侧为 1000 轮。</div>'
-      + '    <div class="cr-param-range-wrap"><span class="cr-param-hint">不限制</span><input class="cr-range-slider" id="cfgHistoryLimit" type="range" min="0" max="1000" step="10" value="' + histVal + '"><span class="cr-param-hint">1000</span></div>'
-      + '  </div>'
-      + '</div>'
-
-      // 1. 心声流露及程度双选（平常 vs 迷恋·深度）
-      + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">心声流露</div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">心声流露</div><div class="cr-set-desc">开启后角色回复中将包含内心独白</div></div><div class="wx-switch' + (cfg.innerVoice ? ' on' : '') + '" id="swInnerVoice"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row" id="rowVoiceLevel" style="' + (cfg.innerVoice ? '' : 'display:none;') + '"><span>流露程度</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoVoiceLevel" value="normal"' + (!isObsession ? ' checked' : '') + '><span class="cr-radio-circle"></span> 平常</label><label class="cr-custom-radio"><input type="radio" name="rdoVoiceLevel" value="obsession"' + (isObsession ? ' checked' : '') + '><span class="cr-radio-circle"></span> 迷恋 (深度)</label></div></div>'
-      + '</div>'
-
-      // 2. 主动发消息
-      + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">主动发消息</div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">开启主动联系</div><div class="cr-set-desc">角色会根据时间与闲置状态主动发起话题</div></div><div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swProactive"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row"><span>消息频率 (间隔分钟)</span><div style="display:flex;align-items:center;gap:6px;"><input class="cr-set-num-input" id="cfgProMin" type="number" value="' + (cfg.proMinInterval||15) + '"><span>至</span><input class="cr-set-num-input" id="cfgProMax" type="number" value="' + (cfg.proMaxInterval||120) + '"></div></div>'
-      
-      // 活跃时段（全天 / 自定义）
-      + '  <div class="cr-set-card-row"><span>活跃时段</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoActiveMode" value="allday"' + (isAllDay?' checked':'') + '><span class="cr-radio-circle"></span> 全天</label><label class="cr-custom-radio"><input type="radio" name="rdoActiveMode" value="custom"' + (!isAllDay?' checked':'') + '><span class="cr-radio-circle"></span> 自定义</label></div></div>'
-      + '  <div class="cr-set-card-row" id="rowCustomTime" style="' + (isAllDay?'display:none;':'') + '"><span>自定义时段</span><div style="display:flex;gap:6px;"><input class="cr-set-time-input" id="cfgProStart" type="time" value="' + (cfg.proActiveStart||'08:00') + '"><span>至</span><input class="cr-set-time-input" id="cfgProEnd" type="time" value="' + (cfg.proActiveEnd||'23:30') + '"></div></div>'
-      
-      // 积极程度（手动 / 角色性格决定）
-      + '  <div class="cr-set-card-row"><span>消息积极程度</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoLevelMode" value="manual"' + (isManualLevel?' checked':'') + '><span class="cr-radio-circle"></span> 手动</label><label class="cr-custom-radio"><input type="radio" name="rdoLevelMode" value="auto"' + (!isManualLevel?' checked':'') + '><span class="cr-radio-circle"></span> 角色性格决定</label></div></div>'
-      + '  <div class="cr-set-card-row" id="rowManualLevel" style="' + (isManualLevel?'':'display:none;') + '"><span>设定程度</span><select class="cr-set-select" id="cfgProLevel">' + PRO_LEVEL_NAMES.map(function(name, idx){ return '<option value="' + (idx+1) + '"' + ((cfg.proLevel||3)===(idx+1)?' selected':'') + '>' + name + '</option>'; }).join('') + '</select></div>'
-
-      + '  <div class="cr-set-card-row"><span>单次回复条数</span><div style="display:flex;align-items:center;gap:6px;"><input class="cr-set-num-input" id="cfgMinMsgs" type="number" min="1" max="10" value="' + (cfg.minMsgs||1) + '"><span>至</span><input class="cr-set-num-input" id="cfgMaxMsgs" type="number" min="1" max="10" value="' + (cfg.maxMsgs||3) + '"></div></div>'
-      + '  <div class="cr-set-card-row"><span>回复速度</span><select class="cr-set-select" id="cfgReplySpeed"><option' + sv('replySpeed','快速（1-2秒）') + '>快速（1-2秒）</option><option' + sv('replySpeed','正常（2-4秒）') + '>正常（2-4秒）</option><option' + sv('replySpeed','慢速（4-7秒）') + '>慢速（4-7秒）</option></select></div>'
-      + '</div>'
-
-      // 3. 温度与创造力参数（三项详解与专属滑块）
-      + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">温度与创造力参数</div>'
-      + '  <div class="cr-param-box">'
-      + '    <div class="cr-param-head"><span class="cr-param-name">Temperature (创造力)</span><span class="cr-param-val" id="txtTempVal">' + (cfg.temperature || 0.85) + '</span></div>'
-      + '    <div class="cr-param-desc">数值越低越贴合严谨设定，数值越高越富有天马行空的想象力与情绪起伏。</div>'
-      + '    <div class="cr-param-range-wrap"><span class="cr-param-hint">贴合严谨 0.0</span><input class="cr-range-slider" id="cfgTemp" type="range" min="0" max="2" step="0.05" value="' + (cfg.temperature || 0.85) + '"><span class="cr-param-hint">极富创意 2.0</span></div>'
-      + '  </div>'
-      + '  <div class="cr-param-box">'
-      + '    <div class="cr-param-head"><span class="cr-param-name">Frequency Penalty (重复词抑制)</span><span class="cr-param-val" id="txtFreqVal">' + (cfg.freqPenalty || 0.3) + '</span></div>'
-      + '    <div class="cr-param-desc">增加该值可减少字词的单调重复，鼓励模型变换用词表达。</div>'
-      + '    <div class="cr-param-range-wrap"><span class="cr-param-hint">允许复述 0.0</span><input class="cr-range-slider" id="cfgFreq" type="range" min="0" max="2" step="0.1" value="' + (cfg.freqPenalty || 0.3) + '"><span class="cr-param-hint">避免重复 2.0</span></div>'
-      + '  </div>'
-      + '  <div class="cr-param-box">'
-      + '    <div class="cr-param-head"><span class="cr-param-name">Presence Penalty (新话题扩展)</span><span class="cr-param-val" id="txtPresVal">' + (cfg.presPenalty || 0.3) + '</span></div>'
-      + '    <div class="cr-param-desc">增加该值会促使模型更乐于引入新话题，让交谈发散更自然。</div>'
-      + '    <div class="cr-param-range-wrap"><span class="cr-param-hint">聚焦当前 0.0</span><input class="cr-range-slider" id="cfgPres" type="range" min="0" max="2" step="0.1" value="' + (cfg.presPenalty || 0.3) + '"><span class="cr-param-hint">鼓励发散 2.0</span></div>'
+      + '  <div class="metric-gauge-box">'
+      + '    <div class="gauge-head">'
+      + '      <span class="gauge-title">记忆深度 / 历史轮数</span>'
+      + '      <div style="display:flex; align-items:center; gap:4px;"><input class="gothic-input num" id="cfgHistoryNum" type="number" min="0" max="1000" value="' + histVal + '"><span style="font-size:11px; color:#8e8e93;" id="txtHistLimitUnit">' + histText + '</span></div>'
+      + '    </div>'
+      + '    <p class="gauge-desc">发送给模型的历史对话轮数。输入或滑动至最左侧 0 为不限制，最右侧为 1000 轮。</p>'
+      + '    <div class="gauge-slider-deck">'
+      + '      <span class="gauge-bound">0 (不限)</span>'
+      + '      <input class="gothic-range" id="cfgHistoryLimit" type="range" min="0" max="1000" step="5" value="' + histVal + '">'
+      + '      <span class="gauge-bound">1000</span>'
+      + '    </div>'
       + '  </div>'
       + '</div>'
 
-      // 4. API 独立模式
-      + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">API 对话配置</div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">单独配置 API</div><div class="cr-set-desc">为该角色指定独立对话模型</div></div><div class="wx-switch' + (isIndividual ? ' on' : '') + '" id="swIndividualApi"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row" id="rowApiSelect" style="' + (isIndividual ? '' : 'display:none;') + '"><span>选择专属 API</span><select class="cr-set-select" id="cfgApiSelect">' + apiOptionsHtml + '</select></div>'
+      // 02. 心声流露
+      + '<div class="gothic-card">'
+      + '  <div class="gothic-head-row">'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 02</span><span class="gothic-sec-title">心声流露</span></div>'
+      + '    <span class="gothic-sec-en">Inner Voice</span>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <div class="gothic-row-label-col"><span class="gothic-label">心声流露</span><span class="gothic-desc">开启后每轮回复末尾附带内心独白与当下举止</span></div>'
+      + '    <div class="wx-switch' + (cfg.innerVoice ? ' on' : '') + '" id="swInnerVoice"><div class="wx-switch-knob"></div></div>'
+      + '  </div>'
+      + '  <div class="gothic-row" id="rowVoiceLevel" style="' + (cfg.innerVoice ? '' : 'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.1); padding-top:8px;">'
+      + '    <span class="gothic-label">流露程度</span>'
+      + '    <div style="display:flex; gap:14px;">'
+      + '      <label class="cr-custom-radio"><input type="radio" name="rdoVoiceLevel" value="normal"' + (!isObsession ? ' checked' : '') + '><span class="cr-radio-circle"></span> 平常</label>'
+      + '      <label class="cr-custom-radio"><input type="radio" name="rdoVoiceLevel" value="obsession"' + (isObsession ? ' checked' : '') + '><span class="cr-radio-circle"></span> 迷恋 (深度)</label>'
+      + '    </div>'
+      + '  </div>'
       + '</div>'
 
-      // 5. 时间 & 天气感知 (带抓取按钮)
-      + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">情境与天气感知</div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">时间 & 天气感知</div><div class="cr-set-desc">让角色获知当前真实时间与天气</div></div><div class="wx-switch' + (cfg.timeWeather ? ' on' : '') + '" id="swTimeWeather"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row"><span>真实城市 (抓取天气)</span><div style="display:flex;gap:4px;align-items:center;"><input class="cr-set-input" id="cfgCharRealCity" placeholder="如: Tokyo, Paris" value="' + esc(cfg.charRealCity || '') + '"><button class="cr-fetch-btn" id="btnFetchWeather" type="button" title="抓取天气"><svg viewBox="0 0 24 24" fill="none"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button></div></div>'
-      + '  <div class="cr-set-card-row"><span>虚拟地名 (设定城市)</span><input class="cr-set-input" id="cfgCharCity" placeholder="留空则使用真实城市" value="' + esc(cfg.charCity || '') + '"></div>'
+      // 03. 主动发消息
+      + '<div class="gothic-card">'
+      + '  <div class="gothic-head-row">'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 03</span><span class="gothic-sec-title">主动发消息</span></div>'
+      + '    <span class="gothic-sec-en">Proactive</span>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <div class="gothic-row-label-col"><span class="gothic-label">开启主动联系</span><span class="gothic-desc">角色会根据闲置时间主动发起话题</span></div>'
+      + '    <div class="wx-switch' + (cfg.proactive ? ' on' : '') + '" id="swProactive"><div class="wx-switch-knob"></div></div>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">消息频率 (间隔分钟)</span>'
+      + '    <div style="display:flex; align-items:center; gap:6px;"><input class="gothic-input num" id="cfgProMin" type="number" value="' + (cfg.proMinInterval||15) + '"><span style="font-size:11px; color:#8e8e93;">至</span><input class="gothic-input num" id="cfgProMax" type="number" value="' + (cfg.proMaxInterval||120) + '"></div>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">活跃时段</span>'
+      + '    <div style="display:flex; gap:14px;"><label class="cr-custom-radio"><input type="radio" name="rdoActiveMode" value="allday"' + (isAllDay?' checked':'') + '><span class="cr-radio-circle"></span> 全天</label><label class="cr-custom-radio"><input type="radio" name="rdoActiveMode" value="custom"' + (!isAllDay?' checked':'') + '><span class="cr-radio-circle"></span> 自定义</label></div>'
+      + '  </div>'
+      + '  <div class="gothic-row" id="rowCustomTime" style="' + (isAllDay?'display:none;':'') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px;">'
+      + '    <span class="gothic-label">自定义时段</span>'
+      + '    <div style="display:flex; gap:6px;"><input class="gothic-input time" id="cfgProStart" type="time" value="' + (cfg.proActiveStart||'08:00') + '"><span style="font-size:11px; color:#8e8e93; line-height:26px;">至</span><input class="gothic-input time" id="cfgProEnd" type="time" value="' + (cfg.proActiveEnd||'23:30') + '"></div>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">积极程度</span>'
+      + '    <div style="display:flex; gap:14px;"><label class="cr-custom-radio"><input type="radio" name="rdoLevelMode" value="manual"' + (isManualLevel?' checked':'') + '><span class="cr-radio-circle"></span> 手动</label><label class="cr-custom-radio"><input type="radio" name="rdoLevelMode" value="auto"' + (!isManualLevel?' checked':'') + '><span class="cr-radio-circle"></span> 角色性格决定</label></div>'
+      + '  </div>'
+      + '  <div class="gothic-row" id="rowManualLevel" style="' + (isManualLevel?'':'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px;">'
+      + '    <span class="gothic-label">设定程度</span>'
+      + '    <select class="gothic-select" id="cfgProLevel">' + PRO_LEVEL_NAMES.map(function(name, idx){ return '<option value="' + (idx+1) + '"' + ((cfg.proLevel||3)===(idx+1)?' selected':'') + '>' + name + '</option>'; }).join('') + '</select>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">单次回复条数</span>'
+      + '    <div style="display:flex; align-items:center; gap:6px;"><input class="gothic-input num" id="cfgMinMsgs" type="number" min="1" max="10" value="' + (cfg.minMsgs||1) + '"><span style="font-size:11px; color:#8e8e93;">至</span><input class="gothic-input num" id="cfgMaxMsgs" type="number" min="1" max="10" value="' + (cfg.maxMsgs||3) + '"></div>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">回复速度</span>'
+      + '    <select class="gothic-select" id="cfgReplySpeed"><option' + sv('replySpeed','快速（1-2秒）') + '>快速（1-2秒）</option><option' + sv('replySpeed','正常（2-4秒）') + '>正常（2-4秒）</option><option' + sv('replySpeed','慢速（4-7秒）') + '>慢速（4-7秒）</option></select>'
+      + '  </div>'
       + '</div>'
 
-      // 6. 表情包生成 (带绘图 API 通道与拉取模型按钮)
-      + '<div class="cr-set-card-group">'
-      + '  <div class="cr-set-card-title">表情包生成 API 通道</div>'
-      + '  <div class="cr-set-card-row"><div><div class="cr-set-label">AI 表情包生成</div><div class="cr-set-desc">配合语境自动配图</div></div><div class="wx-switch' + (cfg.stickerGen ? ' on' : '') + '" id="swStickerGen"><div class="wx-switch-knob"></div></div></div>'
-      + '  <div class="cr-set-card-row"><span>绘图 API 来源</span><select class="cr-set-select" id="cfgImgApiSelect">' + imgApiOptionsHtml + '</select></div>'
-      + '  <div class="cr-set-card-row"><span>绘图模型</span><div style="display:flex;gap:4px;align-items:center;"><input class="cr-set-input" id="cfgImgModel" value="' + esc(cfg.imgModel || 'gpt-image-1') + '"><button class="cr-fetch-btn" id="btnFetchImgModels" type="button" title="拉取模型"><svg viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.22-8.56"/><path d="M21 3v6h-6"/></svg></button></div></div>'
-      + '  <div class="cr-set-chips-wrap" id="cfgStkStylesWrap">' + stkStylesHtml + '</div>'
+      // 04. 温度与创造力参数
+      + '<div class="gothic-card">'
+      + '  <div class="gothic-head-row">'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 04</span><span class="gothic-sec-title">温度与创造力参数</span></div>'
+      + '    <span class="gothic-sec-en">Model Dynamics</span>'
+      + '  </div>'
+      + '  <div class="metric-gauge-box">'
+      + '    <div class="gauge-head"><span class="gauge-title">Temperature (创造力)</span><span class="gauge-val-tag" id="txtTempVal">' + (cfg.temperature || 0.85) + '</span></div>'
+      + '    <p class="gauge-desc">数值越低越贴合设定，数值越高越富有情感起伏与生动发散。</p>'
+      + '    <div class="gauge-slider-deck"><span class="gauge-bound">0.0</span><input class="gothic-range" id="cfgTemp" type="range" min="0" max="2" step="0.05" value="' + (cfg.temperature || 0.85) + '"><span class="gauge-bound">2.0</span></div>'
+      + '  </div>'
+      + '  <div class="metric-gauge-box">'
+      + '    <div class="gauge-head"><span class="gauge-title">Frequency Penalty (重复词抑制)</span><span class="gauge-val-tag" id="txtFreqVal">' + (cfg.freqPenalty || 0.3) + '</span></div>'
+      + '    <p class="gauge-desc">增加该值可减少字词单调重复，促使模型变换丰富词汇。</p>'
+      + '    <div class="gauge-slider-deck"><span class="gauge-bound">0.0</span><input class="gothic-range" id="cfgFreq" type="range" min="0" max="2" step="0.1" value="' + (cfg.freqPenalty || 0.3) + '"><span class="gauge-bound">2.0</span></div>'
+      + '  </div>'
+      + '  <div class="metric-gauge-box">'
+      + '    <div class="gauge-head"><span class="gauge-title">Presence Penalty (新话题扩展)</span><span class="gauge-val-tag" id="txtPresVal">' + (cfg.presPenalty || 0.3) + '</span></div>'
+      + '    <p class="gauge-desc">增加该值促使模型更乐于引入新观察与发散话题。</p>'
+      + '    <div class="gauge-slider-deck"><span class="gauge-bound">0.0</span><input class="gothic-range" id="cfgPres" type="range" min="0" max="2" step="0.1" value="' + (cfg.presPenalty || 0.3) + '"><span class="gauge-bound">2.0</span></div>'
+      + '  </div>'
+      + '</div>'
+
+      // 05. API 对话配置
+      + '<div class="gothic-card">'
+      + '  <div class="gothic-head-row">'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 05</span><span class="gothic-sec-title">API 对话配置</span></div>'
+      + '    <span class="gothic-sec-en">API Mode</span>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <div class="gothic-row-label-col"><span class="gothic-label">单独配置 API</span><span class="gothic-desc">为该角色指定独立对话模型</span></div>'
+      + '    <div class="wx-switch' + (isIndividual ? ' on' : '') + '" id="swIndividualApi"><div class="wx-switch-knob"></div></div>'
+      + '  </div>'
+      + '  <div class="gothic-row" id="rowApiSelect" style="' + (isIndividual ? '' : 'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px;">'
+      + '    <span class="gothic-label">选择专属 API</span>'
+      + '    <select class="gothic-select" id="cfgApiSelect">' + apiOptionsHtml + '</select>'
+      + '  </div>'
+      + '</div>'
+
+      // 06. 情境与天气感知
+      + '<div class="gothic-card">'
+      + '  <div class="gothic-head-row">'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 06</span><span class="gothic-sec-title">情境与天气感知</span></div>'
+      + '    <span class="gothic-sec-en">Atmosphere</span>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <div class="gothic-row-label-col"><span class="gothic-label">时间 & 天气感知</span><span class="gothic-desc">角色获知当前真实时间段与所在地气候</span></div>'
+      + '    <div class="wx-switch' + (cfg.timeWeather ? ' on' : '') + '" id="swTimeWeather"><div class="wx-switch-knob"></div></div>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">真实城市 (抓取天气)</span>'
+      + '    <div style="display:flex; gap:6px; align-items:center;"><input class="gothic-input city" id="cfgCharRealCity" placeholder="如: Paris" value="' + esc(cfg.charRealCity || '') + '"><button class="disc-action-btn" id="btnFetchWeather" type="button" title="抓取天气"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button></div>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">虚拟地名 (设定城市)</span>'
+      + '    <input class="gothic-input city" id="cfgCharCity" placeholder="留空用真实名" value="' + esc(cfg.charCity || '') + '">'
+      + '  </div>'
+      + '</div>'
+
+      // 07. 表情包生成 API 通道
+      + '<div class="gothic-card">'
+      + '  <div class="gothic-head-row">'
+      + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 07</span><span class="gothic-sec-title">表情包生成 API 通道</span></div>'
+      + '    <span class="gothic-sec-en">Sticker Gen</span>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <div class="gothic-row-label-col"><span class="gothic-label">AI 表情包生成</span><span class="gothic-desc">配合交谈情境自动配图</span></div>'
+      + '    <div class="wx-switch' + (cfg.stickerGen ? ' on' : '') + '" id="swStickerGen"><div class="wx-switch-knob"></div></div>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">绘图 API 来源</span>'
+      + '    <select class="gothic-select" id="cfgImgApiSelect">' + imgApiOptionsHtml + '</select>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">绘图模型</span>'
+      + '    <div style="display:flex; gap:6px; align-items:center;"><input class="gothic-input" id="cfgImgModel" style="width:110px; text-align:right;" value="' + esc(cfg.imgModel || 'gpt-image-1') + '"><button class="disc-action-btn" id="btnFetchImgModels" type="button" title="拉取模型"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.22-8.56"/><path d="M21 3v6h-6"/></svg></button></div>'
+      + '  </div>'
+      + '  <div class="gothic-chips-wrap" id="cfgStkStylesWrap">' + stkStylesHtml + '</div>'
       + '</div>';
   }
 
@@ -1180,13 +1277,23 @@
       var gv = function(id) { var el = stage.querySelector('#' + id); return el ? el.value : ''; };
       cfg.sceneText = gv('cfgSceneText') || '';
 
-      var histInput = stage.querySelector('#cfgHistoryLimit');
-      if (histInput) {
-        var hVal = parseInt(histInput.value, 10);
-        cfg.historyLimit = isNaN(hVal) ? 20 : hVal;
-        var txtHist = stage.querySelector('#txtHistLimitVal');
-        if (txtHist) txtHist.textContent = (cfg.historyLimit === 0) ? '不限制' : (cfg.historyLimit + ' 轮');
+      var histSlider = stage.querySelector('#cfgHistoryLimit');
+      var histNum = stage.querySelector('#cfgHistoryNum');
+      var unitText = stage.querySelector('#txtHistLimitUnit');
+
+      if (document.activeElement === histNum) {
+        var nVal = parseInt(histNum.value, 10);
+        if (isNaN(nVal) || nVal < 0) nVal = 0;
+        if (nVal > 1000) nVal = 1000;
+        cfg.historyLimit = nVal;
+        if (histSlider) histSlider.value = nVal;
+      } else if (histSlider) {
+        var sVal = parseInt(histSlider.value, 10);
+        cfg.historyLimit = isNaN(sVal) ? 20 : sVal;
+        if (histNum) histNum.value = cfg.historyLimit;
       }
+
+      if (unitText) unitText.textContent = (cfg.historyLimit === 0) ? ' (不限制)' : ' 轮';
 
       cfg.innerVoice = stage.querySelector('#swInnerVoice') ? stage.querySelector('#swInnerVoice').classList.contains('on') : true;
 
@@ -1287,7 +1394,7 @@
       r.addEventListener('change', syncSettingFields);
     });
 
-    stage.querySelectorAll('.cr-set-select, .cr-set-input, .cr-set-num-input, .cr-set-time-input, .cr-range-slider, .cr-set-textarea, #cfgStkStylesWrap input').forEach(function(inp) {
+    stage.querySelectorAll('.gothic-select, .gothic-input, .gothic-range, .scripture-textarea, #cfgStkStylesWrap input').forEach(function(inp) {
       inp.addEventListener('input', syncSettingFields);
       inp.addEventListener('change', syncSettingFields);
       inp.addEventListener('blur', syncSettingFields);
@@ -1349,6 +1456,19 @@
         .catch(function(err) {
           if (window.AppNav) window.AppNav.showToast('拉取失败: ' + err.message);
         });
+      });
+    }
+
+    // 放大手札编辑场景
+    var expandSceneBtn = stage.querySelector('#btnExpandScene');
+    if (expandSceneBtn) {
+      expandSceneBtn.addEventListener('click', function() {
+        var curText = stage.querySelector('#cfgSceneText').value || '';
+        var newText = prompt('编辑当前场景与背景补充：', curText);
+        if (newText !== null) {
+          stage.querySelector('#cfgSceneText').value = newText;
+          syncSettingFields();
+        }
       });
     }
 
@@ -1530,7 +1650,6 @@
             saveChatMessages(currentChatChar.id);
             renderMessages();
           } else if (act === 'delFromHere') {
-            // 墨墨要求 3：保留长按选中的当前消息，往后所有的消息全部彻底删除
             if (confirm('确定删除此条消息之后的所有记录吗？')) {
               chatMessages.splice(currentCtxIdx + 1);
               saveChatMessages(currentChatChar.id);
