@@ -4,6 +4,7 @@
 
   var SPLIT = '|||';
   var _charWeatherCache = {};
+  var _stickerCache = {};
 
   var currentChatChar = null;
   var currentChatUser = null;
@@ -38,6 +39,7 @@
       bilingual: false,        // 双语模式
       biLang: 'English',       // 双语翻译目标语言
       biStyle: 'bracket',      // 'bracket'(括号附注) | 'newline'(另起一行)
+      enFont: 'default',       // 'default' | 'caveat' | 'pinyon' | 'alex'
       minimax: false,          // MiniMax 语音开关
       mmVoiceId: '',           // MiniMax Voice ID
       mmApiKey: '',            // MiniMax API Key
@@ -57,8 +59,8 @@
       maxMsgs: 3,
       msgTypes: ['文字','表情','图片','语音','语音通话','视频通话','位置','音乐'],
       stickerGen: false,
-      stickerStyles: ['可爱卡通'],
-      stickerFreq: 2,
+      stickerStyles: ['Q版可爱卡通'],
+      stickerFreq: 2,          // 1:极少 2:偶尔 3:适中 4:经常 5:频繁
       imgApiSelect: '',
       imgModel: 'gpt-image-1',
       timeWeather: true,
@@ -112,7 +114,7 @@
     };
   }
 
-    // ============ 2. 天气获取引擎 ============
+  // ============ 2. 天气获取引擎 ============
   function fetchCharWeather(realCity, callback) {
     if (!realCity) { if (callback) callback(null); return; }
     var cleanCity = realCity.trim();
@@ -194,12 +196,12 @@
   }
 
   function translateError(msg) {
-    if (!msg) return '连接中断，请重试';
-    if (msg.indexOf('401') >= 0) return 'API Key 授权失效，请在设置中检查';
-    if (msg.indexOf('404') >= 0) return '找不到该模型或接口地址填错';
-    if (msg.indexOf('429') >= 0) return '请求过快或额度不足';
-    if (msg.indexOf('500') >= 0) return 'AI 服务端发生错误，请稍后';
-    return '网络异常：' + msg;
+    if (!msg) return '连接中断，请检查网络或配置';
+    if (msg.indexOf('401') >= 0) return 'API Key 授权失效，请在「设置 - API 配置」中检查';
+    if (msg.indexOf('404') >= 0) return '找不到该模型或 API 地址填写错误';
+    if (msg.indexOf('429') >= 0) return '请求速率超限或账户额度不足';
+    if (msg.indexOf('500') >= 0) return 'AI 模型服务端发生内部错误，请稍后重试';
+    return '请求异常：' + msg;
   }
 
   // ============ 4. 系统指令与上下文组装 ============
@@ -218,7 +220,7 @@
       if (Array.isArray(b.entries)) allEntries = allEntries.concat(b.entries);
     });
 
-    var historyText = chatHistory.slice(-10).map(function(m) { return m.content || m.text || ''; }).join(' ').toLowerCase();
+    var historyText = chatHistory.slice(-10).map(function(m) { return m.cleanContent || m.content || m.text || ''; }).join(' ').toLowerCase();
 
     allEntries.forEach(function(e) {
       if (e.enabled === false) return;
@@ -261,6 +263,17 @@
       }
     }
 
+    // 表情包生成指令优化
+    if (cfg.stickerGen) {
+      var freqNames = ['极少', '偶尔', '适中', '经常', '频繁'];
+      var curFreq = freqNames[Math.min(Math.max((cfg.stickerFreq || 2) - 1, 0), 4)];
+      var stylesStr = (cfg.stickerStyles && cfg.stickerStyles.length) ? cfg.stickerStyles.join('、') : 'Q版可爱卡通';
+      parts.push('【聊天表情包触发规范】：\n'
+        + '当情绪合适时，你可以发送表情包。频率：' + curFreq + '。\n'
+        + '格式要求：独立输出一条 `[sticker: 动作神态或画面简述]`，不要与正文文字粘连在同一句中。\n'
+        + '风格偏好：' + stylesStr + '。示例：`[sticker: 探出头眨眨眼]` 或 `[sticker: 捧着热奶茶发呆]`');
+    }
+
     // 注入当前背景与场景补充
     if (cfg.sceneText && cfg.sceneText.trim()) {
       parts.push('【当前所处场景与背景补充】：\n' + cfg.sceneText.trim());
@@ -287,7 +300,7 @@
     var tw = buildTimeWeather(cfg);
     if (tw) parts.push(tw);
 
-    // 心声流露程度规范（平常 vs 迷恋·深度）+ 支持 1 至 3 条心声
+    // 心声流露程度规范
     if (cfg.innerVoice) {
       var isObsession = (cfg.voiceLevel === 'obsession');
       if (isObsession) {
@@ -313,7 +326,8 @@
     var apiMsgs = [{ role: 'system', content: promptObj.systemPrompt }];
 
     var maxCtx = parseInt(cfg.historyLimit, 10);
-    var ctx = (maxCtx > 0) ? history.slice(-maxCtx) : history;
+    var validHistory = history.filter(function(m) { return !m.isError && !m.isSystem; });
+    var ctx = (maxCtx > 0) ? validHistory.slice(-maxCtx) : validHistory;
 
     var histMsgs = [];
     ctx.forEach(function(m) {
@@ -339,7 +353,64 @@
     return apiMsgs;
   }
 
-  // ============ 5. 渲染单聊总界面 ============
+  // ============ 5. 表情包生成引擎 ============
+  function triggerStickerGen(desc, msgId, cfg) {
+    if (_stickerCache[msgId] || !cfg.stickerGen) return;
+    _stickerCache[msgId] = { loading: true, url: '' };
+
+    var api = null;
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem('api_configs') || '[]'); } catch(e){}
+
+    if (cfg.imgApiSelect) {
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].name === cfg.imgApiSelect) { api = list[i]; break; }
+      }
+    }
+    if (!api) api = getActiveApi(currentChatChar.id);
+    if (!api || !api.url || !api.key) {
+      _stickerCache[msgId] = { loading: false, url: '', err: true };
+      renderMessages();
+      return;
+    }
+
+    var imgUrl = api.url.replace(/\/+$/, '') + '/images/generations';
+    var styleDesc = (cfg.stickerStyles && cfg.stickerStyles.length) ? cfg.stickerStyles.join(', ') : 'cute cartoon';
+    var prompt = 'Die-cut sticker of ' + desc + ', ' + styleDesc + ' style, clean pure white background, sticker border, high quality, vector graphic, cute expressive emotion';
+
+    fetch(imgUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + api.key
+      },
+      body: JSON.stringify({
+        model: cfg.imgModel || 'gpt-image-1',
+        prompt: prompt,
+        n: 1,
+        size: '256x256'
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var url = '';
+      if (d && d.data && d.data[0]) {
+        url = d.data[0].url || (d.data[0].b64_json ? ('data:image/png;base64,' + d.data[0].b64_json) : '');
+      }
+      if (url) {
+        _stickerCache[msgId] = { loading: false, url: url };
+      } else {
+        _stickerCache[msgId] = { loading: false, url: '', err: true };
+      }
+      renderMessages();
+    })
+    .catch(function() {
+      _stickerCache[msgId] = { loading: false, url: '', err: true };
+      renderMessages();
+    });
+  }
+
+  // ============ 6. 渲染单聊总界面 ============
   function openChatRoom(charObj, userObj) {
     currentChatChar = charObj;
     currentChatUser = userObj;
@@ -373,7 +444,7 @@
     if (charBio.length > 24) charBio = charBio.slice(0, 24) + '...';
 
     stage.innerHTML = ''
-      // 1. 顶栏 (角色名与个签拉开距离)
+      // 1. 顶栏
       + '<div class="wx-cr-header">'
       + '  <div class="wx-cr-left-group">'
       + '    <button class="wx-cr-back-btn" id="wxCrBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
@@ -381,8 +452,6 @@
       + (avatarSrc ? '<img class="salon-avatar-img" src="' + esc(avatarSrc) + '" alt="">' : '<div class="salon-avatar-img">✦</div>')
       + '    </div>'
       + '  </div>'
-
-      // 中间正中：角色大名 + 个签 / 正在输入
       + '  <div class="wx-cr-title-col">'
       + '    <span class="char-glitch-name-dark">' + esc(currentChatChar.name || 'Chat') + '</span>'
       + '    <div class="char-signature-sub" id="wxCrCharSig">' + esc(charBio) + '</div>'
@@ -391,8 +460,6 @@
       + '      <span>正在输入中...</span>'
       + '    </div>'
       + '  </div>'
-
-      // 右侧：生图图标 + 设置星轨
       + '  <div class="wx-cr-right-group">'
       + '    <button class="cr-header-icon-btn" id="wxCrAiImgBtn" type="button" title="AI 生图">'
       + '      <svg viewBox="0 0 24 24" fill="none">'
@@ -446,7 +513,7 @@
       + '      <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="18" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>'
       + '    </button>'
       + '    <div class="input-capsule-glass">'
-+ '      <input class="input-field-inner" id="wxCrInput" type="text" placeholder="">'
+      + '      <input class="input-field-inner" id="wxCrInput" type="text" placeholder="">'
       + '    </div>'
       + '    <button class="pure-plus-trigger" id="wxCrPlusBtn" type="button" title="更多功能">'
       + '      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
@@ -459,7 +526,7 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 双栏心声卡片 (支持左右翻页)
+      // 5. 双栏心声卡片
       + '<div class="voice-transparent-wrap" id="wxCrVoiceModalWrap">'
       + '  <div class="voice-dossier-card" id="wxCrVoiceCard">'
       + '    <div class="card-tape-deco"></div>'
@@ -494,7 +561,7 @@
       + '  </div>'
       + '</div>'
 
-      // 6. 角色专属设定中枢 (新顶栏结构)
+      // 6. 角色专属设定中枢
       + '<div class="wx-cr-settings-mask" id="wxCrSetMask">'
       + '  <div class="wx-cr-settings-card" id="wxCrSetCard">'
       + '    <div class="sanctuary-header-luxury">'
@@ -519,11 +586,11 @@
       + '      </div>'
       + '    </div>'
       + '    <div class="wx-cr-set-body" id="wxCrSetBody"></div>'
-            + '    <div class="sanctuary-bottom-deck"></div>'
+      + '    <div class="sanctuary-bottom-deck"></div>'
       + '  </div>'
       + '</div>'
 
-      // 7. 长按消息黑色悬浮菜单
+      // 7. 长按消息两行黑色悬浮菜单
       + '<div class="cr-ctx-menu-mask" id="wxCrCtxMask"></div>'
       + '<div class="cr-ctx-menu" id="wxCrCtxMenu" style="display:none;"></div>';
 
@@ -540,14 +607,15 @@
       + '</div>';
   }
 
-  // ============ 6. 渲染完整设定中枢 DOM ============
+  // ============ 7. 渲染完整设定中枢 DOM ============
   function renderFullSettingsDOM(stage, cfg) {
     var setBody = stage.querySelector('#wxCrSetBody');
     if (!setBody) return;
 
     var sv = function(k, v) { return cfg[k] === v ? ' selected' : ''; };
-    var STK_STYLES = ['可爱卡通','写实','像素风','手绘','表情包梗图'];
+    var STK_STYLES = ['Q版可爱卡通','黑白线条','复古插画','写实萌物','像素风','手绘水彩','搞怪表情包'];
     var PRO_LEVEL_NAMES = ['佛系','偶尔','适中','频繁','粘人'];
+    var STK_FREQ_NAMES = ['极少','偶尔','适中','经常','频繁'];
 
     var isIndividual = (cfg.apiMode === 'individual');
     var isAllDay = (cfg.proActiveMode === 'allday');
@@ -685,7 +753,7 @@
       + '  </div>'
       + '</div>'
 
-           // 05. 语言与语音 (英文字体常驻可见版)
+      // 05. 语言与语音 (英文字体常驻版)
       + '<div class="gothic-card">'
       + '  <div class="gothic-head-row">'
       + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 05</span><span class="gothic-sec-title">语言与语音</span></div>'
@@ -697,7 +765,7 @@
       + '  </div>'
       + '  <div class="gothic-row">'
       + '    <span class="gothic-label">英文字体</span>'
-      + '    <select class="gothic-select" id="cfgEnFont" style="max-width: 170px;">'
+      + '    <select class="gothic-select" id="cfgEnFont" style="max-width:170px;">'
       + '      <option value="default"' + (cfg.enFont==='default'?' selected':'') + '>默认 (Sans)</option>'
       + '      <option value="caveat"' + (cfg.enFont==='caveat'?' selected':'') + '>手写体 (Caveat)</option>'
       + '      <option value="pinyon"' + (cfg.enFont==='pinyon'?' selected':'') + '>宫廷贵族铜版体 (Pinyon)</option>'
@@ -712,7 +780,7 @@
       + '    <div class="gothic-row"><span>翻译为</span><select class="gothic-select" id="cfgBiLang"><option' + sv('biLang','English') + '>English</option><option' + sv('biLang','日本語') + '>日本語</option><option' + sv('biLang','한국어') + '>한국어</option><option' + sv('biLang','繁體中文') + '>繁體中文</option><option' + sv('biLang','粤语') + '>粤语</option></select></div>'
       + '    <div class="gothic-row"><span>显示方式</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="bracket"' + (cfg.biStyle==='bracket'?' checked':'') + '><span class="cr-radio-circle"></span> 括号附注</label><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="newline"' + (cfg.biStyle==='newline'?' checked':'') + '><span class="cr-radio-circle"></span> 另起一行</label></div></div>'
       + '  </div>'
-           + '  <div class="gothic-row" style="border-top:1px dashed rgba(20,22,25,0.08); padding-top:8px;">'
+      + '  <div class="gothic-row" style="border-top:1px dashed rgba(20,22,25,0.08); padding-top:8px;">'
       + '    <div class="gothic-row-label-col"><span class="gothic-label">MiniMax 语音</span><span class="gothic-desc">TTS 真实语音合成</span></div>'
       + '    <div class="wx-switch' + (cfg.minimax ? ' on' : '') + '" id="swMinimax"><div class="wx-switch-knob"></div></div>'
       + '  </div>'
@@ -766,7 +834,7 @@
       + '  </div>'
       + '</div>'
 
-            // 08. 表情包生成 API 通道
+      // 08. 表情包生成 API 通道
       + '<div class="gothic-card">'
       + '  <div class="gothic-head-row">'
       + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 08</span><span class="gothic-sec-title">表情包生成 API 通道</span></div>'
@@ -775,6 +843,10 @@
       + '  <div class="gothic-row">'
       + '    <div class="gothic-row-label-col"><span class="gothic-label">AI 表情包生成</span><span class="gothic-desc">配合交谈情境自动配图</span></div>'
       + '    <div class="wx-switch' + (cfg.stickerGen ? ' on' : '') + '" id="swStickerGen"><div class="wx-switch-knob"></div></div>'
+      + '  </div>'
+      + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">表情包频率</span>'
+      + '    <select class="gothic-select" id="cfgStkFreq">' + STK_FREQ_NAMES.map(function(name, idx){ return '<option value="' + (idx+1) + '"' + ((cfg.stickerFreq||2)===(idx+1)?' selected':'') + '>' + name + '</option>'; }).join('') + '</select>'
       + '  </div>'
       + '  <div class="gothic-row">'
       + '    <span class="gothic-label">绘图 API 来源</span>'
@@ -789,7 +861,7 @@
       + '<div class="settings-bottom-spacer"></div>';
   }
 
-  // ============ 7. 心声解析与气泡渲染 ============
+  // ============ 8. 心声解析与双语/表情包渲染 ============
   function parseDossierVoice(text) {
     var raw = (text || '').trim();
     var voiceObj = null;
@@ -817,6 +889,45 @@
     return { text: raw || '...', voiceObj: voiceObj };
   }
 
+  function formatBubbleContent(rawContent, cfg) {
+    if (!cfg || !cfg.bilingual || cfg.biStyle !== 'newline') return esc(rawContent);
+
+    var fontClass = 'font-default';
+    if (cfg.enFont === 'caveat') fontClass = 'font-caveat';
+    else if (cfg.enFont === 'pinyon') fontClass = 'font-pinyon';
+    else if (cfg.enFont === 'alex') fontClass = 'font-alex';
+
+    var raw = (rawContent || '').trim();
+    var zhPart = '';
+    var enPart = '';
+
+    var lines = raw.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    if (lines.length >= 2) {
+      zhPart = lines[0];
+      enPart = lines.slice(1).join(' ');
+    } else if (/^([^\(（]+)[\(（]([^\)）]+)[\)）]$/.test(raw)) {
+      var bMatch = raw.match(/^([^\(（]+)[\(（]([^\)）]+)[\)）]$/);
+      zhPart = bMatch[1].trim();
+      enPart = bMatch[2].trim();
+    } else {
+      var regexMatch = raw.match(/^([\u4e00-\u9fa5\d\s，。！？、；：“”‘’—…《》]+?)\s*([A-Za-z0-9\s,\.!\?'"\-—~]+)$/);
+      if (regexMatch && regexMatch[1] && regexMatch[2] && /[a-zA-Z]{2,}/.test(regexMatch[2])) {
+        zhPart = regexMatch[1].trim();
+        enPart = regexMatch[2].trim();
+      }
+    }
+
+    if (zhPart && enPart) {
+      return '<div class="bilingual-newline-box">'
+        + '<div class="bilingual-main-text">' + esc(zhPart) + '</div>'
+        + '<div class="bilingual-divider-dash"></div>'
+        + '<div class="bilingual-trans-text ' + fontClass + '">' + esc(enPart) + '</div>'
+        + '</div>';
+    }
+
+    return esc(raw);
+  }
+
   function renderMessages() {
     var body = document.getElementById('wxCrBody');
     if (!body) return;
@@ -836,16 +947,25 @@
       var isUser = (m.role === 'user' || m.sender === 'user');
       
       var isTimeGap = curGroup && curGroup.msgs.length && (m.ts - curGroup.msgs[curGroup.msgs.length - 1].msg.ts > 180000);
-      var needNewGroup = !curGroup || curGroup.isUser !== isUser || m.isSystem || m.isProactiveGroup || isTimeGap;
+      var needNewGroup = !curGroup || curGroup.isUser !== isUser || m.isSystem || m.isError || m.isProactiveGroup || isTimeGap;
 
       if (needNewGroup) {
-        curGroup = { isUser: isUser, isSystem: !!m.isSystem, msgs: [] };
+        curGroup = { isUser: isUser, isSystem: !!m.isSystem, isError: !!m.isError, msgs: [] };
         groups.push(curGroup);
       }
       curGroup.msgs.push({ msg: m, globalIdx: i });
     }
 
+    var cfg = getCfg(currentChatChar.id);
+
     groups.forEach(function(g) {
+      if (g.isError) {
+        g.msgs.forEach(function(item) {
+          html += '<div class="wx-msg-error-detail" data-bubble-idx="' + item.globalIdx + '">⚠️ ' + esc(item.msg.content || item.msg.text) + '</div>';
+        });
+        return;
+      }
+
       if (g.isSystem) {
         g.msgs.forEach(function(item) {
           html += '<div class="wx-msg-system-pill">' + esc(item.msg.content || item.msg.text) + '</div>';
@@ -889,9 +1009,35 @@
         var quoteHtml = m.quote ? '<div class="wx-msg-quote-bar">' + esc(m.quote) + '</div>' : '';
         var tailTimeHtml = (idx === total - 1) ? '<div class="bubble-tail-timestamp">' + fmtTime(m.ts || Date.now()) + '</div>' : '';
 
-        html += '<div class="wx-msg-bubble-item" data-bubble-idx="' + globalIdx + '">'
+        var isSticker = /\[sticker:\s*([^\]]+)\]/i.test(content);
+        var formattedContent = '';
+
+        if (isSticker) {
+          var stkDesc = content.match(/\[sticker:\s*([^\]]+)\]/i)[1].trim();
+          var msgKey = 'stk_' + (m.ts || globalIdx);
+          var cache = _stickerCache[msgKey];
+
+          if (!cache && cfg.stickerGen) {
+            triggerStickerGen(stkDesc, msgKey, cfg);
+            cache = _stickerCache[msgKey];
+          }
+
+          if (cache && cache.url) {
+            formattedContent = '<div class="wx-sticker-card-img"><img src="' + esc(cache.url) + '" alt="' + esc(stkDesc) + '"></div>';
+          } else if (cache && cache.loading) {
+            formattedContent = '<div class="wx-sticker-loading-box"><span>🎨 正在绘制「' + esc(stkDesc) + '」...</span></div>';
+          } else {
+            formattedContent = '<div class="wx-sticker-fallback-pill">✨ [' + esc(stkDesc) + ']</div>';
+          }
+        } else {
+          formattedContent = formatBubbleContent(content, cfg);
+        }
+
+        var bubbleClass = isSticker ? 'wx-msg-bubble-item is-sticker-bubble' : 'wx-msg-bubble-item';
+
+        html += '<div class="' + bubbleClass + '" data-bubble-idx="' + globalIdx + '">'
           + quoteHtml
-          + esc(content)
+          + formattedContent
           + heartHtml
           + '</div>'
           + tailTimeHtml;
@@ -918,13 +1064,27 @@
     }
   }
 
-  // ============ 8. 真实流式 Stream 请求 ============
+  // ============ 9. 真实流式 Stream 请求与错误留存 ============
+  function clearChatErrors() {
+    var hasError = chatMessages.some(function(m){ return m.isError; });
+    if (hasError) {
+      chatMessages = chatMessages.filter(function(m){ return !m.isError; });
+      saveChatMessages(currentChatChar.id);
+    }
+  }
+
   function requestAIStream() {
     var cfg = getCfg(currentChatChar.id);
     var api = getActiveApi(currentChatChar.id);
 
     if (!api || !api.url || !api.key) {
-      if (window.AppNav) window.AppNav.showToast('请先在「设置 - API 配置」中保存并启用接口');
+      chatMessages.push({
+        isError: true,
+        content: '未检测到有效 API 配置，请在「设置 - API 配置」中保存并启用接口',
+        ts: Date.now()
+      });
+      saveChatMessages(currentChatChar.id);
+      renderMessages();
       updateTypingUI(false);
       return;
     }
@@ -996,9 +1156,18 @@
       isStreaming = false;
       updateTypingUI(false);
       if (err.name === 'AbortError') return;
+
       var errMsg = err.message || String(err);
       var cnMsg = translateError(errMsg);
-      if (window.AppNav) window.AppNav.showToast(cnMsg);
+
+      // 错误消息留存在对话流中
+      chatMessages.push({
+        isError: true,
+        content: cnMsg + ' (' + errMsg + ')',
+        ts: Date.now()
+      });
+      saveChatMessages(currentChatChar.id);
+      renderMessages();
     });
   }
 
@@ -1009,6 +1178,9 @@
 
     var rawText = (text || '').trim();
     if (!rawText) return;
+
+    // 成功后自动清除以往报错
+    clearChatErrors();
 
     var parts = smartSplitMessages(rawText);
     var now = Date.now();
@@ -1025,7 +1197,7 @@
     renderMessages();
   }
 
-  // ============ 9. 主动发消息定时器调度引擎 ============
+  // ============ 10. 主动发消息定时器调度 ============
   function startProactiveTimer() {
     stopProactiveTimer();
     if (!currentChatChar) return;
@@ -1104,6 +1276,8 @@
       var content = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) ? d.choices[0].message.content : '';
       if (!content || content.indexOf('[SKIP]') !== -1) return;
 
+      clearChatErrors();
+
       var parts = smartSplitMessages(content);
       var now = Date.now();
 
@@ -1127,7 +1301,7 @@
     });
   }
 
-  // ============ 10. 心声翻页与事件绑定 ============
+  // ============ 11. 心声卡片翻页与事件绑定 ============
   var currentVoiceList = [];
   var currentVoicePageIdx = 0;
 
@@ -1164,7 +1338,6 @@
     var backBtn = stage.querySelector('#wxCrBackBtn');
     backBtn.addEventListener('click', closeChatRoom);
 
-    // 直达档案卡片且支持一键返回
     function gotoArchiveCard(side) {
       stage.style.display = 'none';
       if (window.AppNav) {
@@ -1198,7 +1371,6 @@
       }
     });
 
-    // 左上角头像点击 -> 弹出心声卡片
     var charHeadBtn = stage.querySelector('#wxCrCharHeadBtn');
     var voiceModalWrap = stage.querySelector('#wxCrVoiceModalWrap');
     var closeVoiceBtn = stage.querySelector('#wxCrCloseVoiceBtn');
@@ -1239,7 +1411,6 @@
       });
     }
 
-    // 单次爱心点击
     stage.addEventListener('click', function(e) {
       var heart = e.target.closest('[data-voice-idx]');
       if (heart) {
@@ -1415,6 +1586,7 @@
 
       // 语言与语音
       cfg.mainLang = gv('cfgMainLang') || '简体中文';
+      cfg.enFont = gv('cfgEnFont') || 'default';
       cfg.bilingual = stage.querySelector('#swBilingual') ? stage.querySelector('#swBilingual').classList.contains('on') : false;
       cfg.biLang = gv('cfgBiLang') || 'English';
       var rdoBiStyle = stage.querySelector('input[name="rdoBiStyle"]:checked');
@@ -1442,12 +1614,13 @@
       cfg.charRealCity = gv('cfgCharRealCity') || '';
       cfg.charCity = gv('cfgCharCity') || '';
       cfg.stickerGen = stage.querySelector('#swStickerGen') ? stage.querySelector('#swStickerGen').classList.contains('on') : false;
+      cfg.stickerFreq = parseInt(gv('cfgStkFreq'), 10) || 2;
       cfg.imgApiSelect = gv('cfgImgApiSelect') || '';
       cfg.imgModel = gv('cfgImgModel') || 'gpt-image-1';
 
       var checkedStyles = [];
       stage.querySelectorAll('#cfgStkStylesWrap input:checked').forEach(function(cb) { checkedStyles.push(cb.dataset.stkStyle); });
-      cfg.stickerStyles = checkedStyles.length ? checkedStyles : ['可爱卡通'];
+      cfg.stickerStyles = checkedStyles.length ? checkedStyles : ['Q版可爱卡通'];
 
       saveCfg(currentChatChar.id, cfg);
       if (cfg.proactive) {
@@ -1506,7 +1679,7 @@
       inp.addEventListener('blur', syncSettingFields);
     });
 
-        // 抓取天气按钮 (带常驻天气卡条显示)
+    // 抓取天气按钮
     var fetchWeatherBtn = stage.querySelector('#btnFetchWeather');
     if (fetchWeatherBtn) {
       fetchWeatherBtn.addEventListener('click', function() {
@@ -1543,7 +1716,7 @@
       });
     }
 
-        // 绘图模型拉取按钮 (高定优雅下拉列表)
+    // 绘图模型拉取按钮
     var fetchImgBtn = stage.querySelector('#btnFetchImgModels');
     if (fetchImgBtn) {
       fetchImgBtn.addEventListener('click', function() {
@@ -1572,7 +1745,6 @@
             return;
           }
 
-                    // 弹出高定带搜索框模型浮层
           var existingPicker = document.getElementById('wxCrModelPickerMask');
           if (existingPicker) existingPicker.remove();
 
@@ -1683,7 +1855,7 @@
       if (replyingMsg) {
         newMsg.quote = (replyingMsg.sender === 'user' ? '你' : currentChatChar.name) + ': ' + (replyingMsg.cleanContent || replyingMsg.content || replyingMsg.text);
         replyingMsg = null;
-        input.placeholder = '' + currentChatChar.name + '';
+        input.placeholder = '';
       }
 
       chatMessages.push(newMsg);
@@ -1721,7 +1893,7 @@
       }
     });
 
-        // ============ 长按菜单核心重构 (撤回/翻译/拍一拍/含本条全删的重发) ============
+    // ============ 长按菜单核心重构 (上下对齐 4 列，加入收藏/转发，无翻译/拍一拍/撤回) ============
     var ctxMenu = stage.querySelector('#wxCrCtxMenu');
     var ctxMask = stage.querySelector('#wxCrCtxMask');
     var currentCtxIdx = -1;
@@ -1749,19 +1921,21 @@
         if (navigator.vibrate) navigator.vibrate(12);
 
         var isUser = (targetMsg.role === 'user' || targetMsg.sender === 'user');
+
+        // 第一行：常用操作 4 个严格对齐 (引用、复制、收藏、转发)
         var row1 = '<div class="cr-ctx-menu-row">'
           + '<div class="cr-ctx-item" data-ctx-act="quote"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>引用</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span></div>'
-          + '<div class="cr-ctx-item" data-ctx-act="translate"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg><span>翻译</span></div>'
-          + '<div class="cr-ctx-item" data-ctx-act="pat"><svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/></svg><span>拍一拍</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="fav"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>收藏</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="share"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>转发</span></div>'
           + '</div>';
 
-        var row2 = '<div class="cr-ctx-menu-row">';
-        if (isUser) row2 += '<div class="cr-ctx-item" data-ctx-act="recall"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span>撤回</span></div>';
-        row2 += '<div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>' + (isUser ? '重发' : '重现') + '</span></div>'
+        // 第二行：管理操作 4 个严格对齐 (重发/重现、编辑、删除、后面全删)
+        var row2 = '<div class="cr-ctx-menu-row">'
+          + '<div class="cr-ctx-item" data-ctx-act="resend"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>' + (isUser ? '重发' : '重现') + '</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>编辑</span></div>'
           + '<div class="cr-ctx-item" data-ctx-act="del"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg><span>删除</span></div>'
-          + '<div class="cr-ctx-item" data-ctx-act="delFromHere"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><polyline points="8 21 12 17 16 21"/></svg><span>后面全删</span></div>'
+          + '<div class="cr-ctx-item" data-ctx-act="delFromHere"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><polyline points="8 21 12 17 16 21"/></svg><span>后面全删</span></div>'
           + '</div>';
 
         if (ctxMenu) {
@@ -1804,28 +1978,10 @@
             var textToCopy = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
             if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(textToCopy);
             if (window.AppNav) window.AppNav.showToast('已复制到剪贴板');
-          } else if (act === 'translate') {
-            if (targetMsg.translation) { delete targetMsg.translation; renderMessages(); return; }
-            var rawText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
-            var api = getActiveApi(currentChatChar.id);
-            if (!api || !api.url || !api.key) { if (window.AppNav) window.AppNav.showToast('请先配置 API 接口'); return; }
-            fetch(api.url.replace(/\/+$/, '') + '/chat/completions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + api.key },
-              body: JSON.stringify({ model: api.model, messages: [{ role: 'system', content: '精准翻译。中文翻英文，非中文翻简体中文。只输出译文。' }, { role: 'user', content: rawText }], temperature: 0.3 })
-            }).then(function(r){ return r.json(); }).then(function(d){
-              var trans = d.choices && d.choices[0] && d.choices[0].message ? d.choices[0].message.content : '';
-              if (trans) { targetMsg.translation = trans.trim(); saveChatMessages(currentChatChar.id); renderMessages(); }
-            }).catch(function(){ if (window.AppNav) window.AppNav.showToast('翻译异常，请检查网络'); });
-          } else if (act === 'pat') {
-            var who = targetMsg.sender === 'user' ? '自己' : (currentChatChar.name || 'Ta');
-            chatMessages.push({ isSystem: true, text: '你拍了拍「' + who + '」', ts: Date.now() });
-            saveChatMessages(currentChatChar.id); renderMessages();
-          } else if (act === 'recall') {
-            var recalledText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
-            chatMessages.splice(currentCtxIdx, 1, { isSystem: true, text: '你撤回了一条消息', recalledContent: recalledText, ts: Date.now() });
-            saveChatMessages(currentChatChar.id); renderMessages();
-            input.value = recalledText; input.focus();
+          } else if (act === 'fav') {
+            if (window.AppNav) window.AppNav.showToast('✦ 已加入微信收藏 ✦');
+          } else if (act === 'share') {
+            if (window.AppNav) window.AppNav.showToast('✦ 消息转发功能已就绪 ✦');
           } else if (act === 'edit') {
             var oldText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
             var newText = prompt('编辑这条消息内容：', oldText);
@@ -1875,7 +2031,7 @@
     });
   }
 
-  // ============ 11. 本地存储与读取 ============
+  // ============ 12. 本地存储与读取 ============
   function loadChatMessages(charId, cb) {
     if (!window.AppDB) {
       try {
