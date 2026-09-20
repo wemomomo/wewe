@@ -112,27 +112,40 @@
     };
   }
 
-  // ============ 2. 天气获取引擎 ============
+    // ============ 2. 天气获取引擎 ============
   function fetchCharWeather(realCity, callback) {
     if (!realCity) { if (callback) callback(null); return; }
-    var cacheKey = realCity.toLowerCase();
+    var cleanCity = realCity.trim();
+    var cacheKey = cleanCity.toLowerCase();
     var cached = _charWeatherCache[cacheKey];
     if (cached && Date.now() - cached.time < 30 * 60 * 1000) {
       if (callback) callback(cached);
       return;
     }
-    fetch('https://wttr.in/' + encodeURIComponent(realCity) + '?format=j1&lang=zh')
-      .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
-      .then(function(data) {
-        if (data && data.current_condition && data.current_condition.length) {
-          var c = data.current_condition[0];
-          var desc = (c.lang_zh && c.lang_zh.length) ? c.lang_zh[0].value : (c.weatherDesc && c.weatherDesc.length ? c.weatherDesc[0].value : '');
-          var w = { temp: c.temp_C, humidity: c.humidity, desc: desc, time: Date.now() };
-          _charWeatherCache[cacheKey] = w;
-          if (callback) callback(w);
-        } else { if (callback) callback(null); }
-      })
-      .catch(function() { if (callback) callback(null); });
+
+    var timeoutPromise = new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error('timeout')); }, 5000);
+    });
+
+    Promise.race([
+      fetch('https://wttr.in/' + encodeURIComponent(cleanCity) + '?format=j1&lang=zh'),
+      timeoutPromise
+    ])
+    .then(function(r) { if (!r.ok) throw new Error('status_' + r.status); return r.json(); })
+    .then(function(data) {
+      if (data && data.current_condition && data.current_condition.length) {
+        var c = data.current_condition[0];
+        var desc = (c.lang_zh && c.lang_zh.length) ? c.lang_zh[0].value : (c.weatherDesc && c.weatherDesc.length ? c.weatherDesc[0].value : '晴');
+        var w = { temp: c.temp_C, humidity: c.humidity, desc: desc, time: Date.now() };
+        _charWeatherCache[cacheKey] = w;
+        if (callback) callback(w);
+      } else {
+        if (callback) callback(null);
+      }
+    })
+    .catch(function() {
+      if (callback) callback(null);
+    });
   }
 
   function buildTimeWeather(cfg) {
@@ -672,7 +685,7 @@
       + '  </div>'
       + '</div>'
 
-      // 05. 语言与语音 (墨墨专属补全)
+           // 05. 语言与语音 (英文字体常驻可见版)
       + '<div class="gothic-card">'
       + '  <div class="gothic-head-row">'
       + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 05</span><span class="gothic-sec-title">语言与语音</span></div>'
@@ -683,10 +696,19 @@
       + '    <select class="gothic-select" id="cfgMainLang"><option' + sv('mainLang','简体中文') + '>简体中文</option><option' + sv('mainLang','繁體中文') + '>繁體中文</option><option' + sv('mainLang','粤语') + '>粤语</option><option' + sv('mainLang','English') + '>English</option><option' + sv('mainLang','日本語') + '>日本語</option><option' + sv('mainLang','한국어') + '>한국어</option></select>'
       + '  </div>'
       + '  <div class="gothic-row">'
+      + '    <span class="gothic-label">英文字体</span>'
+      + '    <select class="gothic-select" id="cfgEnFont" style="max-width: 170px;">'
+      + '      <option value="default"' + (cfg.enFont==='default'?' selected':'') + '>默认 (Sans)</option>'
+      + '      <option value="caveat"' + (cfg.enFont==='caveat'?' selected':'') + '>手写体 (Caveat)</option>'
+      + '      <option value="pinyon"' + (cfg.enFont==='pinyon'?' selected':'') + '>宫廷贵族铜版体 (Pinyon)</option>'
+      + '      <option value="alex"' + (cfg.enFont==='alex'?' selected':'') + '>墨水软笔体 (Alex Brush)</option>'
+      + '    </select>'
+      + '  </div>'
+      + '  <div class="gothic-row" style="border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px;">'
       + '    <div class="gothic-row-label-col"><span class="gothic-label">双语模式</span><span class="gothic-desc">每条消息附带双语翻译</span></div>'
       + '    <div class="wx-switch' + (cfg.bilingual ? ' on' : '') + '" id="swBilingual"><div class="wx-switch-knob"></div></div>'
       + '  </div>'
-      + '  <div id="secBiSub" style="' + (cfg.bilingual ? '' : 'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px; display:flex; flex-direction:column; gap:8px;">'
+      + '  <div id="secBiSub" style="' + (cfg.bilingual ? 'display:flex;' : 'display:none;') + 'border-top:1px dashed rgba(20,22,25,0.08); padding-top:6px; flex-direction:column; gap:8px;">'
       + '    <div class="gothic-row"><span>翻译为</span><select class="gothic-select" id="cfgBiLang"><option' + sv('biLang','English') + '>English</option><option' + sv('biLang','日本語') + '>日本語</option><option' + sv('biLang','한국어') + '>한국어</option><option' + sv('biLang','繁體中文') + '>繁體中文</option><option' + sv('biLang','粤语') + '>粤语</option></select></div>'
       + '    <div class="gothic-row"><span>显示方式</span><div style="display:flex;gap:12px;"><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="bracket"' + (cfg.biStyle==='bracket'?' checked':'') + '><span class="cr-radio-circle"></span> 括号附注</label><label class="cr-custom-radio"><input type="radio" name="rdoBiStyle" value="newline"' + (cfg.biStyle==='newline'?' checked':'') + '><span class="cr-radio-circle"></span> 另起一行</label></div></div>'
       + '  </div>'
@@ -1484,21 +1506,38 @@
       inp.addEventListener('blur', syncSettingFields);
     });
 
-    // 抓取天气按钮
+        // 抓取天气按钮 (带常驻天气卡条显示)
     var fetchWeatherBtn = stage.querySelector('#btnFetchWeather');
     if (fetchWeatherBtn) {
       fetchWeatherBtn.addEventListener('click', function() {
-        var city = (stage.querySelector('#cfgCharRealCity').value || '').trim();
+        var cityInp = stage.querySelector('#cfgCharRealCity');
+        var city = (cityInp ? cityInp.value : '').trim();
         if (!city) {
-          if (window.AppNav) window.AppNav.showToast('请先输入真实城市名称');
+          if (window.AppNav) window.AppNav.showToast('请先输入真实城市');
           return;
         }
-        if (window.AppNav) window.AppNav.showToast('正在抓取城市天气...');
+
+        if (window.AppNav) window.AppNav.showToast('正在连接气象卫星抓取中...');
+        fetchWeatherBtn.style.opacity = '0.5';
+
         fetchCharWeather(city, function(w) {
+          fetchWeatherBtn.style.opacity = '1';
+
+          var existingStatus = stage.querySelector('#charWeatherStatusBadge');
+          if (existingStatus) existingStatus.remove();
+
           if (w) {
-            if (window.AppNav) window.AppNav.showToast('抓取成功: ' + city + ' ' + w.desc + ' ' + w.temp + '°C');
+            var statusDiv = document.createElement('div');
+            statusDiv.id = 'charWeatherStatusBadge';
+            statusDiv.style.cssText = 'padding:4px 8px;font-size:11.5px;color:#111;background:rgba(255,255,255,0.7);border:1px dashed rgba(20,22,25,0.2);border-radius:6px;margin-top:4px;display:flex;align-items:center;justify-content:space-between;';
+            statusDiv.innerHTML = '<span>🌤️ ' + esc(city) + '：' + esc(w.desc) + ' ' + w.temp + '°C · 湿度' + w.humidity + '%</span><span style="color:#07c160;font-weight:bold;">● 已就绪</span>';
+
+            var parentCard = fetchWeatherBtn.closest('.gothic-card');
+            if (parentCard) parentCard.appendChild(statusDiv);
+
+            if (window.AppNav) window.AppNav.showToast('抓取成功！' + city + ' ' + w.desc + ' ' + w.temp + '°C');
           } else {
-            if (window.AppNav) window.AppNav.showToast('未能抓取到天气，请检查城市英文名拼写');
+            if (window.AppNav) window.AppNav.showToast('未连通该城市天气，建议输入省/市名或拼音重试');
           }
         });
       });
