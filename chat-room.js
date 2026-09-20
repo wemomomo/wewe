@@ -1533,37 +1533,58 @@
             return;
           }
 
-          // 弹出高定列表浮层
+                    // 弹出高定带搜索框模型浮层
           var existingPicker = document.getElementById('wxCrModelPickerMask');
           if (existingPicker) existingPicker.remove();
 
           var pickerMask = document.createElement('div');
           pickerMask.id = 'wxCrModelPickerMask';
-          pickerMask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px;';
+          pickerMask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px;';
 
-          var listHtml = models.map(function(m) {
-            return '<div class="cr-model-pick-item" style="padding:10px 12px;font-size:13px;font-weight:600;color:#111;border-bottom:1px solid rgba(0,0,0,0.05);cursor:pointer;">' + esc(m) + '</div>';
-          }).join('');
-
-          pickerMask.innerHTML = '<div style="width:100%;max-width:300px;max-height:60vh;background:#ffffff;border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,0.2);">'
-            + '<div style="padding:12px 16px;font-size:14px;font-weight:800;color:#111;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:center;"><span>选择绘图模型</span><span id="closeModelPicker" style="cursor:pointer;color:#888;">✕</span></div>'
-            + '<div style="flex:1;overflow-y:auto;padding:4px 8px;">' + listHtml + '</div>'
+          pickerMask.innerHTML = '<div style="width:100%;max-width:310px;height:70vh;background:#ffffff;border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.25);">'
+            + '<div style="padding:14px 16px 10px;font-size:15px;font-weight:800;color:#111;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;"><span>选择绘图模型 (' + models.length + ')</span><span id="closeModelPicker" style="cursor:pointer;color:#888;font-size:16px;padding:2px 6px;">✕</span></div>'
+            + '<div style="padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.06);background:#f7f7f8;"><input type="text" id="modelSearchInput" placeholder="🔍 搜索模型名称..." style="width:100%;height:32px;border:1px solid rgba(0,0,0,0.1);background:#fff;border-radius:8px;padding:0 10px;font-size:13px;color:#111;outline:none;box-sizing:border-box;"></div>'
+            + '<div id="modelListContainer" style="flex:1;overflow-y:auto;padding:4px 8px;"></div>'
             + '</div>';
 
           document.body.appendChild(pickerMask);
 
-          pickerMask.addEventListener('click', function(e) {
-            if (e.target === pickerMask || e.target.id === 'closeModelPicker') pickerMask.remove();
-          });
+          var listContainer = pickerMask.querySelector('#modelListContainer');
+          var searchInput = pickerMask.querySelector('#modelSearchInput');
 
-          pickerMask.querySelectorAll('.cr-model-pick-item').forEach(function(item) {
-            item.addEventListener('click', function() {
-              var chosen = this.textContent.trim();
+          function renderFilteredList(filterKw) {
+            var kw = (filterKw || '').trim().toLowerCase();
+            var matched = kw ? models.filter(function(m){ return m.toLowerCase().indexOf(kw) !== -1; }) : models;
+            if (!matched.length) {
+              listContainer.innerHTML = '<div style="padding:24px;text-align:center;color:#8e8e93;font-size:12.5px;">无匹配模型</div>';
+              return;
+            }
+            listContainer.innerHTML = matched.map(function(m) {
+              return '<div class="cr-model-pick-item" data-model-name="' + esc(m) + '" style="padding:10px 12px;font-size:13px;font-weight:600;color:#111;border-bottom:1px solid rgba(0,0,0,0.04);cursor:pointer;">' + esc(m) + '</div>';
+            }).join('');
+          }
+
+          renderFilteredList('');
+
+          if (searchInput) {
+            searchInput.addEventListener('input', function() {
+              renderFilteredList(this.value);
+            });
+          }
+
+          pickerMask.addEventListener('click', function(e) {
+            if (e.target === pickerMask || e.target.id === 'closeModelPicker') {
+              pickerMask.remove();
+              return;
+            }
+            var item = e.target.closest('.cr-model-pick-item');
+            if (item) {
+              var chosen = item.dataset.modelName || item.textContent.trim();
               stage.querySelector('#cfgImgModel').value = chosen;
               syncSettingFields();
               pickerMask.remove();
               if (window.AppNav) window.AppNav.showToast('已选定模型: ' + chosen);
-            });
+            }
           });
         })
         .catch(function(err) {
