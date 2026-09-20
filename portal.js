@@ -167,7 +167,7 @@
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 88; // 拉大离心半径，留出舒适间距
+    var radius = 75; // 拉大离心半径，留出舒适间距
 
     // 扇形分布弧度略微舒展
     var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
