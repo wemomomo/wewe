@@ -671,8 +671,8 @@
             formattedContent = '<div class="wx-sticker-card-img"><img src="' + esc(cache.url) + '" alt="' + esc(stkDesc) + '"></div>';
           } else if (cache && cache.loading) {
             formattedContent = '<div class="wx-sticker-loading-box"><span>🎨 正在绘制「' + esc(stkDesc) + '」...</span></div>';
-          } else {
-            formattedContent = '<div class="wx-sticker-fallback-pill">✨ [' + esc(stkDesc) + ']</div>';
+                   } else {
+            formattedContent = '<div class="wx-sticker-fallback-pill">[' + esc(stkDesc) + '.jpg]</div>';
           }
         } else {
           formattedContent = formatBubbleContent(content, cfg);
