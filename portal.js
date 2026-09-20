@@ -6,6 +6,9 @@
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
   }
 
+  // 记录从哪个页面跳进档案的返回锚点
+  window._portalReturnPage = null;
+
   // ============ 1. 浮球形态配置与持久化 ============
   var ORB_CONFIG_KEY = 'app_floating_orb_config';
   var orbConfig = {
@@ -44,11 +47,47 @@
     } catch(e) {}
   }
 
-  // ============ 2. 动态挂载悬浮球 DOM 骨架 ============
+  // ============ 2. 路由劫持：确保退出档案时能原路返回当前应用 ============
+  function hookAppNavReturn() {
+    if (!window.AppNav || window.AppNav._hookedPortal) return;
+    window.AppNav._hookedPortal = true;
+
+    var originalShowPage = window.AppNav.showPage;
+    window.AppNav.showPage = function (targetPage) {
+      // 如果档案返回桌面，且我们记录了来源页面，则原路返回该应用
+      if (targetPage === 'home' && window._portalReturnPage) {
+        var returnTarget = window._portalReturnPage;
+        window._portalReturnPage = null;
+        return originalShowPage(returnTarget);
+      }
+
+      // 如果主动跳转到其他非档案页面，重置记录
+      if (targetPage !== 'archive') {
+        window._portalReturnPage = null;
+      }
+
+      return originalShowPage(targetPage);
+    };
+
+    // 捕获档案顶栏原生返回按键点击
+    document.addEventListener('click', function (e) {
+      var backBtn = e.target.closest('#archShellBackBtn');
+      if (backBtn && window._portalReturnPage) {
+        e.stopPropagation();
+        e.preventDefault();
+        var ret = window._portalReturnPage;
+        window._portalReturnPage = null;
+        window.AppNav.showPage(ret);
+      }
+    }, true);
+  }
+
+  // ============ 3. 动态挂载悬浮球 DOM 骨架 ============
   function ensurePortalDOM() {
     if (document.getElementById('portalOrb')) return;
 
     loadOrbConfig();
+    hookAppNavReturn();
 
     var orb = document.createElement('div');
     orb.className = 'portal-floating-orb align-right style-' + orbConfig.mode;
@@ -112,7 +151,7 @@
     bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard, fileInput);
   }
 
-  // 渲染浮球内部真实形态
+  // 渲染浮球内部形态
   function applyOrbAppearance(orb) {
     if (!orb) orb = document.getElementById('portalOrb');
     if (!orb) return;
@@ -120,7 +159,7 @@
     var isLeft = orb.classList.contains('align-left');
     orb.className = 'portal-floating-orb ' + (isLeft ? 'align-left' : 'align-right') + ' style-' + orbConfig.mode;
 
-       if (orbConfig.mode === 'default') {
+    if (orbConfig.mode === 'default') {
       orb.innerHTML = '<img class="orb-custom-icon-img" src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" alt="Orb">';
     } else if (orbConfig.mode === 'blackframe') {
       var src = orbConfig.frameImg || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
@@ -131,7 +170,7 @@
     }
   }
 
-  // ============ 3. 悬浮球交互：自由拖拽、贴边吸附与卫星展开 ============
+  // ============ 4. 悬浮球交互：自由拖拽、卫星展开与直达档案 ============
   function bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard, fileInput) {
     var satellites = satellitesGroup.querySelectorAll('.satellite-item-wrap');
     var pendingUploadMode = '';
@@ -160,6 +199,24 @@
         e.stopPropagation();
         var portalType = this.dataset.portal;
         closeOrb();
+
+        // 核心：点击【档案】直接进入档案应用编辑，并记住来源页面
+        if (portalType === 'arch') {
+          panelMask.classList.remove('show');
+          panelCard.classList.remove('show');
+
+          var curPageEl = document.querySelector('.page.active');
+          var curPage = curPageEl ? curPageEl.dataset.page : 'home';
+          if (curPage !== 'archive') {
+            window._portalReturnPage = curPage; // 牢牢记住墨墨当前在哪个应用（比如美化）
+          }
+
+          if (window.AppNav) {
+            window.AppNav.showPage('archive');
+          }
+          return;
+        }
+
         openFeaturePanel(portalType, panelMask, panelCard, fileInput);
       });
     });
@@ -177,7 +234,7 @@
       });
     }
 
-    // 苹果手机丝滑平移拖拽与自动靠边
+    // 自由拖拽与停放
     (function initOrbGesture() {
       var startX = 0, startY = 0, initialLeft = 0, initialTop = 0, hasMoved = false;
 
@@ -220,20 +277,18 @@
         updateSatellitesAnchor(nextX + 6, nextY + 6);
       }, { passive: true });
 
-      orb      orb.addEventListener('touchend', function () {
+      orb.addEventListener('touchend', function () {
         if (!hasMoved) return;
         var rect = orb.getBoundingClientRect();
         var screenW = window.innerWidth;
         var screenH = window.innerHeight;
 
-        // 仅做边缘微防溢出保护，手指停在哪，悬浮球就稳稳留在哪
         var safeX = Math.max(10, Math.min(screenW - rect.width - 10, rect.left));
         var safeY = Math.max(10, Math.min(screenH - rect.height - 10, rect.top));
 
         orb.style.left = safeX + 'px';
         orb.style.top = safeY + 'px';
 
-        // 仅根据停靠位置自动判定环绕卫星朝左还是朝右散开，视觉更自然
         var isLeft = (safeX + rect.width / 2 < screenW / 2);
         orb.className = 'portal-floating-orb style-' + orbConfig.mode + (isLeft ? ' align-left' : ' align-right');
         updateSatellitesAnchor(safeX + 6, safeY + 6);
@@ -263,7 +318,7 @@
     });
   }
 
-  // ============ 4. 功能面板打开与渲染中枢 ============
+  // ============ 5. 其余面板渲染中枢 (记忆 / API / 便签 / 浮球换肤) ============
   function openFeaturePanel(type, panelMask, panelCard, fileInput) {
     panelMask.classList.add('show');
     panelCard.classList.add('show');
@@ -280,10 +335,6 @@
       panelSubTag.textContent = '~ Endpoints ~';
       panelTitle.textContent = '✦ API 接口快捷切换 ✦';
       renderApiSwitcher(panelBody);
-    } else if (type === 'arch') {
-      panelSubTag.textContent = '~ Dossiers ~';
-      panelTitle.textContent = '✦ 专属档案调阅 ✦';
-      renderArchiveQuickView(panelBody);
     } else if (type === 'notes') {
       panelSubTag.textContent = '~ Inspirations ~';
       panelTitle.textContent = '✦ 灵感便签手账本 ✦';
@@ -292,7 +343,7 @@
       panelSubTag.textContent = '~ Skin Studio ~';
       panelTitle.textContent = '✦ 浮球样式定制 ✦';
       renderOrbStyleSettings(panelBody, fileInput, function (mode) {
-        fileInput._pendingMode = mode;
+        pendingUploadMode = mode;
       });
     }
   }
@@ -307,7 +358,7 @@
     var activeChar = charList.find(function (c) { return c.id === activeCharId; }) || charList[0];
 
     if (!activeChar) {
-      container.innerHTML = '<div class="mem-empty-box"><span>✦ 暂无角色档案，请先在档案应用中创建 ✦</span></div>';
+      container.innerHTML = '<div class="mem-empty-box"><span>✦ 暂无角色档案，请先在档案中创建 ✦</span></div>';
       return;
     }
 
@@ -398,56 +449,7 @@
     });
   }
 
-  // 3. 专属档案快速调阅
-  function renderArchiveQuickView(container) {
-    var charList = [];
-    var userList = [];
-    try {
-      charList = JSON.parse(localStorage.getItem('character_archives_list_v1') || '[]');
-      userList = JSON.parse(localStorage.getItem('user_archives_list_v3') || '[]');
-    } catch(e) {}
-
-    var html = '';
-    charList.forEach(function (c) {
-      html += '<div class="archive-quick-card" data-open-arch="char" data-char-id="' + esc(c.id) + '">'
-        + '<div class="arch-avatar-circle">' + (c.photo ? '<img src="' + esc(c.photo) + '">' : '✦') + '</div>'
-        + '<div class="arch-info-col">'
-        + '  <div class="arch-name-title">' + esc(c.name || '角色') + ' (角色档案)</div>'
-        + '  <div class="arch-desc-sub">' + esc(c.personality || '专属陪伴') + '</div>'
-        + '</div>'
-        + '</div>';
-    });
-
-    userList.forEach(function (u) {
-      html += '<div class="archive-quick-card" data-open-arch="user">'
-        + '<div class="arch-avatar-circle">' + (u.photo ? '<img src="' + esc(u.photo) + '">' : '墨') + '</div>'
-        + '<div class="arch-info-col">'
-        + '  <div class="arch-name-title">' + esc(u.name || '用户') + ' (我的档案)</div>'
-        + '  <div class="arch-desc-sub">' + esc(u.userid || '@NIVEOUSMOON') + '</div>'
-        + '</div>'
-        + '</div>';
-    });
-
-    if (!html) html = '<div class="mem-empty-box"><span>暂无档案记录</span></div>';
-    container.innerHTML = html;
-
-    container.querySelectorAll('.archive-quick-card').forEach(function (card) {
-      card.addEventListener('click', function () {
-        var archType = this.dataset.openArch;
-        document.getElementById('panelMask').classList.remove('show');
-        document.getElementById('panelCard').classList.remove('show');
-        if (window.AppNav) {
-          window.AppNav.showPage('archive');
-          setTimeout(function () {
-            var tabBtn = document.getElementById(archType === 'char' ? 'tabCharBtn' : 'tabUserBtn');
-            if (tabBtn) tabBtn.click();
-          }, 60);
-        }
-      });
-    });
-  }
-
-  // 4. 灵感便签管理器
+  // 3. 灵感便签管理器
   function renderNotesManager(container) {
     var notes = getNotesList();
     var notesHtml = notes.map(function (txt, idx) {
@@ -486,23 +488,21 @@
     });
   }
 
-  // 5. 浮球样式定制面板
+  // 4. 浮球样式定制面板
   function renderOrbStyleSettings(container, fileInput, setPendingMode) {
     var orb = document.getElementById('portalOrb');
     var frameImgSrc = orbConfig.frameImg || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
     var standeePngSrc = orbConfig.standeePng || 'https://img.icons8.com/isometric/512/anime.png';
 
     container.innerHTML = ''
-      // 样式 1：默认微光星轨
       + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
-      + '  <div class="orb-style-preview-box" style="background:rgba(255,255,255,0.9); border:1px solid #cbd5e1;"><span style="font-size:12px;">✦</span></div>'
+      + '  <div class="orb-style-preview-box" style="background:rgba(255,255,255,0.9); border:1px solid #cbd5e1;"><img src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>'
       + '  <div class="orb-style-info-col">'
-      + '    <div class="orb-style-title">默认星轨球</div>'
-      + '    <div class="orb-style-desc">晶莹纯白微光球，内嵌双环运转星轨。</div>'
+      + '    <div class="orb-style-title">默认球</div>'
+      + '    <div class="orb-style-desc">专属图像居中圆球。</div>'
       + '  </div>'
       + '</div>'
 
-      // 样式 2：黑边框相框 + 自定义照片
       + '<div class="orb-style-row ' + (orbConfig.mode === 'blackframe' ? 'active' : '') + '" data-set-orb="blackframe">'
       + '  <div class="orb-style-preview-box" style="border:2px solid #111; overflow:hidden;"><img src="' + esc(frameImgSrc) + '" style="width:100%;height:100%;object-fit:cover;"></div>'
       + '  <div class="orb-style-info-col">'
@@ -512,7 +512,6 @@
       + '  <button class="orb-upload-btn-sm" data-upload="frame" type="button">换图</button>'
       + '</div>'
 
-      // 样式 3：完全纯净透明底 PNG 立绘
       + '<div class="orb-style-row ' + (orbConfig.mode === 'pngstandee' ? 'active' : '') + '" data-set-orb="pngstandee">'
       + '  <div class="orb-style-preview-box" style="background:transparent; border:1px dashed #cbd5e1;"><img src="' + esc(standeePngSrc) + '" style="width:100%;height:100%;object-fit:contain;"></div>'
       + '  <div class="orb-style-info-col">'
@@ -543,7 +542,7 @@
     });
   }
 
-  // ============ 5. 初始化与自愈保活 ============
+  // ============ 6. 初始化与保活 ============
   function initPortalEngine() {
     ensurePortalDOM();
   }
