@@ -3,8 +3,6 @@
 /* 全局快捷中枢悬浮球 (Floating Portal Core) - 高定纯净版     */
 /* ======================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
-
 /* =========================================================
    1. 全局悬浮球主球体
 ========================================================= */
@@ -220,10 +218,12 @@
   gap: 1px;
 }
 .panel-script-tag {
-  font-family: 'Caveat', cursive;
-  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
   color: #7a8fa6;
   line-height: 1;
+  letter-spacing: 0.5px;
 }
 .panel-main-title {
   font-size: 16px;
@@ -408,9 +408,7 @@
   align-items: flex-start;
 }
 
-/* =========================================================
-   4. 浮球定制面板 (含 PNG URL 输入 & 历史立绘手账架)
-========================================================= */
+/* 浮球样式定制行 */
 .orb-style-row {
   padding: 12px 14px;
   background: #f8fafc;
@@ -517,7 +515,6 @@
   border: 1px solid rgba(0, 0, 0, 0.18);
 }
 
-/* 历史立绘卡片架 (加大高度容纳底部的复制按键) */
 .standee-history-shelf {
   display: flex;
   align-items: center;
@@ -580,7 +577,6 @@
   cursor: pointer;
 }
 
-/* 历史卡片下方的复制链接按键 */
 .standee-copy-link-btn {
   background: #f1f5f9;
   border: 1px solid rgba(0, 0, 0, 0.08);
