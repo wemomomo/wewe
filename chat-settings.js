@@ -92,17 +92,27 @@
     mask.className = 'wx-cr-settings-mask';
     mask.id = 'wxCrSettingsModalMask';
 
-    mask.innerHTML = '<div class="wx-cr-settings-card" id="wxCrSettingsCard">'
+    mask.innerHTML = '<div class="wx-cr-settings-card" id="wxCrSetCard">'
       + '  <div class="sanctuary-header-luxury">'
       + '    <div class="header-main-action-row">'
       + '      <div class="header-left-spacer"></div>'
       + '      <div class="header-center-art-col">'
-      + '        <span class="art-script-motto">Sanctuary</span>'
-      + '        <div class="art-title-chinese"><span class="star-dot">✦</span>' + esc(currentChar.name || '角色') + ' · 设定中枢<span class="star-dot">✦</span></div>'
+      + '        <span class="art-script-motto">~ character studio ~</span>'
+      + '        <div class="art-title-chinese">'
+      + '          <span class="star-dot">✦</span>'
+      + '          <span>设定与参数</span>'
+      + '          <span class="star-dot">✦</span>'
+      + '        </div>'
       + '      </div>'
-      + '      <button class="header-pure-close" id="wxCrSetCloseBtn" type="button" title="关闭"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>'
+      + '      <button class="header-pure-close" id="wxCrSetCloseBtn" type="button" title="关闭">'
+      + '        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+      + '      </button>'
       + '    </div>'
-      + '    <div class="header-bottom-ruler-deck"><span class="ruler-line"></span><span class="ruler-center-tag">✦ DOSSIER CONFIG ✦</span><span class="ruler-line"></span></div>'
+      + '    <div class="header-bottom-ruler-deck">'
+      + '      <div class="ruler-line"></div>'
+      + '      <span class="ruler-center-tag">' + esc(currentChar.name || 'Character') + '\'s Profile Configuration</span>'
+      + '      <div class="ruler-line"></div>'
+      + '    </div>'
       + '  </div>'
       + '  <div class="wx-cr-set-body" id="wxCrSetBody"></div>'
       + '  <div class="sanctuary-bottom-deck"></div>'
@@ -112,7 +122,7 @@
     return mask;
   }
 
-  // ============ 3. 渲染原本的表单内容 ============
+  // ============ 3. 渲染完整设定中枢 DOM ============
   function renderFullSettingsDOM(mask, cfg, currentChar) {
     var setBody = mask.querySelector('#wxCrSetBody');
     if (!setBody) return;
