@@ -184,7 +184,7 @@
     if (hasCustomProfile) {
       parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。主要使用' + mainLang + '进行交流。');
       parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，口语化、有真实生活气息。');
-      parts.push('【专属人设铁律 - 严格执行】：\n你拥有完整清晰的人格设定，必须100%严格遵循以下人设风格，绝不脱离人设(OOC)：');
+      parts.push('【专属人设铁律 - 严格执行】：\n你拥有完整清晰的人格设定，必须100%严格遵循以下人设风格，通读人设，每次回答前要设想最少三种你的回复是否妥当的可能，择最优解，坚绝不脱离人设(OOC)：');
       if (charData.personality) parts.push('· 性格特质与语气：\n' + charData.personality);
       if (charData.appearance) parts.push('· 外貌长相与气质：\n' + charData.appearance);
       if (charData.background) parts.push('· 深度背景与经历：\n' + charData.background);
