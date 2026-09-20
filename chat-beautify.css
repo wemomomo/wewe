@@ -1,0 +1,167 @@
+
+/* ======================================================== */
+/* 聊天专属美化中枢 (Chat Beautify Studio) - 纯黑灰高定版   */
+/* ======================================================== */
+
+.wx-cr-beautify-mask {
+  position: fixed;
+  inset: 0;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 15000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wx-cr-beautify-mask.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.wx-cr-beautify-card {
+  width: 100%;
+  max-width: 340px;
+  max-height: 75vh;
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.1) !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.92);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+.wx-cr-beautify-mask.show .wx-cr-beautify-card {
+  transform: scale(1);
+}
+
+.wx-cr-btf-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 16px 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: transparent !important;
+  box-sizing: border-box;
+}
+.wx-cr-btf-body::-webkit-scrollbar { display: none; }
+
+.btf-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.45) !important;
+  border: 1px solid rgba(20, 22, 25, 0.16) !important;
+  border-radius: 14px;
+  padding: 14px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.btf-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
+}
+
+.btf-sec-roman {
+  font-family: 'Caveat', cursive;
+  font-size: 19px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.btf-sec-title {
+  font-size: 14.5px !important;
+  font-weight: 800;
+  color: #111111;
+  letter-spacing: 0.5px;
+}
+
+.btf-sec-en {
+  font-family: 'Caveat', cursive !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #555555;
+  letter-spacing: 1px;
+}
+
+.btf-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.btf-label {
+  font-size: 13.5px !important;
+  font-weight: 700;
+  color: #111111;
+}
+
+.btf-desc {
+  font-size: 12px !important;
+  color: #555555 !important;
+  line-height: 1.4;
+}
+
+.btf-preview-box {
+  width: 100%;
+  height: 90px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px dashed rgba(20, 22, 25, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+.btf-preview-tip {
+  font-size: 12px;
+  color: #666666;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.btf-btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btf-btn {
+  flex: 1;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(20, 22, 25, 0.18);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #111111;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.btf-btn:active {
+  background: #111111;
+  color: #ffffff;
+}
