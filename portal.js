@@ -6,9 +6,8 @@
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
   }
 
-  // 全局追踪墨墨当前所在的应用名称
+  // 记录来源页面，确保从悬浮球进档案后退出能原路返回
   var currentActiveAppPage = 'home';
-
   window.addEventListener('pageChange', function (e) {
     var p = e.detail ? e.detail.page : '';
     if (p && p !== 'archive') {
@@ -43,7 +42,7 @@
     if (window.AppDB) window.AppDB.save(ORB_CONFIG_KEY, orbConfig);
   }
 
-  // 立绘历史手账库管理
+  // 历史立绘手账库
   function getStandeeHistory() {
     try {
       return JSON.parse(localStorage.getItem(STANDEE_HISTORY_KEY) || '[]');
@@ -68,7 +67,7 @@
     saveStandeeHistory(list);
   }
 
-  // 灵感便签数据管理
+  // 便签存储
   function getNotesList() {
     try {
       return JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY) || '[]');
@@ -83,12 +82,12 @@
     } catch(e) {}
   }
 
-  // 1. 纯净 PNG 立绘直选通道（免裁剪，100% 保护透明通道，绝不转 JPEG 黑底）
+  // 纯净 PNG 相册直传（免裁剪，保留透明通道）
   function pickRawPngPhoto(callback) {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/png,image/*';
-    fileInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    fileInput.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
     document.body.appendChild(fileInput);
 
     fileInput.onchange = function (e) {
@@ -108,12 +107,12 @@
     fileInput.click();
   }
 
-  // 2. 黑框照片 1:1 裁剪选择通道
+  // 黑框照片 1:1 裁剪通道
   function pickAndCropFramePhoto(callback) {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    fileInput.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
     document.body.appendChild(fileInput);
 
     fileInput.onchange = function (e) {
@@ -139,7 +138,7 @@
     fileInput.click();
   }
 
-  // ============ 核心：全链路拦截退出，确保原路返回来源应用 ============
+  // 拦截档案退出，确保原路返回来源 App
   function hookAppNavReturn() {
     if (!window.AppNav || window.AppNav._hookedPortalReturn) return;
     window.AppNav._hookedPortalReturn = true;
@@ -179,6 +178,7 @@
     }
   }
 
+  // 单例 DOM 构建
   function ensurePortalDOM() {
     if (document.getElementById('portalOrb')) return;
 
@@ -240,6 +240,7 @@
     bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard);
   }
 
+  // 渲染浮球外观：默认完全透明 PNG，绝无白色背景
   function applyOrbAppearance(orb) {
     if (!orb) orb = document.getElementById('portalOrb');
     if (!orb) return;
@@ -264,7 +265,7 @@
     }
   }
 
-  // 严格设置围绕距离为 70px，圆圈中心精准对齐
+  // 卫星圆环围绕排布（精准 70px 半径）
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
@@ -343,7 +344,7 @@
       });
     }
 
-    // 1. 悬浮球自由平移拖拽
+    // 悬浮球自由平移拖拽（启用 passive 避免卡顿）
     (function initOrbGesture() {
       var startX = 0, startY = 0, initialLeft = 0, initialTop = 0, hasMoved = false;
 
@@ -402,7 +403,7 @@
       });
     })();
 
-    // 2. 按住任意图标整体旋转手势
+    // 旋转卫星弧度手势
     (function initArcWheelRotation() {
       var touchedSat = null;
       var startTouchAngle = 0;
@@ -460,7 +461,7 @@
     })();
   }
 
-  // ============ 5. 面板渲染中枢 ============
+  // ============ 5. 功能面板中枢 ============
   function openFeaturePanel(type, panelMask, panelCard) {
     panelMask.classList.add('show');
     panelCard.classList.add('show');
@@ -658,12 +659,12 @@
     }
 
     container.innerHTML = ''
-      // 样式 1：默认球
+      // 样式 1：默认透明球
       + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
-      + '  <div class="orb-style-preview-box" style="background:rgba(255,255,255,0.9); border:1px solid #cbd5e1;"><img src="https://iili.io/nTN7lxs.md.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>'
+      + '  <div class="orb-style-preview-box" style="background:transparent;"><img src="https://iili.io/nTN7lxs.md.png" style="width:100%;height:100%;object-fit:contain;"></div>'
       + '  <div class="orb-style-info-col">'
-      + '    <div class="orb-style-title">默认球</div>'
-      + '    <div class="orb-style-desc">专属图像居中圆球。</div>'
+      + '    <div class="orb-style-title">默认透明球</div>'
+      + '    <div class="orb-style-desc">专属图像居中，四周100%纯透明。</div>'
       + '  </div>'
       + '</div>'
 
@@ -747,10 +748,10 @@
       pickLocalBtn.addEventListener('click', triggerPngPick);
     }
 
-    // 点击历史立绘卡片直接换装
+    // 点击历史立绘卡片换装
     container.querySelectorAll('[data-pick-history]').forEach(function(card) {
       card.addEventListener('click', function(e) {
-        if (e.target.closest('.standee-del-x')) return;
+        if (e.target.closest('.standee-del-x') || e.target.closest('.standee-copy-link-btn')) return;
         var chosenUrl = this.dataset.pickHistory;
         orbConfig.standeePng = chosenUrl;
         orbConfig.mode = 'pngstandee';
@@ -826,7 +827,7 @@
     });
   }
 
-  // ============ 6. 初始化与保活 ============
+  // ============ 6. 初始化 ============
   function initPortalEngine() {
     ensurePortalDOM();
   }
@@ -838,7 +839,6 @@
   }
 
   window.addEventListener('pageChange', function(e) {
-    initPortalEngine();
     if (e.detail && e.detail.page === 'archive') {
       setTimeout(syncArchiveBackAttribute, 60);
     }
