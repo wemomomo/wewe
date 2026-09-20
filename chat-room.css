@@ -1409,3 +1409,43 @@
   color: #ffffff !important;
   border-color: #111111 !important;
 }
+
+/* 错误提示气泡样式 (留存于对话中) */
+.wx-msg-error-detail {
+  align-self: center;
+  max-width: 88%;
+  font-size: 11.5px;
+  color: #c94a4a;
+  background: #fdf2f2;
+  border: 1px dashed rgba(201, 74, 74, 0.35);
+  border-radius: 8px;
+  padding: 6px 12px;
+  line-height: 1.45;
+  box-sizing: border-box;
+  text-align: center;
+  margin: 4px 0;
+  user-select: none;
+}
+
+/* 长按两行菜单上下行 4 列精准等宽对齐 */
+.cr-ctx-menu {
+  width: 250px !important;
+  box-sizing: border-box;
+}
+
+.cr-ctx-menu-row {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 4px !important;
+  width: 100% !important;
+}
+
+.cr-ctx-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 5px 0 !important;
+  width: 100% !important;
+}
+
