@@ -474,7 +474,7 @@
       renderApiSwitcher(panelBody);
     } else if (type === 'orbStyle') {
       panelSubTag.textContent = '~ Skin Studio ~';
-      panelTitle.textContent = '✦ 浮球样式定制 ✦';
+      panelTitle.textContent = '✦ 悬浮球样式定制 ✦';
       renderOrbStyleSettings(panelBody);
     }
   }
@@ -615,8 +615,8 @@
       + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
       + '  <div class="orb-style-preview-box" style="background:transparent;"><img src="https://iili.io/nTN7lxs.md.png" style="width:100%;height:100%;object-fit:contain;"></div>'
       + '  <div class="orb-style-info-col">'
-      + '    <div class="orb-style-title">默认透明球</div>'
-      + '    <div class="orb-style-desc">专属图像居中，四周100%纯透明。</div>'
+      + '    <div class="orb-style-title">默认样式</div>'
+      + '    <div class="orb-style-desc">专属荔枝蓝猫猫</div>'
       + '  </div>'
       + '</div>'
 
