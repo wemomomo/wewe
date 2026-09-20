@@ -433,7 +433,7 @@
       + '      <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="18" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>'
       + '    </button>'
       + '    <div class="input-capsule-glass">'
-      + '      <input class="input-field-inner" id="wxCrInput" type="text" placeholder="与 ' + esc(currentChatChar.name || 'Ta') + ' 私语...">'
++ '      <input class="input-field-inner" id="wxCrInput" type="text" placeholder="">'
       + '    </div>'
       + '    <button class="pure-plus-trigger" id="wxCrPlusBtn" type="button" title="更多功能">'
       + '      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
@@ -743,7 +743,7 @@
       + '  </div>'
       + '</div>'
 
-      // 08. 表情包生成 API 通道
+            // 08. 表情包生成 API 通道
       + '<div class="gothic-card">'
       + '  <div class="gothic-head-row">'
       + '    <div class="gothic-title-group"><span class="gothic-sec-roman">§ 08</span><span class="gothic-sec-title">表情包生成 API 通道</span></div>'
@@ -762,7 +762,8 @@
       + '    <div style="display:flex; gap:6px; align-items:center;"><input class="gothic-input" id="cfgImgModel" style="width:110px; text-align:right;" value="' + esc(cfg.imgModel || 'gpt-image-1') + '"><button class="disc-action-btn" id="btnFetchImgModels" type="button" title="拉取模型"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.22-8.56"/><path d="M21 3v6h-6"/></svg></button></div>'
       + '  </div>'
       + '  <div class="gothic-chips-wrap" id="cfgStkStylesWrap">' + stkStylesHtml + '</div>'
-      + '</div>';
+      + '</div>'
+      + '<div class="settings-bottom-spacer"></div>';
   }
 
   // ============ 7. 心声解析与气泡渲染 ============
@@ -1592,7 +1593,7 @@
       if (replyingMsg) {
         newMsg.quote = (replyingMsg.sender === 'user' ? '你' : currentChatChar.name) + ': ' + (replyingMsg.cleanContent || replyingMsg.content || replyingMsg.text);
         replyingMsg = null;
-        input.placeholder = '与 ' + currentChatChar.name + ' 私语...';
+        input.placeholder = '' + currentChatChar.name + '';
       }
 
       chatMessages.push(newMsg);
