@@ -139,7 +139,7 @@
       return originalShowPage(targetPage);
     };
 
-    document.addEventListener('click', function (e) {
+        document.addEventListener('click', function (e) {
       var backBtn = e.target.closest('#archShellBackBtn');
       if (backBtn) {
         var savedOrigin = sessionStorage.getItem('portal_return_origin_app');
@@ -148,6 +148,12 @@
           e.preventDefault();
           sessionStorage.removeItem('portal_return_origin_app');
           window.AppNav.showPage(savedOrigin);
+
+          // 核心：如果之前是从聊天点进去的，返回时把聊天窗口重新亮出来！
+          var chatStage = document.getElementById('wxChatRoomStage');
+          if (chatStage) {
+            chatStage.style.display = 'flex';
+          }
         }
       }
     }, true);
@@ -293,13 +299,19 @@
         e.stopPropagation();
         var portalType = this.dataset.portal;
 
-        // 点击【档案】：关闭浮球，直接前往档案编辑，并锁定原地返回路径
+                // 点击【档案】：关闭浮球，直接前往档案编辑，并锁定原地返回路径
         if (portalType === 'arch') {
           panelMask.classList.remove('show');
           panelCard.classList.remove('show');
 
           var origin = currentActiveAppPage || 'home';
           sessionStorage.setItem('portal_return_origin_app', origin);
+
+          // 核心：如果有打开的单聊窗口，把它暂时隐藏，让档案露出来！
+          var chatStage = document.getElementById('wxChatRoomStage');
+          if (chatStage) {
+            chatStage.style.display = 'none';
+          }
 
           if (window.AppNav) {
             window.AppNav.showPage('archive');
