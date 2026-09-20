@@ -17,7 +17,6 @@
 
   var ORB_CONFIG_KEY = 'app_floating_orb_config';
   var STANDEE_HISTORY_KEY = 'app_portal_standee_history';
-  var NOTES_STORAGE_KEY = 'app_portal_inspirations_notes';
 
   var orbConfig = {
     mode: 'default', // 'default' | 'blackframe' | 'pngstandee'
@@ -67,27 +66,12 @@
     saveStandeeHistory(list);
   }
 
-  // 便签存储
-  function getNotesList() {
-    try {
-      return JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY) || '[]');
-    } catch(e) {
-      return [];
-    }
-  }
-
-  function saveNotesList(list) {
-    try {
-      localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(list));
-    } catch(e) {}
-  }
-
   // 纯净 PNG 相册直传（免裁剪，保留透明通道）
   function pickRawPngPhoto(callback) {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/png,image/*';
-    fileInput.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
+    fileInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
     document.body.appendChild(fileInput);
 
     fileInput.onchange = function (e) {
@@ -112,7 +96,7 @@
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
+    fileInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
     document.body.appendChild(fileInput);
 
     fileInput.onchange = function (e) {
@@ -138,7 +122,7 @@
     fileInput.click();
   }
 
-  // 拦截档案退出，确保原路返回来源 App
+  // ============ 核心：拦截档案退出，确保原路返回来源 App（绝不跳回桌面） ============
   function hookAppNavReturn() {
     if (!window.AppNav || window.AppNav._hookedPortalReturn) return;
     window.AppNav._hookedPortalReturn = true;
@@ -178,7 +162,7 @@
     }
   }
 
-  // 单例 DOM 构建
+  // 单例 DOM 构建（关停便签，只保留 4 个圆钮）
   function ensurePortalDOM() {
     if (document.getElementById('portalOrb')) return;
 
@@ -205,11 +189,7 @@
       + '  <span class="satellite-label-top">档案</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>'
-      + '<div class="satellite-item-wrap" data-idx="3" data-portal="notes">'
-      + '  <span class="satellite-label-top">便签</span>'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
-      + '</div>'
-      + '<div class="satellite-item-wrap" data-idx="4" data-portal="orbStyle">'
+      + '<div class="satellite-item-wrap" data-idx="3" data-portal="orbStyle">'
       + '  <span class="satellite-label-top">浮球</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>';
@@ -265,14 +245,15 @@
     }
   }
 
-  // 卫星圆环围绕排布（精准 70px 半径）
+  // 4 个卫星圆环围绕排布（精准 70px 半径）
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
     var radius = 70;
 
-    var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
+    // 4 个圆钮的匀称扇形弧度
+    var arcOffsets = [-0.99, -0.33, 0.33, 0.99];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
@@ -312,6 +293,7 @@
         e.stopPropagation();
         var portalType = this.dataset.portal;
 
+        // 点击【档案】：关闭浮球，直接前往档案编辑，并锁定原地返回路径
         if (portalType === 'arch') {
           panelMask.classList.remove('show');
           panelCard.classList.remove('show');
@@ -478,10 +460,6 @@
       panelSubTag.textContent = '~ Endpoints ~';
       panelTitle.textContent = '✦ API 接口快捷切换 ✦';
       renderApiSwitcher(panelBody);
-    } else if (type === 'notes') {
-      panelSubTag.textContent = '~ Inspirations ~';
-      panelTitle.textContent = '✦ 灵感便签手账本 ✦';
-      renderNotesManager(panelBody);
     } else if (type === 'orbStyle') {
       panelSubTag.textContent = '~ Skin Studio ~';
       panelTitle.textContent = '✦ 浮球样式定制 ✦';
@@ -584,44 +562,6 @@
           if (window.AppNav) window.AppNav.showToast('已切换为接口: ' + chosen.name);
           renderApiSwitcher(container);
         }
-      });
-    });
-  }
-
-  function renderNotesManager(container) {
-    var notes = getNotesList();
-    var notesHtml = notes.map(function (txt, idx) {
-      return '<div class="note-item-card">'
-        + '<span>' + esc(txt) + '</span>'
-        + '<span class="note-del-x" data-del-note="' + idx + '" style="color:#b45309;cursor:pointer;font-weight:bold;padding-left:8px;">✕</span>'
-        + '</div>';
-    }).join('');
-
-    container.innerHTML = '<div class="notes-writer-box">'
-      + '<textarea class="notes-textarea" id="portalNoteInput" placeholder="写下此刻的灵感、待办或心绪..."></textarea>'
-      + '<button class="notes-add-btn" id="portalAddNoteBtn" type="button">＋ 记下一笔</button>'
-      + '</div>'
-      + '<div class="notes-list-wrap" id="portalNotesListWrap">' + (notesHtml || '<div class="mem-empty-box"><span>暂无灵感便签</span></div>') + '</div>';
-
-    var addBtn = container.querySelector('#portalAddNoteBtn');
-    var input = container.querySelector('#portalNoteInput');
-
-    if (addBtn && input) {
-      addBtn.addEventListener('click', function () {
-        var val = input.value.trim();
-        if (!val) return;
-        notes.unshift(val);
-        saveNotesList(notes);
-        renderNotesManager(container);
-      });
-    }
-
-    container.querySelectorAll('[data-del-note]').forEach(function (xBtn) {
-      xBtn.addEventListener('click', function () {
-        var delIdx = parseInt(this.dataset.delNote, 10);
-        notes.splice(delIdx, 1);
-        saveNotesList(notes);
-        renderNotesManager(container);
       });
     });
   }
@@ -839,6 +779,7 @@
   }
 
   window.addEventListener('pageChange', function(e) {
+    initPortalEngine();
     if (e.detail && e.detail.page === 'archive') {
       setTimeout(syncArchiveBackAttribute, 60);
     }
