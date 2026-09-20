@@ -196,7 +196,7 @@
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="3" data-portal="orbStyle">'
-      + '  <span class="satellite-label-top">浮球</span>'
+      + '  <span class="satellite-label-top">外观</span>'
       + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">❆</div></div>'
       + '</div>';
 
