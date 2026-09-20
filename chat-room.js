@@ -652,7 +652,7 @@
         }
 
         var quoteHtml = m.quote ? '<div class="wx-msg-quote-bar">' + esc(m.quote) + '</div>' : '';
-        var tailTimeHtml = (idx === total - 1) ? '<div class="bubble-tail-timestamp">' + fmtTime(m.ts || Date.now()) + '</div>' : '';
+        var tailTimeHtml = (idx === total - 1) ? '<div class="bubble-tail-timestamp">#' + (globalIdx + 1) + ' · ' + fmtTime(m.ts || Date.now()) + '</div>' : '';
 
         var isSticker = /\[sticker:\s*([^\]]+)\]/i.test(content);
         var formattedContent = '';
