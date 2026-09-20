@@ -101,6 +101,19 @@
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
 }
 
+/* 精准由下往上层叠：记忆(0) > API(1) > 档案(2) > 便签(3) > 浮球(4) */
+.satellite-item-wrap[data-idx="0"] { z-index: 18999 !important; }
+.satellite-item-wrap[data-idx="1"] { z-index: 18998 !important; }
+.satellite-item-wrap[data-idx="2"] { z-index: 18997 !important; }
+.satellite-item-wrap[data-idx="3"] { z-index: 18996 !important; }
+.satellite-item-wrap[data-idx="4"] { z-index: 18995 !important; }
+
+/* 确保每个卫星按键上方的文字标签在最顶层展示 */
+.satellite-label-top {
+  position: relative;
+  z-index: 2;
+}
+
 .portal-floating-orb.open ~ .portal-satellites-group .satellite-item-wrap {
   opacity: 1;
   pointer-events: auto;
