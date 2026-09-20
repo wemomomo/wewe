@@ -1,0 +1,329 @@
+/* ======================================================== */
+/* 全屏交互日志画卷 (System Logger Stage) - 纯白极简黑匣子  */
+/* ======================================================== */
+
+.wx-logger-stage {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #ffffff !important;
+  z-index: 15000 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  touch-action: pan-y;
+}
+
+/* =========================================================
+   1. 顶栏
+========================================================= */
+.logger-stage-header {
+  position: relative;
+  height: calc(56px + var(--safe-top));
+  padding-top: var(--safe-top);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 10px;
+  padding-right: 14px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.logger-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logger-native-back {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111111;
+  cursor: pointer;
+  padding: 0;
+}
+.logger-native-back:active { opacity: 0.4; }
+.logger-native-back svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.logger-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.logger-script-tag {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #7a8fa6;
+  line-height: 1;
+  letter-spacing: 0.5px;
+}
+.logger-main-title {
+  font-size: 16px;
+  font-weight: 900;
+  color: #111111;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.logger-head-right {
+  display: flex;
+  align-items: center;
+}
+
+.logger-clear-pill-btn {
+  background: transparent;
+  color: #c94a4a;
+  border: 1px solid rgba(201, 74, 74, 0.35);
+  border-radius: 14px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.logger-clear-pill-btn:active {
+  background: #fdf2f2;
+  transform: scale(0.92);
+}
+
+/* =========================================================
+   2. 主视口与空状态
+========================================================= */
+.logger-stage-body {
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 12px calc(24px + var(--safe-bottom));
+  box-sizing: border-box;
+  background: #fbfbfc;
+}
+.logger-stage-body::-webkit-scrollbar { display: none; }
+
+.logger-empty-stage {
+  width: 100%;
+  height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 30px;
+  box-sizing: border-box;
+  gap: 12px;
+}
+.logger-empty-icon {
+  font-size: 38px;
+  opacity: 0.8;
+}
+.logger-empty-title {
+  font-size: 16px;
+  font-weight: 900;
+  color: #111111;
+  letter-spacing: 1px;
+}
+.logger-empty-desc {
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.logger-feed-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+/* =========================================================
+   3. 全屏日志卡片（折叠与展开）
+========================================================= */
+.logger-card-item {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.logger-card-item.expanded {
+  border-color: #111111;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+}
+
+.logger-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.logger-card-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logger-time-stamp {
+  font-family: monospace;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #111111;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.logger-model-pill {
+  font-size: 12px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.logger-card-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logger-status-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.logger-status-tag.success { background: #e6f7ec; color: #07c160; }
+.logger-status-tag.error { background: #fdf2f2; color: #e03131; }
+.logger-status-tag.pending { background: #f1f5f9; color: #8e8e93; }
+
+.logger-tokens-badge {
+  font-family: monospace;
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.logger-chevron {
+  font-size: 12px;
+  color: #8e8e93;
+  transition: transform 0.2s;
+}
+.logger-card-item.expanded .logger-chevron {
+  transform: rotate(180deg);
+}
+
+/* 详情抽屉展开区 */
+.logger-card-details {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+.logger-card-item.expanded .logger-card-details {
+  display: flex;
+}
+
+.logger-error-banner {
+  background: #fdf2f2;
+  border: 1px solid #f87171;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: #b91c1c;
+  line-height: 1.45;
+}
+
+.logger-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.logger-sec-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #111111;
+  letter-spacing: 0.2px;
+}
+
+.logger-code-terminal {
+  background: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  color: #0f172a;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.logger-context-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.log-dialogue-item {
+  background: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.log-dialogue-item.system { border-left: 3px solid #64748b; }
+.log-dialogue-item.user { border-left: 3px solid #111111; }
+.log-dialogue-item.assistant { border-left: 3px solid #88abda; }
+
+.log-role-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #64748b;
+  font-family: monospace;
+}
+.log-bubble-content {
+  font-size: 12px;
+  color: #1e293b;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
