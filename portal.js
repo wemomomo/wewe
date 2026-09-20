@@ -6,7 +6,7 @@
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
   }
 
-  // 全局追踪墨墨当前所在的应用名称
+  // 全局追踪当前所在的应用名称
   var currentActiveAppPage = 'home';
 
   window.addEventListener('pageChange', function (e) {
@@ -40,7 +40,6 @@
     if (window.AppDB) window.AppDB.save(ORB_CONFIG_KEY, orbConfig);
   }
 
-  // 灵感便签数据管理
   var NOTES_STORAGE_KEY = 'app_portal_inspirations_notes';
   function getNotesList() {
     try {
@@ -56,11 +55,44 @@
     } catch(e) {}
   }
 
-  // 苹果手机安全相册选择器
-  function pickUserPhoto(callback) {
+  // 高清双线性压缩（支持保留 PNG 透明通道，最大长边 1200px 保证绝佳清晰度）
+  function compressImageHD(dataUrl, isPng, callback) {
+    var img = new Image();
+    img.onload = function () {
+      var maxDim = 1200;
+      var w = img.width;
+      var h = img.height;
+
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round(h * maxDim / w);
+          w = maxDim;
+        } else {
+          w = Math.round(w * maxDim / h);
+          h = maxDim;
+        }
+      }
+
+      var canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+
+      var mime = isPng ? 'image/png' : 'image/jpeg';
+      var quality = isPng ? 1.0 : 0.92;
+      callback(canvas.toDataURL(mime, quality));
+    };
+    img.src = dataUrl;
+  }
+
+  // 苹果手机安全相册直选与裁剪联动
+  function pickAndCropUserPhoto(aspectRatio, isPng, callback) {
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'image/*';
+    fileInput.accept = isPng ? 'image/png,image/*' : 'image/*';
     fileInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
     document.body.appendChild(fileInput);
 
@@ -73,7 +105,15 @@
       var reader = new FileReader();
       reader.onload = function (evt) {
         if (fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
-        callback(evt.target.result);
+        var rawData = evt.target.result;
+
+        if (window.AppCropper) {
+          window.AppCropper.open(rawData, { aspectRatio: aspectRatio }, function (cropped) {
+            compressImageHD(cropped, isPng, callback);
+          });
+        } else {
+          compressImageHD(rawData, isPng, callback);
+        }
       };
       reader.readAsDataURL(file);
     };
@@ -136,24 +176,19 @@
     satellitesGroup.id = 'satellitesGroup';
     satellitesGroup.innerHTML = ''
       + '<div class="satellite-item-wrap" data-idx="0" data-portal="mem">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
-      + '  <span class="satellite-label">记忆</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">记忆</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="1" data-portal="api">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
-      + '  <span class="satellite-label">API</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">API</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="2" data-portal="arch">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
-      + '  <span class="satellite-label">档案</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">档案</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="3" data-portal="notes">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
-      + '  <span class="satellite-label">便签</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">便签</div></div>'
       + '</div>'
       + '<div class="satellite-item-wrap" data-idx="4" data-portal="orbStyle">'
-      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">✦</div></div>'
-      + '  <span class="satellite-label">浮球</span>'
+      + '  <div class="satellite-circle-btn"><div class="satellite-inner-blue">浮球</div></div>'
       + '</div>';
 
     var panelMask = document.createElement('div');
@@ -201,18 +236,19 @@
       if (orbConfig.standeePng) {
         orb.innerHTML = '<img class="orb-png-img" src="' + esc(orbConfig.standeePng) + '" alt="立绘">';
       } else {
-        orb.innerHTML = '<span style="font-size:14px;color:#111;font-weight:bold;">立绘</span>';
+        orb.innerHTML = '<span style="font-size:12px;color:#111;font-weight:bold;">立绘</span>';
       }
     }
   }
 
+  // 严格设置围绕距离为 70px，44px 图标居中对齐
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 70;
+    var radius = 70; // 精准 70 距离！
 
-    var arcOffsets = [-1.52, -0.86, 0, 0.66, 1.32];
+    var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
@@ -220,8 +256,9 @@
       var x = Math.cos(angle) * radius;
       var y = Math.sin(angle) * radius;
 
-      sat.style.left = Math.round(centerX + x - 19) + 'px';
-      sat.style.top = Math.round(centerY + y - 19) + 'px';
+      // 44px 图标自身中心对齐偏移 (-22px)
+      sat.style.left = Math.round(centerX + x - 22) + 'px';
+      sat.style.top = Math.round(centerY + y - 22) + 'px';
       sat.style.transform = isOpen ? 'scale(1)' : 'scale(0)';
     });
   }
@@ -238,13 +275,11 @@
       syncSatellites();
     }
 
-    // 点击主球：展开或收起
     orb.addEventListener('click', function () {
       if (orb._isDragged) return;
       toggleOrbOpen();
     });
 
-    // 点击卫星圆钮：打开对应功能面板，但绝不自动收起围绕图标！
     satellites.forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         if (this._hasRotated) {
@@ -273,13 +308,11 @@
       });
     });
 
-    // 点击背景遮罩关闭面板，图标依然保持展开
     panelMask.addEventListener('click', function () {
       panelMask.classList.remove('show');
       panelCard.classList.remove('show');
     });
 
-    // 点击面板右上角叉号关闭面板，图标依然保持展开
     var closeBtn = panelCard.querySelector('#panelCloseBtn');
     if (closeBtn) {
       closeBtn.addEventListener('click', function () {
@@ -570,6 +603,7 @@
     });
   }
 
+  // 浮球样式定制面板（无右侧冗余按钮，直接点击左侧头像进入高清裁剪）
   function renderOrbStyleSettings(container) {
     var orb = document.getElementById('portalOrb');
 
@@ -582,6 +616,7 @@
       : '<span style="font-size:18px;font-weight:bold;color:#888;">+</span>';
 
     container.innerHTML = ''
+      // 样式 1：默认球
       + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
       + '  <div class="orb-style-preview-box" style="background:rgba(255,255,255,0.9); border:1px solid #cbd5e1;"><img src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>'
       + '  <div class="orb-style-info-col">'
@@ -590,28 +625,57 @@
       + '  </div>'
       + '</div>'
 
+      // 样式 2：黑边框相框（点击直接触发 1:1 剪裁换图）
       + '<div class="orb-style-row ' + (orbConfig.mode === 'blackframe' ? 'active' : '') + '" data-set-orb="blackframe">'
-      + '  <div class="orb-style-preview-box" style="border:2px solid #111; overflow:hidden; background:#ffffff;">' + framePreviewInner + '</div>'
+      + '  <div class="orb-style-preview-box" data-trigger-upload="frame" style="border:2px solid #111; overflow:hidden; background:#ffffff;">' + framePreviewInner + '</div>'
       + '  <div class="orb-style-info-col">'
       + '    <div class="orb-style-title">黑框照片</div>'
-      + '    <div class="orb-style-desc">经典黑边拍立得相框，点击上传心仪照片。</div>'
+      + '    <div class="orb-style-desc">经典黑边相框，点击左侧头像上传并剪裁照片。</div>'
       + '  </div>'
-      + '  <button class="orb-upload-btn-sm" data-upload="frame" type="button">' + (orbConfig.frameImg ? '换图' : '上传') + '</button>'
       + '</div>'
 
+      // 样式 3：完全纯净透明底 PNG 立绘（点击直接触发透明无损立绘上传）
       + '<div class="orb-style-row ' + (orbConfig.mode === 'pngstandee' ? 'active' : '') + '" data-set-orb="pngstandee">'
-      + '  <div class="orb-style-preview-box" style="background:transparent; border:1px dashed #cbd5e1;">' + standeePreviewInner + '</div>'
+      + '  <div class="orb-style-preview-box" data-trigger-upload="png" style="background:transparent; border:1px dashed #cbd5e1;">' + standeePreviewInner + '</div>'
       + '  <div class="orb-style-info-col">'
       + '    <div class="orb-style-title">透明立绘 PNG</div>'
-      + '    <div class="orb-style-desc">仅展现角色立绘，四周100%纯透明，无任何底色遮罩。</div>'
+      + '    <div class="orb-style-desc">仅展现角色立绘，四周100%纯透明，点击左侧上传立绘。</div>'
       + '  </div>'
-      + '  <button class="orb-upload-btn-sm" data-upload="png" type="button">' + (orbConfig.standeePng ? '更换' : '上传') + '</button>'
       + '</div>';
+
+    function triggerFramePick() {
+      pickAndCropUserPhoto(1, false, function (base64) {
+        orbConfig.frameImg = base64;
+        orbConfig.mode = 'blackframe';
+        saveOrbConfig();
+        applyOrbAppearance(orb);
+        renderOrbStyleSettings(container);
+        if (window.AppNav) window.AppNav.showToast('照片已更新');
+      });
+    }
+
+    function triggerPngPick() {
+      pickAndCropUserPhoto(null, true, function (base64) {
+        orbConfig.standeePng = base64;
+        orbConfig.mode = 'pngstandee';
+        saveOrbConfig();
+        applyOrbAppearance(orb);
+        renderOrbStyleSettings(container);
+        if (window.AppNav) window.AppNav.showToast('透明立绘已更新');
+      });
+    }
 
     container.querySelectorAll('[data-set-orb]').forEach(function (row) {
       row.addEventListener('click', function (e) {
         var chosenMode = this.dataset.setOrb;
-        if (e.target.closest('button')) return;
+        var uploadTarget = e.target.closest('[data-trigger-upload]');
+
+        if (uploadTarget) {
+          var targetType = uploadTarget.dataset.triggerUpload;
+          if (targetType === 'frame') triggerFramePick();
+          else if (targetType === 'png') triggerPngPick();
+          return;
+        }
 
         if (chosenMode === 'blackframe' && !orbConfig.frameImg) {
           triggerFramePick();
@@ -626,37 +690,6 @@
         saveOrbConfig();
         applyOrbAppearance(orb);
         renderOrbStyleSettings(container);
-      });
-    });
-
-    function triggerFramePick() {
-      pickUserPhoto(function (base64) {
-        orbConfig.frameImg = base64;
-        orbConfig.mode = 'blackframe';
-        saveOrbConfig();
-        applyOrbAppearance(orb);
-        renderOrbStyleSettings(container);
-        if (window.AppNav) window.AppNav.showToast('黑框照片已更换');
-      });
-    }
-
-    function triggerPngPick() {
-      pickUserPhoto(function (base64) {
-        orbConfig.standeePng = base64;
-        orbConfig.mode = 'pngstandee';
-        saveOrbConfig();
-        applyOrbAppearance(orb);
-        renderOrbStyleSettings(container);
-        if (window.AppNav) window.AppNav.showToast('透明立绘已更换');
-      });
-    }
-
-    container.querySelectorAll('[data-upload]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var targetMode = this.dataset.upload;
-        if (targetMode === 'frame') triggerFramePick();
-        else if (targetMode === 'png') triggerPngPick();
       });
     });
   }
