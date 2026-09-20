@@ -83,10 +83,9 @@
     return list.length ? list[0] : null;
   }
 
-  // ============ 2. 挂载弹窗外壳（直接挂载于单聊容器内） ============
-  function ensureSettingsMask(targetParent, currentChar) {
-    var parent = targetParent || document.getElementById('wxChatRoomStage') || document.body;
-    var existing = parent.querySelector('#wxCrSettingsModalMask');
+  // ============ 2. 弹窗外壳创建 ============
+  function ensureSettingsMask(currentChar) {
+    var existing = document.getElementById('wxCrSettingsModalMask');
     if (existing) return existing;
 
     var mask = document.createElement('div');
@@ -109,11 +108,11 @@
       + '  <div class="sanctuary-bottom-deck"></div>'
       + '</div>';
 
-    parent.appendChild(mask);
+    document.body.appendChild(mask);
     return mask;
   }
 
-  // ============ 3. 渲染表单内容 ============
+  // ============ 3. 渲染原本的表单内容 ============
   function renderFullSettingsDOM(mask, cfg, currentChar) {
     var setBody = mask.querySelector('#wxCrSetBody');
     if (!setBody) return;
@@ -679,15 +678,12 @@
   }
 
   // ============ 5. 核心对外入口：打开设定中枢 ============
-  function openSettingsStudio(stageOrChar, maybeChar, onProactiveChange) {
-    var parentStage = (stageOrChar && stageOrChar.nodeType) ? stageOrChar : document.getElementById('wxChatRoomStage');
-    var charObj = (maybeChar && maybeChar.id) ? maybeChar : (stageOrChar && stageOrChar.id ? stageOrChar : null);
-    if (!charObj) return;
-
-    var mask = ensureSettingsMask(parentStage, charObj);
-    var cfg = getCfg(charObj.id);
-    renderFullSettingsDOM(mask, cfg, charObj);
-    bindSettingsEvents(mask, charObj, onProactiveChange);
+  function openSettingsStudio(currentChar, onProactiveChange) {
+    if (!currentChar) return;
+    var mask = ensureSettingsMask(currentChar);
+    var cfg = getCfg(currentChar.id);
+    renderFullSettingsDOM(mask, cfg, currentChar);
+    bindSettingsEvents(mask, currentChar, onProactiveChange);
     mask.classList.add('show');
   }
 
