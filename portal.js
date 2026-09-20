@@ -318,7 +318,7 @@
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
 
-    var radius = 70;
+    var radius = 60;
     var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
 
