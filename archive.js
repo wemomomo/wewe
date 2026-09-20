@@ -696,7 +696,7 @@
       + '<span class="brand-serial">创檔日期：' + esc(cur.createDate || getTodayDateStr()) + '</span>'
       + '</div>'
       + '<h1 class="journal-main-title">档案录入</h1>'
-      + '<p class="journal-desc-text">墨已研就，且借一纸，写作众生相</p>'
+      + '<p class="journal-desc-text"></p>'
       + '<div class="journal-header-divider"><span class="divider-line"></span><span class="divider-star">✦</span><span class="divider-line"></span></div>'
       + '</div>'
 
@@ -711,10 +711,10 @@
       + '<div class="ruled-item"><span class="ruled-label">生日</span><input type="text" class="ruled-input" id="fieldBirthday" value="' + esc(cur.birthday) + '" placeholder=""></div>'
       + '<div class="ruled-item"><span class="ruled-label">星座</span><input type="text" class="ruled-input" id="fieldZodiac" value="' + esc(cur.zodiac) + '" placeholder=""></div>'
       + (!isUser ? (
-          '<div class="ruled-item"><span class="ruled-label">对User称呼</span><input type="text" class="ruled-input" id="fieldUserCall" value="' + esc(cur.userCall || '') + '" placeholder="如: 墨墨 / 宝宝"></div>'
-        + '<div class="ruled-item"><span class="ruled-label">与User关系</span><input type="text" class="ruled-input" id="fieldUserRel" value="' + esc(cur.userRel || '') + '" placeholder="如: 恋人 / 专属神明"></div>'
-        + '<div class="ruled-item"><span class="ruled-label">微信号</span><div class="ruled-input-with-action"><input type="text" class="ruled-input" id="fieldWxId" value="' + esc(cur.wxid || '') + '" placeholder="微信号"><button class="ruled-refresh-btn" id="btnRefCharWx" type="button" title="随机生成微信号"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></button></div></div>'
-        + '<div class="ruled-item"><span class="ruled-label">手机号</span><div class="ruled-input-with-action"><input type="text" class="ruled-input" id="fieldPhone" value="' + esc(cur.phone || '') + '" placeholder="手机号"><button class="ruled-refresh-btn" id="btnRefCharPhone" type="button" title="随机生成手机号"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></button></div></div>'
+          '<div class="ruled-item"><span class="ruled-label">对User称呼</span><input type="text" class="ruled-input" id="fieldUserCall" value="' + esc(cur.userCall || '') + '" placeholder=""></div>'
+        + '<div class="ruled-item"><span class="ruled-label">与User关系</span><input type="text" class="ruled-input" id="fieldUserRel" value="' + esc(cur.userRel || '') + '" placeholder=""></div>'
+        + '<div class="ruled-item"><span class="ruled-label">微信号</span><div class="ruled-input-with-action"><input type="text" class="ruled-input" id="fieldWxId" value="' + esc(cur.wxid || '') + '" placeholder=""><button class="ruled-refresh-btn" id="btnRefCharWx" type="button" title="随机生成微信号"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></button></div></div>'
+        + '<div class="ruled-item"><span class="ruled-label">手机号</span><div class="ruled-input-with-action"><input type="text" class="ruled-input" id="fieldPhone" value="' + esc(cur.phone || '') + '" placeholder=""><button class="ruled-refresh-btn" id="btnRefCharPhone" type="button" title="随机生成手机号"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></button></div></div>'
       ) : '')
       + '</div>'
       + '</div>'
