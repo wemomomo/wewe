@@ -312,14 +312,14 @@
     }
   }
 
-  // ============ 4. 围绕排布算法 (半径固定 70px) ============
+  // ============ 4. 围绕排布算法  ============
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
 
     var radius = 60;
-    var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
+    var arcOffsets = [-1.52, -0.76, 0, 0.76, 1.52];
     var isOpen = orb.classList.contains('open');
 
     satellites.forEach(function (sat, i) {
