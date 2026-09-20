@@ -6,16 +6,24 @@
     return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
   }
 
-  window._portalReturnPage = null;
+  // 全局追踪墨墨当前所在的应用名称
+  var currentActiveAppPage = 'home';
+
+  window.addEventListener('pageChange', function (e) {
+    var p = e.detail ? e.detail.page : '';
+    if (p && p !== 'archive') {
+      currentActiveAppPage = p;
+    }
+  });
 
   var ORB_CONFIG_KEY = 'app_floating_orb_config';
   var orbConfig = {
-    mode: 'default',
+    mode: 'default', // 'default' | 'blackframe' | 'pngstandee'
     frameImg: '',
     standeePng: ''
   };
 
-  // 初始月牙扇形中心朝向：默认贴右侧时，月牙朝向左上方 (-135°)
+  // 初始月牙扇形中心朝向
   var currentArcCenterAngle = -Math.PI * 0.75;
 
   function loadOrbConfig() {
@@ -32,6 +40,7 @@
     if (window.AppDB) window.AppDB.save(ORB_CONFIG_KEY, orbConfig);
   }
 
+  // 灵感便签数据管理
   var NOTES_STORAGE_KEY = 'app_portal_inspirations_notes';
   function getNotesList() {
     try {
@@ -47,33 +56,69 @@
     } catch(e) {}
   }
 
+  // 苹果手机安全相册选择器（原生直接调起）
+  function pickUserPhoto(callback) {
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(fileInput);
+
+    fileInput.onchange = function (e) {
+      var file = e.target.files[0];
+      if (!file) {
+        if (fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function (evt) {
+        if (fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
+        callback(evt.target.result);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    fileInput.click();
+  }
+
+  // ============ 核心：全链路拦截退出，确保原路返回来源应用 ============
   function hookAppNavReturn() {
-    if (!window.AppNav || window.AppNav._hookedPortal) return;
-    window.AppNav._hookedPortal = true;
+    if (!window.AppNav || window.AppNav._hookedPortalReturn) return;
+    window.AppNav._hookedPortalReturn = true;
 
     var originalShowPage = window.AppNav.showPage;
     window.AppNav.showPage = function (targetPage) {
-      if (targetPage === 'home' && window._portalReturnPage) {
-        var returnTarget = window._portalReturnPage;
-        window._portalReturnPage = null;
-        return originalShowPage(returnTarget);
-      }
-      if (targetPage !== 'archive') {
-        window._portalReturnPage = null;
+      if (targetPage === 'home') {
+        var savedOrigin = sessionStorage.getItem('portal_return_origin_app');
+        if (savedOrigin && savedOrigin !== 'archive' && savedOrigin !== 'home') {
+          sessionStorage.removeItem('portal_return_origin_app');
+          return originalShowPage(savedOrigin);
+        }
       }
       return originalShowPage(targetPage);
     };
 
     document.addEventListener('click', function (e) {
       var backBtn = e.target.closest('#archShellBackBtn');
-      if (backBtn && window._portalReturnPage) {
-        e.stopPropagation();
-        e.preventDefault();
-        var ret = window._portalReturnPage;
-        window._portalReturnPage = null;
-        window.AppNav.showPage(ret);
+      if (backBtn) {
+        var savedOrigin = sessionStorage.getItem('portal_return_origin_app');
+        if (savedOrigin && savedOrigin !== 'archive' && savedOrigin !== 'home') {
+          e.stopPropagation();
+          e.preventDefault();
+          sessionStorage.removeItem('portal_return_origin_app');
+          window.AppNav.showPage(savedOrigin);
+        }
       }
     }, true);
+  }
+
+  function syncArchiveBackAttribute() {
+    var savedOrigin = sessionStorage.getItem('portal_return_origin_app');
+    if (!savedOrigin) return;
+    var backBtn = document.getElementById('archShellBackBtn');
+    if (backBtn) {
+      backBtn.setAttribute('data-back', savedOrigin);
+    }
   }
 
   function ensurePortalDOM() {
@@ -128,22 +173,16 @@
       + '</div>'
       + '<div class="panel-content-body" id="panelBody"></div>';
 
-    var fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.id = 'portalFileInput';
-    fileInput.style.cssText = 'position:fixed;top:-9999px;opacity:0;pointer-events:none;';
-
     document.body.appendChild(orb);
     document.body.appendChild(satellitesGroup);
     document.body.appendChild(panelMask);
     document.body.appendChild(panelCard);
-    document.body.appendChild(fileInput);
 
     applyOrbAppearance(orb);
-    bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard, fileInput);
+    bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard);
   }
 
+  // 渲染浮球真实形态（无任何默认假图）
   function applyOrbAppearance(orb) {
     if (!orb) orb = document.getElementById('portalOrb');
     if (!orb) return;
@@ -154,22 +193,26 @@
     if (orbConfig.mode === 'default') {
       orb.innerHTML = '<img class="orb-custom-icon-img" src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" alt="Orb">';
     } else if (orbConfig.mode === 'blackframe') {
-      var src = orbConfig.frameImg || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
-      orb.innerHTML = '<img class="orb-frame-img" src="' + esc(src) + '" alt="照片">';
+      if (orbConfig.frameImg) {
+        orb.innerHTML = '<img class="orb-frame-img" src="' + esc(orbConfig.frameImg) + '" alt="照片">';
+      } else {
+        orb.innerHTML = '<span style="font-size:20px;font-weight:bold;color:#111;">+</span>';
+      }
     } else if (orbConfig.mode === 'pngstandee') {
-      var pngSrc = orbConfig.standeePng || 'https://img.icons8.com/isometric/512/anime.png';
-      orb.innerHTML = '<img class="orb-png-img" src="' + esc(pngSrc) + '" alt="立绘">';
+      if (orbConfig.standeePng) {
+        orb.innerHTML = '<img class="orb-png-img" src="' + esc(orbConfig.standeePng) + '" alt="立绘">';
+      } else {
+        orb.innerHTML = '<span style="font-size:14px;color:#111;font-weight:bold;">立绘</span>';
+      }
     }
   }
 
-  // 舒展美观的月牙半包围算法（加大离心距离与分布弧度）
   function renderSatellitesLayout(orb, satellites, centerAngle) {
     var rect = orb.getBoundingClientRect();
     var centerX = rect.left + rect.width / 2;
     var centerY = rect.top + rect.height / 2;
-    var radius = 75; // 拉大离心半径，留出舒适间距
+    var radius = 78;
 
-    // 扇形分布弧度略微舒展
     var arcOffsets = [-1.32, -0.66, 0, 0.66, 1.32];
     var isOpen = orb.classList.contains('open');
 
@@ -184,9 +227,8 @@
     });
   }
 
-  function bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard, fileInput) {
+  function bindOrbInteractions(orb, satellitesGroup, panelMask, panelCard) {
     var satellites = satellitesGroup.querySelectorAll('.satellite-item-wrap');
-    var pendingUploadMode = '';
 
     function syncSatellites() {
       renderSatellitesLayout(orb, satellites, currentArcCenterAngle);
@@ -220,19 +262,18 @@
           panelMask.classList.remove('show');
           panelCard.classList.remove('show');
 
-          var curPageEl = document.querySelector('.page.active');
-          var curPage = curPageEl ? curPageEl.dataset.page : 'home';
-          if (curPage !== 'archive') {
-            window._portalReturnPage = curPage;
-          }
+          var origin = currentActiveAppPage || 'home';
+          sessionStorage.setItem('portal_return_origin_app', origin);
 
           if (window.AppNav) {
             window.AppNav.showPage('archive');
           }
+
+          setTimeout(syncArchiveBackAttribute, 60);
           return;
         }
 
-        openFeaturePanel(portalType, panelMask, panelCard, fileInput);
+        openFeaturePanel(portalType, panelMask, panelCard);
       });
     });
 
@@ -249,7 +290,7 @@
       });
     }
 
-    // 1. 悬浮球自由拖拽（拖拽时不收起围绕图标）
+    // 1. 悬浮球自由平移拖拽
     (function initOrbGesture() {
       var startX = 0, startY = 0, initialLeft = 0, initialTop = 0, hasMoved = false;
 
@@ -308,7 +349,7 @@
       });
     })();
 
-    // 2. 按住任意图标以悬浮球为圆心整体顺畅转动
+    // 2. 按住任意图标整体旋转手势
     (function initArcWheelRotation() {
       var touchedSat = null;
       var startTouchAngle = 0;
@@ -364,30 +405,10 @@
         }, 80);
       });
     })();
-
-    fileInput.addEventListener('change', function (e) {
-      var file = e.target.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function (evt) {
-        if (pendingUploadMode === 'frame') {
-          orbConfig.frameImg = evt.target.result;
-          orbConfig.mode = 'blackframe';
-        } else if (pendingUploadMode === 'png') {
-          orbConfig.standeePng = evt.target.result;
-          orbConfig.mode = 'pngstandee';
-        }
-        saveOrbConfig();
-        applyOrbAppearance(orb);
-        renderOrbStyleSettings(panelCard.querySelector('#panelBody'), fileInput, function (mode) {
-          pendingUploadMode = mode;
-        });
-      };
-      reader.readAsDataURL(file);
-    });
   }
 
-  function openFeaturePanel(type, panelMask, panelCard, fileInput) {
+  // ============ 5. 其余面板渲染中枢 ============
+  function openFeaturePanel(type, panelMask, panelCard) {
     panelMask.classList.add('show');
     panelCard.classList.add('show');
 
@@ -410,9 +431,7 @@
     } else if (type === 'orbStyle') {
       panelSubTag.textContent = '~ Skin Studio ~';
       panelTitle.textContent = '✦ 浮球样式定制 ✦';
-      renderOrbStyleSettings(panelBody, fileInput, function (mode) {
-        pendingUploadMode = mode;
-      });
+      renderOrbStyleSettings(panelBody);
     }
   }
 
@@ -553,12 +572,20 @@
     });
   }
 
-  function renderOrbStyleSettings(container, fileInput, setPendingMode) {
+  // 浮球样式定制面板（彻底消灭一切假图，直连相册选择）
+  function renderOrbStyleSettings(container) {
     var orb = document.getElementById('portalOrb');
-    var frameImgSrc = orbConfig.frameImg || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
-    var standeePngSrc = orbConfig.standeePng || 'https://img.icons8.com/isometric/512/anime.png';
+
+    var framePreviewInner = orbConfig.frameImg
+      ? '<img src="' + esc(orbConfig.frameImg) + '" style="width:100%;height:100%;object-fit:cover;">'
+      : '<span style="font-size:18px;font-weight:bold;color:#111;">+</span>';
+
+    var standeePreviewInner = orbConfig.standeePng
+      ? '<img src="' + esc(orbConfig.standeePng) + '" style="width:100%;height:100%;object-fit:contain;">'
+      : '<span style="font-size:18px;font-weight:bold;color:#888;">+</span>';
 
     container.innerHTML = ''
+      // 样式 1：默认球（居中墨墨给的照片）
       + '<div class="orb-style-row ' + (orbConfig.mode === 'default' ? 'active' : '') + '" data-set-orb="default">'
       + '  <div class="orb-style-preview-box" style="background:rgba(255,255,255,0.9); border:1px solid #cbd5e1;"><img src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>'
       + '  <div class="orb-style-info-col">'
@@ -567,45 +594,80 @@
       + '  </div>'
       + '</div>'
 
+      // 样式 2：黑边框相框 + 自定义照片
       + '<div class="orb-style-row ' + (orbConfig.mode === 'blackframe' ? 'active' : '') + '" data-set-orb="blackframe">'
-      + '  <div class="orb-style-preview-box" style="border:2px solid #111; overflow:hidden;"><img src="' + esc(frameImgSrc) + '" style="width:100%;height:100%;object-fit:cover;"></div>'
+      + '  <div class="orb-style-preview-box" style="border:2px solid #111; overflow:hidden; background:#ffffff;">' + framePreviewInner + '</div>'
       + '  <div class="orb-style-info-col">'
       + '    <div class="orb-style-title">黑框照片</div>'
-      + '    <div class="orb-style-desc">经典黑边拍立得相框，可上传心仪照片。</div>'
+      + '    <div class="orb-style-desc">经典黑边拍立得相框，点击上传心仪照片。</div>'
       + '  </div>'
-      + '  <button class="orb-upload-btn-sm" data-upload="frame" type="button">换图</button>'
+      + '  <button class="orb-upload-btn-sm" data-upload="frame" type="button">' + (orbConfig.frameImg ? '换图' : '上传') + '</button>'
       + '</div>'
 
+      // 样式 3：完全纯净透明底 PNG 立绘
       + '<div class="orb-style-row ' + (orbConfig.mode === 'pngstandee' ? 'active' : '') + '" data-set-orb="pngstandee">'
-      + '  <div class="orb-style-preview-box" style="background:transparent; border:1px dashed #cbd5e1;"><img src="' + esc(standeePngSrc) + '" style="width:100%;height:100%;object-fit:contain;"></div>'
+      + '  <div class="orb-style-preview-box" style="background:transparent; border:1px dashed #cbd5e1;">' + standeePreviewInner + '</div>'
       + '  <div class="orb-style-info-col">'
       + '    <div class="orb-style-title">透明立绘 PNG</div>'
-      + '    <div class="orb-style-desc">仅展现角色立绘，四周100%纯透明，无任何底色与遮罩阴影。</div>'
+      + '    <div class="orb-style-desc">仅展现角色立绘，四周100%纯透明，无任何底色遮罩。</div>'
       + '  </div>'
-      + '  <button class="orb-upload-btn-sm" data-upload="png" type="button">传立绘</button>'
+      + '  <button class="orb-upload-btn-sm" data-upload="png" type="button">' + (orbConfig.standeePng ? '更换' : '上传') + '</button>'
       + '</div>';
 
     container.querySelectorAll('[data-set-orb]').forEach(function (row) {
       row.addEventListener('click', function (e) {
-        if (e.target.closest('button')) return;
         var chosenMode = this.dataset.setOrb;
+        if (e.target.closest('button')) return;
+
+        if (chosenMode === 'blackframe' && !orbConfig.frameImg) {
+          triggerFramePick();
+          return;
+        }
+        if (chosenMode === 'pngstandee' && !orbConfig.standeePng) {
+          triggerPngPick();
+          return;
+        }
+
         orbConfig.mode = chosenMode;
         saveOrbConfig();
         applyOrbAppearance(orb);
-        renderOrbStyleSettings(container, fileInput, setPendingMode);
+        renderOrbStyleSettings(container);
       });
     });
+
+    function triggerFramePick() {
+      pickUserPhoto(function (base64) {
+        orbConfig.frameImg = base64;
+        orbConfig.mode = 'blackframe';
+        saveOrbConfig();
+        applyOrbAppearance(orb);
+        renderOrbStyleSettings(container);
+        if (window.AppNav) window.AppNav.showToast('黑框照片已更换');
+      });
+    }
+
+    function triggerPngPick() {
+      pickUserPhoto(function (base64) {
+        orbConfig.standeePng = base64;
+        orbConfig.mode = 'pngstandee';
+        saveOrbConfig();
+        applyOrbAppearance(orb);
+        renderOrbStyleSettings(container);
+        if (window.AppNav) window.AppNav.showToast('透明立绘已更换');
+      });
+    }
 
     container.querySelectorAll('[data-upload]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
         var targetMode = this.dataset.upload;
-        setPendingMode(targetMode);
-        fileInput.click();
+        if (targetMode === 'frame') triggerFramePick();
+        else if (targetMode === 'png') triggerPngPick();
       });
     });
   }
 
+  // ============ 6. 初始化与保活 ============
   function initPortalEngine() {
     ensurePortalDOM();
   }
@@ -616,6 +678,11 @@
     initPortalEngine();
   }
 
-  window.addEventListener('pageChange', initPortalEngine);
+  window.addEventListener('pageChange', function(e) {
+    initPortalEngine();
+    if (e.detail && e.detail.page === 'archive') {
+      setTimeout(syncArchiveBackAttribute, 60);
+    }
+  });
 
 })();
