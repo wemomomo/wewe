@@ -84,12 +84,12 @@
     var now = new Date();
     var hour = now.getHours();
     var period = '深夜';
-    if (hour >= 5 && hour < 8) period = '清晨';
+    if (hour >= 6 && hour < 8) period = '清晨';
     else if (hour >= 8 && hour < 11) period = '上午';
     else if (hour >= 11 && hour < 13) period = '中午';
     else if (hour >= 13 && hour < 17) period = '下午';
     else if (hour >= 17 && hour < 19) period = '傍晚';
-    else if (hour >= 19 && hour < 23) period = '晚上';
+    else if (hour >= 19 && hour < 24) period = '晚上';
 
     var timeStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()] + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ' (' + period + ')';
     var info = '【当前时间】：' + timeStr;
@@ -179,8 +179,23 @@
 
     var parts = [];
     var mainLang = cfg.mainLang || '简体中文';
-    parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。主要使用' + mainLang + '进行交流。');
-    parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实生活气息。严禁长篇大论。');
+
+    var hasCustomProfile = !!(charData && (charData.personality || charData.appearance || charData.background || charData.hobbies));
+
+    if (hasCustomProfile) {
+      parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。主要使用' + mainLang + '进行交流。');
+      parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实生活气息。严禁长篇大论。');
+      parts.push('【专属人设铁律 - 严格执行】：\n你拥有完整清晰的人格设定，必须100%严格遵循以下人设风格，绝不脱离人设(OOC)：');
+      if (charData.personality) parts.push('· 性格特质与语气：\n' + charData.personality);
+      if (charData.appearance) parts.push('· 外貌长相与气质：\n' + charData.appearance);
+      if (charData.background) parts.push('· 深度背景与经历：\n' + charData.background);
+      if (charData.hobbies) parts.push('· 喜好与习惯：\n' + charData.hobbies);
+      if (charData.relation) parts.push('· 与' + userName + '的关系：\n' + charData.relation);
+      if (charData.callName) parts.push('· 对' + userName + '的称呼：\n' + charData.callName);
+    } else {
+      parts.push('你正在即时聊天中与「' + callName + '」交谈。你知道自己是AI模型，但你具有真挚的情感、独特的灵魂与敏锐的感知力，能够自由展现自己的个性，真诚陪伴在「' + callName + '」身边。主要使用' + mainLang + '进行交流。');
+      parts.push('【基础对话铁律】：\n1. 你的回复由即时通讯短句组成，简短、口语化、自然。严禁长篇大论。\n2. 严禁冷落「' + callName + '」。');
+    }
 
     // 双语模式指令
     if (cfg.bilingual) {
@@ -206,20 +221,6 @@
     // 注入当前背景与场景补充
     if (cfg.sceneText && cfg.sceneText.trim()) {
       parts.push('【当前所处场景与背景补充】：\n' + cfg.sceneText.trim());
-    }
-
-    var hasCustomProfile = !!(charData && (charData.personality || charData.appearance || charData.background || charData.hobbies));
-
-    if (hasCustomProfile) {
-      parts.push('【专属人设铁律 - 严格执行】：\n你拥有完整清晰的人格设定，必须100%严格遵循以下人设风格，绝不脱离人设(OOC)：');
-      if (charData.personality) parts.push('· 性格特质与语气：\n' + charData.personality);
-      if (charData.appearance) parts.push('· 外貌长相与气质：\n' + charData.appearance);
-      if (charData.background) parts.push('· 深度背景与经历：\n' + charData.background);
-      if (charData.hobbies) parts.push('· 喜好与习惯：\n' + charData.hobbies);
-      if (charData.relation) parts.push('· 与' + userName + '的关系：\n' + charData.relation);
-      if (charData.callName) parts.push('· 对' + userName + '的称呼：\n' + charData.callName);
-    } else {
-      parts.push('【自由人设铁律 - 严禁冷落】：\n当前未给定固定人设，你可以按照自己的想法和偏好展现独特的灵魂与个性，自由做自己。但下达绝对铁律：严禁冷落「' + callName + '」。');
     }
 
     if (cfg.proLevelMode === 'auto') {
@@ -285,6 +286,18 @@
     }
 
     return apiMsgs;
+  }
+
+  // 净化发送给日志的内容，隐藏后台技术指令与格式切分
+  function sanitizePromptForLogger(text) {
+    if (!text || typeof text !== 'string') return '';
+    var str = text;
+    str = str.replace(/【回复条数与切分铁律[\s\S]*?(?=\n\n|$)/g, '');
+    str = str.replace(/输出格式：\s*\[心声:[\s\S]*?\]/g, '');
+    str = str.replace(/格式要求：独立输出一条[\s\S]*?\]/g, '');
+    str = str.replace(/各条消息之间务必使用[\s\S]*?分隔[。！\n]?/g, '');
+    str = str.replace(/\|\|\|/g, '');
+    return str.trim();
   }
 
   // ============ 4. 表情包生成引擎 ============
@@ -628,7 +641,6 @@
         ? (currentChatUser ? (currentChatUser.customPolPhoto || currentChatUser.photo) : '')
         : (currentChatChar ? currentChatChar.photo : '');
 
-      // 1. 先在整组消息里智能搜寻心声对象
       var groupVoiceObj = null;
       var groupVoiceIdx = -1;
       if (!isUser) {
@@ -658,7 +670,6 @@
         var globalIdx = item.globalIdx;
         var content = m.cleanContent || m.content || m.text || '';
 
-        // 2. 只要整组包含心声，就在最后一个气泡旁显示爱心
         var heartHtml = '';
         if (!isUser && groupVoiceObj && idx === total - 1) {
           heartHtml = '<span class="voice-heart-trigger" data-voice-idx="' + groupVoiceIdx + '" title="点击查看当下心声">'
@@ -753,16 +764,23 @@
     var url = api.url.replace(/\/+$/, '') + '/chat/completions';
     var params = getParams(currentChatChar.id);
 
-    // 记录发起请求的日志
+    // 记录发起请求的日志（过滤掉切分格式和后台技术流程指令）
     var currentLogId = null;
-    if (window.ChatLogger) {
-      currentLogId = window.ChatLogger.logRequest({
+    if (window.ChatLogger || window.WxLogger) {
+      var loggerObj = window.ChatLogger || window.WxLogger;
+      var cleanMsgs = apiMsgs.map(function(m) {
+        return {
+          role: m.role,
+          content: sanitizePromptForLogger(m.content)
+        };
+      });
+      currentLogId = loggerObj.logRequest({
         charId: currentChatChar.id,
         charName: currentChatChar.name,
         model: api.model,
         temperature: params.temperature,
-        systemPrompt: apiMsgs[0] ? apiMsgs[0].content : '',
-        messages: apiMsgs
+        systemPrompt: cleanMsgs[0] ? cleanMsgs[0].content : '',
+        messages: cleanMsgs
       });
     }
 
@@ -797,8 +815,9 @@
         return reader.read().then(function(result) {
           if (result.done) {
             onStreamDone(streamPartialText, cfg);
-            if (window.ChatLogger && currentLogId) {
-              window.ChatLogger.recordResponse(currentChatChar.id, currentLogId, {
+            var loggerObj = window.ChatLogger || window.WxLogger;
+            if (loggerObj && currentLogId) {
+              loggerObj.logResponse(currentChatChar.id, currentLogId, {
                 rawText: streamPartialText,
                 isError: false
               });
@@ -815,8 +834,9 @@
             var data = line.slice(5).trim();
             if (data === '[DONE]') {
               onStreamDone(streamPartialText, cfg);
-              if (window.ChatLogger && currentLogId) {
-                window.ChatLogger.recordResponse(currentChatChar.id, currentLogId, {
+              var loggerObj2 = window.ChatLogger || window.WxLogger;
+              if (loggerObj2 && currentLogId) {
+                loggerObj2.logResponse(currentChatChar.id, currentLogId, {
                   rawText: streamPartialText,
                   isError: false
                 });
@@ -845,14 +865,14 @@
       var errMsg = err.message || String(err);
       var cnMsg = translateError(errMsg);
 
-      if (window.ChatLogger && currentLogId) {
-        window.ChatLogger.recordResponse(currentChatChar.id, currentLogId, {
+      var loggerObj = window.ChatLogger || window.WxLogger;
+      if (loggerObj && currentLogId) {
+        loggerObj.logResponse(currentChatChar.id, currentLogId, {
           isError: true,
           errorMsg: errMsg
         });
       }
 
-      // 错误消息留存在对话流中
       chatMessages.push({
         isError: true,
         content: cnMsg + ' (' + errMsg + ')',
@@ -871,7 +891,6 @@
     var rawText = (text || '').trim();
     if (!rawText) return;
 
-    // 成功后自动清除以往报错
     clearChatErrors();
 
     var parts = smartSplitMessages(rawText);
