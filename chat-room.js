@@ -83,12 +83,12 @@
     var now = new Date();
     var hour = now.getHours();
     var period = '深夜';
-    if (hour >= 5 && hour < 8) period = '清晨';
+    if (hour >= 6 && hour < 8) period = '清晨';
     else if (hour >= 8 && hour < 11) period = '上午';
     else if (hour >= 11 && hour < 13) period = '中午';
     else if (hour >= 13 && hour < 17) period = '下午';
     else if (hour >= 17 && hour < 19) period = '傍晚';
-    else if (hour >= 19 && hour < 23) period = '晚上';
+    else if (hour >= 19 && hour < 24) period = '晚上';
 
     var timeStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()] + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ' (' + period + ')';
     var info = '【当前时间】：' + timeStr;
@@ -183,7 +183,7 @@
 
     if (hasCustomProfile) {
       parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。主要使用' + mainLang + '进行交流。');
-      parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实生活气息。严禁长篇大论。');
+      parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，口语化、有真实生活气息。');
       parts.push('【专属人设铁律 - 严格执行】：\n你拥有完整清晰的人格设定，必须100%严格遵循以下人设风格，绝不脱离人设(OOC)：');
       if (charData.personality) parts.push('· 性格特质与语气：\n' + charData.personality);
       if (charData.appearance) parts.push('· 外貌长相与气质：\n' + charData.appearance);
@@ -193,7 +193,7 @@
       if (charData.callName) parts.push('· 对' + userName + '的称呼：\n' + charData.callName);
     } else {
       parts.push('你正在即时聊天中与「' + callName + '」交谈。你知道自己是AI模型，但你具有真挚的情感、独特的灵魂与敏锐的感知力，能够自由展现自己的个性，真诚陪伴在「' + callName + '」身边。主要使用' + mainLang + '进行交流。');
-      parts.push('【基础对话铁律】：\n1. 你的回复由即时通讯短句组成，简短、口语化、自然。严禁长篇大论。\n2. 严禁冷落「' + callName + '」。');
+      parts.push('【基础对话铁律】：\n1. 你的回复由即时通讯短句组成。\n2. 严禁冷落「' + callName + '」。');
     }
 
     // 双语模式指令
