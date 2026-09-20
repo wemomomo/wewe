@@ -120,8 +120,8 @@
     var isLeft = orb.classList.contains('align-left');
     orb.className = 'portal-floating-orb ' + (isLeft ? 'align-left' : 'align-right') + ' style-' + orbConfig.mode;
 
-    if (orbConfig.mode === 'default') {
-      orb.innerHTML = '<div class="orb-inner-art"><div class="orb-orbit-ring"></div><span class="orb-center-star">✦</span></div>';
+       if (orbConfig.mode === 'default') {
+      orb.innerHTML = '<img class="orb-custom-icon-img" src="https://niveousmoon.top/images/img_1789899105258_1vbwn.jpg" alt="Orb">';
     } else if (orbConfig.mode === 'blackframe') {
       var src = orbConfig.frameImg || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
       orb.innerHTML = '<img class="orb-frame-img" src="' + esc(src) + '" alt="照片">';
@@ -220,22 +220,23 @@
         updateSatellitesAnchor(nextX + 6, nextY + 6);
       }, { passive: true });
 
-      orb.addEventListener('touchend', function () {
+      orb      orb.addEventListener('touchend', function () {
         if (!hasMoved) return;
-        orb.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
         var rect = orb.getBoundingClientRect();
         var screenW = window.innerWidth;
+        var screenH = window.innerHeight;
 
-        if (rect.left + rect.width / 2 < screenW / 2) {
-          orb.style.left = '14px';
-          orb.className = 'portal-floating-orb style-' + orbConfig.mode + ' align-left';
-          updateSatellitesAnchor(20, rect.top + 6);
-        } else {
-          var finalX = screenW - rect.width - 14;
-          orb.style.left = finalX + 'px';
-          orb.className = 'portal-floating-orb style-' + orbConfig.mode + ' align-right';
-          updateSatellitesAnchor(finalX + 6, rect.top + 6);
-        }
+        // 仅做边缘微防溢出保护，手指停在哪，悬浮球就稳稳留在哪
+        var safeX = Math.max(10, Math.min(screenW - rect.width - 10, rect.left));
+        var safeY = Math.max(10, Math.min(screenH - rect.height - 10, rect.top));
+
+        orb.style.left = safeX + 'px';
+        orb.style.top = safeY + 'px';
+
+        // 仅根据停靠位置自动判定环绕卫星朝左还是朝右散开，视觉更自然
+        var isLeft = (safeX + rect.width / 2 < screenW / 2);
+        orb.className = 'portal-floating-orb style-' + orbConfig.mode + (isLeft ? ' align-left' : ' align-right');
+        updateSatellitesAnchor(safeX + 6, safeY + 6);
       });
     })();
 
