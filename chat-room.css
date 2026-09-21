@@ -817,10 +817,17 @@
   border-top: none !important;
   display: flex;
   flex-direction: column;
-  padding: 0 12px calc(14px + var(--safe-bottom));
+  padding: 0 12px calc(6px + var(--safe-bottom)); /* 💡 默认底距从 14px 降为 6px */
   flex-shrink: 0;
   position: relative;
   z-index: 40;
+}
+
+/* 仅在 PWA 独立桌面全屏环境下生效：彻底去除多余空隙 */
+@media (display-mode: standalone) {
+  .chat-footer-clean {
+    padding-bottom: max(4px, env(safe-area-inset-bottom, 0px)) !important;
+  }
 }
 
 .input-bar-wrap {
