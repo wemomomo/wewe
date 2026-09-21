@@ -332,7 +332,7 @@
 
 /* 气泡列 */
 .wx-msg-bubbles-col {
-  max-width: 82% !important;
+  max-width: 62% !important; /* 💡 收窄最大宽度，留出足够空间，绝不超过对方区域 */
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -446,11 +446,11 @@
 
 /* 实心黑小爱心 */
 .voice-heart-trigger {
-  position: absolute;
-  left: -22px;
-  bottom: -4px;
-  top: auto;
-  transform: none;
+  position: absolute !important;
+  left: calc(100% + 6px) !important; /* 💡 强制固定在气泡的外侧右边，不管气泡多长都紧贴右侧 */
+  right: auto !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
   width: 18px;
   height: 18px;
   display: flex;
@@ -458,8 +458,8 @@
   justify-content: center;
   cursor: pointer;
   color: #111111;
+  z-index: 10;
   transition: transform 0.18s ease;
-  z-index: 5;
 }
 .voice-heart-trigger:active {
   transform: scale(1.3);
@@ -914,12 +914,13 @@
 
 .voice-lower-columns {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  background: #f8f8fa !important;
-  border-radius: 12px;
-  padding: 12px 10px;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: transparent !important; /* 💡 去掉灰色背景 */
+  border: none !important;            /* 💡 去掉外层边框 */
+  border-radius: 0 !important;
+  padding: 6px 0 !important;
+  box-sizing: border-box;
 }
 
 .col-action, .col-wish {
@@ -929,8 +930,8 @@
   gap: 5px;
 }
 .col-action {
-  border-right: 1px dashed rgba(0, 0, 0, 0.15);
-  padding-right: 8px;
+  border-right: 1px dashed rgba(0, 0, 0, 0.15) !important; /* 💡 仅保留中间虚线 */
+  padding-right: 10px;
 }
 .col-wish {
   padding-left: 2px;
