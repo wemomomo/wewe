@@ -1108,3 +1108,145 @@
   font-size: 8px;
   color: #777777;
 }
+
+/* =========================================================
+   7. 全屏沉浸式手札编辑弹窗 (气泡编辑 & 场景放大)
+========================================================= */
+.cr-expand-modal-mask {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 12000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px 16px !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+.cr-expand-modal-mask.show {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.cr-expand-modal-panel {
+  width: 100% !important;
+  max-width: 330px !important;
+  height: 42vh !important;          /* 💡 改为精巧半屏高度 */
+  max-height: 290px !important;      /* 💡 锁死最大高度 */
+  min-height: 240px !important;
+  background: #ffffff !important;
+  border-radius: 18px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  transform: scale(0.92);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+.cr-expand-modal-mask.show .cr-expand-modal-panel {
+  transform: scale(1) !important;
+}
+
+.cr-expand-header {
+  padding: 14px 18px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.12);
+  background: #fbfbfc;
+  flex-shrink: 0;
+}
+.cr-expand-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111418;
+  letter-spacing: 0.5px;
+}
+.cr-expand-back-btn,
+.cr-expand-done-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+}
+.cr-expand-back-btn {
+  color: #8e8e93;
+  display: flex;
+  align-items: center;
+}
+.cr-expand-back-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+}
+.cr-expand-done-btn {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #111111;
+  letter-spacing: 0.5px;
+}
+.cr-expand-done-btn:active {
+  opacity: 0.4;
+}
+
+.cr-expand-body {
+  flex: 1;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cr-expand-textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14.5px;
+  color: #111111;
+  line-height: 1.6;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.cr-expand-textarea::placeholder {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.cr-expand-footer {
+  padding: 10px 16px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  background: #fbfbfc;
+  flex-shrink: 0;
+}
+.cr-expand-count {
+  font-size: 11px;
+  font-family: monospace;
+  color: #8e8e93;
+}
+.cr-expand-clear-btn {
+  border: none;
+  background: transparent;
+  font-size: 11.5px;
+  color: #c94a4a;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-weight: 600;
+}
+
+
