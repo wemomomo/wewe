@@ -1041,6 +1041,20 @@
   var currentVoiceList = [];
   var currentVoicePageIdx = 0;
 
+    // 智能识别右栏类型（瞬息 / 感知 / 现况）
+  function getRealityLabel(text) {
+    if (!text) return '瞬息 TRANSIENT';
+    var t = String(text);
+    if (/凉|热|温|酸|痛|倦|累|困|渴|饿|心跳|呼吸|微醺|冷/.test(t)) {
+      return '感知 SENSE';
+    } else if (/窗|雨|风|电车|咖啡|桌|夜|书|灯|图纸|香薰|乐谱|街/.test(t)) {
+      return '现况 CURRENT';
+    }
+    return '瞬息 TRANSIENT';
+  }
+
+  var isSingleVoiceMode = false; // 标记是否为小爱心单条查看模式
+
   function updateVoiceCardUI() {
     if (!currentVoiceList.length) return;
     var item = currentVoiceList[currentVoicePageIdx];
@@ -1048,18 +1062,42 @@
     var stage = document.getElementById('wxChatRoomStage');
     if (!stage || !vo) return;
 
-    stage.querySelector('#wxCrVoicePageTitle').textContent = (currentChatChar.name || 'CHAR') + ' · 心声档案 (' + (currentVoicePageIdx + 1) + '/' + currentVoiceList.length + ')';
+    var titleText = isSingleVoiceMode
+      ? (currentChatChar.name || 'CHAR') + ' · 当下心声'
+      : (currentChatChar.name || 'CHAR') + ' · 心声档案 (' + (currentVoicePageIdx + 1) + '/' + currentVoiceList.length + ')';
+
+    stage.querySelector('#wxCrVoicePageTitle').textContent = titleText;
     stage.querySelector('#wxCrVoiceMonologueText').textContent = '“ ' + vo.monologue + ' ”';
     stage.querySelector('#wxCrVoiceActionText').textContent = vo.action || '正安静地看着手机屏幕。';
-    stage.querySelector('#wxCrVoiceWishText').textContent = vo.wish || '指尖微凉，手边的咖啡正散着热气。';
+
+    // 动态展示墨墨指定的瞬息 / 感知 / 现况
+    var realityLabel = getRealityLabel(vo.wish || vo.reality);
+    var realityTitleEl = stage.querySelector('#wxCrVoiceRealityTitle');
+    if (realityTitleEl) realityTitleEl.textContent = realityLabel;
+
+    stage.querySelector('#wxCrVoiceWishText').textContent = vo.wish || vo.reality || '指尖微凉，手边的咖啡正散着热气。';
     stage.querySelector('#wxCrVoiceTimeSub').textContent = 'RECORDED · ' + fmtTime(item.ts || Date.now());
 
     var prevBtn = stage.querySelector('#wxCrVoicePrevBtn');
     var nextBtn = stage.querySelector('#wxCrVoiceNextBtn');
-    if (prevBtn) prevBtn.style.opacity = (currentVoicePageIdx > 0) ? '1' : '0.3';
-    if (nextBtn) nextBtn.style.opacity = (currentVoicePageIdx < currentVoiceList.length - 1) ? '1' : '0.3';
-  }
 
+    if (isSingleVoiceMode) {
+      // 💡 小爱心单条模式：彻底隐藏左右翻页箭头
+      if (prevBtn) prevBtn.style.display = 'none';
+      if (nextBtn) nextBtn.style.display = 'none';
+    } else {
+      // 💡 头像总集模式：展示左右翻页
+      if (prevBtn) {
+        prevBtn.style.display = 'block';
+        prevBtn.style.opacity = (currentVoicePageIdx > 0) ? '1' : '0.3';
+      }
+      if (nextBtn) {
+        nextBtn.style.display = 'block';
+        nextBtn.style.opacity = (currentVoicePageIdx < currentVoiceList.length - 1) ? '1' : '0.3';
+      }
+    }
+  }
+  
   function bindChatEvents(stage) {
     function closeChatRoom() {
       if (abortCtrl) abortCtrl.abort();
@@ -1080,7 +1118,7 @@
     var prevVoiceBtn = stage.querySelector('#wxCrVoicePrevBtn');
     var nextVoiceBtn = stage.querySelector('#wxCrVoiceNextBtn');
 
-    if (charHeadBtn) {
+        if (charHeadBtn) {
       charHeadBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         currentVoiceList = chatMessages.filter(function(m) { return m.voiceObj; });
@@ -1088,6 +1126,7 @@
           if (window.AppNav) window.AppNav.showToast('✦ 还没有记录下他的心声碎片哦 ✦');
           return;
         }
+        isSingleVoiceMode = false;
         currentVoicePageIdx = currentVoiceList.length - 1;
         updateVoiceCardUI();
         voiceModalWrap.classList.add('show');
@@ -1122,9 +1161,9 @@
         var targetMsg = chatMessages[idx];
         if (!targetMsg || !targetMsg.voiceObj) return;
 
-        currentVoiceList = chatMessages.filter(function(m) { return m.voiceObj; });
-        currentVoicePageIdx = currentVoiceList.indexOf(targetMsg);
-        if (currentVoicePageIdx === -1) currentVoicePageIdx = 0;
+        isSingleVoiceMode = true;
+        currentVoiceList = [targetMsg];
+        currentVoicePageIdx = 0;
 
         updateVoiceCardUI();
         voiceModalWrap.classList.add('show');
