@@ -4,7 +4,9 @@
 
   var MEM_KEY_PREFIX = 'wx_char_memories_';
   var ARCHIVE_KEY_PREFIX = 'wx_chat_archive_';
-  var MEM_CONFIG_KEY_PREFIX = 'wx_char_mem_cfg_';
+  var USER_COGNITION_PREFIX = 'wx_user_cognition_';
+  var SELF_COGNITION_PREFIX = 'wx_self_cognition_';
+  var UNRESOLVED_ALERT_PREFIX = 'wx_unresolved_alerts_';
 
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function esc(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
@@ -14,7 +16,7 @@
     return d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate());
   }
 
-  // ============ 核心：从 AppDB 获取当前激活的角色 ============
+  // ============ 1. AppDB 安全读取当前角色 ============
   function fetchCurrentActiveChar(callback) {
     function doFetch() {
       if (!window.AppDB) {
@@ -54,72 +56,138 @@
     }
   }
 
-  // ============ 1. 记忆配置与手账存储 (纯 AppDB) ============
-  function getMemoryConfig(charId, callback) {
+  // ============ 2. 结构化认知库 (User画像 + 自我心事 + 悬念雷达) ============
+  function getUserCognition(charId, callback) {
     var def = {
-      autoSummary: true,      // 角色自主感知总结
-      thresholdTurns: 30,     // 轮数阈值自动提醒总结
-      keepRecentTurns: 3      // 总结后保留最后多少轮作为过渡缓冲
+      appearance: '',  // 形象
+      personality: '', // 性格
+      likes: '',       // 喜好
+      dislikes: '',    // 厌恶
+      habits: '',      // 习惯
+      catchphrase: '', // 口头禅
+      social: '',      // 人际关系
+      past: '',        // 过往经历
+      secrets: '',     // 秘密
+      daily: '',       // 日常
+      other: ''        // 其他
     };
     if (!window.AppDB) { if (callback) callback(def); return; }
-    window.AppDB.get(MEM_CONFIG_KEY_PREFIX + charId, function (val) {
-      if (val && typeof val === 'object') {
-        if (callback) callback(Object.assign({}, def, val));
-      } else {
-        if (callback) callback(def);
-      }
+    window.AppDB.get(USER_COGNITION_PREFIX + charId, function (val) {
+      callback(Object.assign({}, def, val || {}));
     });
   }
 
-  function saveMemoryConfig(charId, cfg, callback) {
-    if (window.AppDB) {
-      window.AppDB.save(MEM_CONFIG_KEY_PREFIX + charId, cfg, callback);
-    } else {
-      if (callback) callback();
-    }
+  function saveUserCognition(charId, data, callback) {
+    if (window.AppDB) window.AppDB.save(USER_COGNITION_PREFIX + charId, data, callback);
+  }
+
+  function getSelfCognition(charId, callback) {
+    var def = {
+      mood: '',      // 心境变化
+      events: '',    // 重要事件
+      promises: '',  // 承诺
+      wishes: '',    // 想做的事
+      secrets: ''    // 隐秘不方便描述
+    };
+    if (!window.AppDB) { if (callback) callback(def); return; }
+    window.AppDB.get(SELF_COGNITION_PREFIX + charId, function (val) {
+      callback(Object.assign({}, def, val || {}));
+    });
+  }
+
+  function saveSelfCognition(charId, data, callback) {
+    if (window.AppDB) window.AppDB.save(SELF_COGNITION_PREFIX + charId, data, callback);
+  }
+
+  function getUnresolvedAlerts(charId, callback) {
+    if (!window.AppDB) { if (callback) callback([]); return; }
+    window.AppDB.get(UNRESOLVED_ALERT_PREFIX + charId, function (val) {
+      callback(Array.isArray(val) ? val : []);
+    });
+  }
+
+  function saveUnresolvedAlerts(charId, list, callback) {
+    if (window.AppDB) window.AppDB.save(UNRESOLVED_ALERT_PREFIX + charId, list, callback);
   }
 
   function getCharMemories(charId, callback) {
-    if (!window.AppDB) {
-      if (callback) callback([]);
-      return;
-    }
+    if (!window.AppDB) { if (callback) callback([]); return; }
     window.AppDB.get(MEM_KEY_PREFIX + charId, function (val) {
-      var list = Array.isArray(val) ? val : [];
-      if (callback) callback(list);
+      callback(Array.isArray(val) ? val : []);
     });
   }
 
   function saveCharMemories(charId, list, callback) {
-    if (window.AppDB) {
-      window.AppDB.save(MEM_KEY_PREFIX + charId, list, callback);
-    } else {
-      if (callback) callback();
-    }
+    if (window.AppDB) window.AppDB.save(MEM_KEY_PREFIX + charId, list, callback);
   }
 
-  // 获取注入给 AI 的精炼记忆文本（近期高浓度日记库）
-  function getMemoryPromptText(charId, limitCount, callback) {
-    getCharMemories(charId, function (memories) {
-      if (!memories.length) {
-        if (callback) callback('');
-        return;
-      }
-      var count = limitCount || 5;
-      var sliceMems = memories.slice(-count);
+  // ============ 3. 【核心】记忆网关 (Memory Gateway) 上下文调度引擎 ============
+  function buildGatewayPrompt(charId, callback) {
+    getUserCognition(charId, function (uCog) {
+      getSelfCognition(charId, function (sCog) {
+        getUnresolvedAlerts(charId, function (alerts) {
+          getCharMemories(charId, function (memories) {
+            var parts = [];
 
-      var parts = ['【往昔手账日记（你此前总结的核心回忆与对User的情感印记）】：'];
-      sliceMems.forEach(function (m) {
-        parts.push('✦ ' + m.dateStr + ' ✦');
-        if (m.track) parts.push('· 行动轨迹：' + m.track);
-        if (m.thoughts) parts.push('· 内心感想：' + m.thoughts);
-        if (m.summary) parts.push('· 共话回响：' + m.summary);
+            // A. User 画像观察日记
+            var uParts = [];
+            if (uCog.appearance) uParts.push('· 外在形象: ' + uCog.appearance);
+            if (uCog.personality) uParts.push('· 性格特点: ' + uCog.personality);
+            if (uCog.likes) uParts.push('· 偏好喜好: ' + uCog.likes);
+            if (uCog.dislikes) uParts.push('· 讨厌厌恶: ' + uCog.dislikes);
+            if (uCog.habits) uParts.push('· 生活习惯: ' + uCog.habits);
+            if (uCog.catchphrase) uParts.push('· 常用口头禅: ' + uCog.catchphrase);
+            if (uCog.social) uParts.push('· 人际关系: ' + uCog.social);
+            if (uCog.past) uParts.push('· 听过的过往: ' + uCog.past);
+            if (uCog.secrets) uParts.push('· 了解的秘密: ' + uCog.secrets);
+            if (uCog.daily) uParts.push('· 日常近况: ' + uCog.daily);
+            if (uCog.other) uParts.push('· 其他琐碎印象: ' + uCog.other);
+
+            if (uParts.length) {
+              parts.push('【我对User的观察画像与认知（根据交流随时更新）】：\n' + uParts.join('\n'));
+            }
+
+            // B. 角色自我心事簿
+            var sParts = [];
+            if (sCog.mood) sParts.push('· 近期心境: ' + sCog.mood);
+            if (sCog.events) sParts.push('· 共同经历的里程碑: ' + sCog.events);
+            if (sCog.promises) sParts.push('· 许下的承诺: ' + sCog.promises);
+            if (sCog.wishes) sParts.push('· 想要一起做的事: ' + sCog.wishes);
+            if (sCog.secrets) sParts.push('· 不便明说的隐秘念头: ' + sCog.secrets);
+
+            if (sParts.length) {
+              parts.push('【我自己的内心羁绊与心事】：\n' + sParts.join('\n'));
+            }
+
+            // C. 悬念与情绪警报
+            if (alerts.length) {
+              var activeAlerts = alerts.filter(function (a) { return !a.resolved; });
+              if (activeAlerts.length) {
+                var aText = activeAlerts.map(function (a) { return '· ⚠️ ' + a.text + ' (记录时间: ' + a.date + ')'; }).join('\n');
+                parts.push('【悬而未决的事项与情绪反常警报（时刻挂念并寻机问候）】：\n' + aText);
+              }
+            }
+
+            // D. 近期 3 篇手账日记
+            if (memories.length) {
+              var recentMems = memories.slice(-3);
+              var mText = recentMems.map(function (m) {
+                return '✦ ' + m.dateStr + ' ✦\n· 事件: ' + m.track + '\n· 心声: ' + m.thoughts + '\n· 共话: ' + m.summary;
+              }).join('\n\n');
+              parts.push('【近期手账回忆录】：\n' + mText);
+            }
+
+            // E. 动态感知与记忆补充指令
+            parts.push('【记忆补充指令】：你在交流中需时刻敏锐关注对方。若本次聊天中对方透露了新的个人细节（喜好/习惯/秘密等）、或产生了新承诺/未决悬念，请在回复末尾附带更新指令，格式如：\n`[UPDATE_USER: 喜好 +1 喜欢抹茶冰淇淋]` 或 `[ALERT: 对方今天心情低落未解决]`');
+
+            callback(parts.join('\n\n'));
+          });
+        });
       });
-      if (callback) callback(parts.join('\n'));
     });
   }
 
-  // ============ 2. 核心：即时归纳与记忆结晶引擎 ============
+  // ============ 4. 记忆总结与认知自动更新引擎 ============
   function executeMemorySummary(charId, charData, userData, callback) {
     if (!charId || !window.AppDB) return;
 
@@ -132,123 +200,123 @@
         return;
       }
 
-      getMemoryConfig(charId, function (memCfg) {
-        var keepCount = memCfg.keepRecentTurns ? memCfg.keepRecentTurns * 2 : 6;
-        var toArchiveMsgs = validMsgs.slice(0, Math.max(0, validMsgs.length - keepCount));
-        var bufferMsgs = validMsgs.slice(-keepCount);
+      var keepCount = 6;
+      var toArchiveMsgs = validMsgs.slice(0, Math.max(0, validMsgs.length - keepCount));
+      var bufferMsgs = validMsgs.slice(-keepCount);
 
-        // 如果可归档的消息过少，就把除最后一条外的全部归纳
-        if (toArchiveMsgs.length < 2) {
-          toArchiveMsgs = validMsgs.slice(0, -1);
-          bufferMsgs = validMsgs.slice(-1);
+      if (toArchiveMsgs.length < 2) {
+        toArchiveMsgs = validMsgs.slice(0, -1);
+        bufferMsgs = validMsgs.slice(-1);
+      }
+
+      var charName = charData ? (charData.name || '角色') : '角色';
+      var userName = userData ? (userData.name || userData.nickname || '对方') : '对方';
+
+      var chatDigest = toArchiveMsgs.map(function (m) {
+        var sender = (m.role === 'user' || m.sender === 'user') ? userName : charName;
+        var txt = m.cleanContent || m.content || m.text || '';
+        if (m.voiceObj) {
+          txt += ' (当时心声: ' + m.voiceObj.monologue + ' | 举止: ' + m.voiceObj.action + ')';
         }
+        return sender + ': ' + txt;
+      }).join('\n');
 
-        var charName = charData ? (charData.name || '角色') : '角色';
-        var userName = userData ? (userData.name || userData.nickname || '对方') : '对方';
+      var systemPrompt = '你现在是「' + charName + '」。请回顾你刚才与「' + userName + '」所经历的这段对话及你当时的内心活动，在你的私人手账中写下一篇高光手账日记，并同步更新你对「' + userName + '」的认知。\n'
+        + '【输出格式规范 - 严格遵守】：\n'
+        + '[重要事件]: 提炼总结这段时间发生的关键事件或核心话题（如无特殊大事则用一两句话简短概括）。\n'
+        + '[内心想法]: 写下对话过程中，对「' + userName + '」产生的触动、真实心声暗涌或值得珍藏的念头。\n'
+        + '[今日共话]: 简短概括你们两人主要聊了哪些事情、达成了什么约定或发生了什么趣事。\n'
+        + '[USER新认知]: (若有新发现则填写，格式如: 喜好-喜欢抹茶; 习惯-习惯熬夜。若无则填 无)\n'
+        + '[未决悬念警报]: (若对方有情绪反常、生病、或未完结的事情则填写，若无则填 无)';
 
-        var chatDigest = toArchiveMsgs.map(function (m) {
-          var sender = (m.role === 'user' || m.sender === 'user') ? userName : charName;
-          var txt = m.cleanContent || m.content || m.text || '';
-          if (m.voiceObj) {
-            txt += ' (当时心声: ' + m.voiceObj.monologue + ' | 举止: ' + m.voiceObj.action + ')';
-          }
-          return sender + ': ' + txt;
-        }).join('\n');
+      var api = window.WxChatSettings ? window.WxChatSettings.getActiveApi(charId) : null;
+      if (!api || !api.url || !api.key) {
+        if (callback) callback(null, '未检测到有效 API 接口，无法进行总结');
+        return;
+      }
 
-        var systemPrompt = '你现在是「' + charName + '」。请回顾你刚才与「' + userName + '」所经历的这段对话及你当时的内心活动，在你的私人手账中写下一篇手账日记。\n'
-          + '【输出格式规范 - 严格遵守】：\n'
-          + '[行动轨迹]: 用两三句话总结你这段时间自己的生活行止、琐碎活动或所见所闻（如无特殊事件则简短平实记录）。\n'
-          + '[内心想法]: 写下对话过程中，对「' + userName + '」产生的触动、真实心声暗涌或值得珍藏的念头。\n'
-          + '[今日共话]: 简短概括你们两人主要聊了哪些事情、达成了什么约定或发生了什么趣事。\n'
-          + '语气要完全符合你的人设风格，真诚、细腻、富有人性。';
-
-        var api = window.WxChatSettings ? window.WxChatSettings.getActiveApi(charId) : null;
-        if (!api || !api.url || !api.key) {
-          if (callback) callback(null, '未检测到有效 API 接口，无法进行总结');
+      fetch(api.url.replace(/\/+$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + api.key
+        },
+        body: JSON.stringify({
+          model: api.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: '【待归纳提炼的对话与心理记录】：\n' + chatDigest }
+          ],
+          temperature: 0.7
+        })
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var resContent = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ? data.choices[0].message.content : '';
+        if (!resContent) {
+          if (callback) callback(null, '模型返回为空，归纳未完成');
           return;
         }
 
-        fetch(api.url.replace(/\/+$/, '') + '/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + api.key
-          },
-          body: JSON.stringify({
-            model: api.model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: '【待归纳提炼的对话与心理记录】：\n' + chatDigest }
-            ],
-            temperature: 0.7
-          })
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          var resContent = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ? data.choices[0].message.content : '';
-          if (!resContent) {
-            if (callback) callback(null, '模型返回为空，归纳未完成');
-            return;
-          }
+        var trackMatch = resContent.match(/\[重要事件\][:：\s]*([\s\S]*?)(?=\[内心想法\]|$)/i);
+        var thoughtsMatch = resContent.match(/\[内心想法\][:：\s]*([\s\S]*?)(?=\[今日共话\]|$)/i);
+        var summaryMatch = resContent.match(/\[今日共话\][:：\s]*([\s\S]*?)(?=\[USER新认知\]|$)/i);
+        var uCogMatch = resContent.match(/\[USER新认知\][:：\s]*([\s\S]*?)(?=\[未决悬念警报\]|$)/i);
+        var alertMatch = resContent.match(/\[未决悬念警报\][:：\s]*([\s\S]*?)$/i);
 
-          var trackMatch = resContent.match(/\[行动轨迹\][:：\s]*([\s\S]*?)(?=\[内心想法\]|$)/i);
-          var thoughtsMatch = resContent.match(/\[内心想法\][:：\s]*([\s\S]*?)(?=\[今日共话\]|$)/i);
-          var summaryMatch = resContent.match(/\[今日共话\][:：\s]*([\s\S]*?)$/i);
+        // A. 自动更新 USER 认知库
+        if (uCogMatch && uCogMatch[1] && uCogMatch[1].trim() !== '无') {
+          getUserCognition(charId, function (uCog) {
+            uCog.daily = (uCog.daily ? uCog.daily + '；' : '') + uCogMatch[1].trim();
+            saveUserCognition(charId, uCog);
+          });
+        }
 
-          var archiveKey = ARCHIVE_KEY_PREFIX + charId + '_' + Date.now();
-          var newMem = {
-            id: 'mem_' + charId + '_' + Date.now(),
-            charId: charId,
-            dateStr: getTodayDateStr(),
-            timestamp: Date.now(),
-            track: trackMatch ? trackMatch[1].trim() : '度过了平淡而熟悉的一段时光。',
-            thoughts: thoughtsMatch ? thoughtsMatch[1].trim() : '关于刚才的交谈，心中泛起许多细腻的情感。',
-            summary: summaryMatch ? summaryMatch[1].trim() : '彼此分享了生活中的点滴琐事。',
-            archiveKey: archiveKey,
-            rawChatCount: toArchiveMsgs.length
-          };
+        // B. 自动更新悬念警报
+        if (alertMatch && alertMatch[1] && alertMatch[1].trim() !== '无') {
+          getUnresolvedAlerts(charId, function (alerts) {
+            alerts.unshift({
+              id: 'alt_' + Date.now(),
+              date: getTodayDateStr(),
+              text: alertMatch[1].trim(),
+              resolved: false
+            });
+            saveUnresolvedAlerts(charId, alerts);
+          });
+        }
 
-          // 1. 将本次提炼的详细记录单独存入归档区（供溯源）
-          window.AppDB.save(archiveKey, toArchiveMsgs, function () {
-            // 2. 实时会话只保留最后几条作为过渡缓冲（极省 Tokens 且对话不卡顿断片）
-            window.AppDB.save('wx_chat_msgs_' + charId, bufferMsgs, function () {
-              try { localStorage.setItem('wx_chat_msgs_' + charId, JSON.stringify(bufferMsgs)); } catch(e){}
-              // 3. 追加进记忆手账库
-              getCharMemories(charId, function (memories) {
-                memories.push(newMem);
-                saveCharMemories(charId, memories, function () {
-                  if (callback) callback(newMem);
-                });
+        var archiveKey = ARCHIVE_KEY_PREFIX + charId + '_' + Date.now();
+        var newMem = {
+          id: 'mem_' + charId + '_' + Date.now(),
+          charId: charId,
+          dateStr: getTodayDateStr(),
+          timestamp: Date.now(),
+          track: trackMatch ? trackMatch[1].trim() : '度过了一段平静温和的时光。',
+          thoughts: thoughtsMatch ? thoughtsMatch[1].trim() : '关于刚才的交谈，心中泛起许多细腻的情感。',
+          summary: summaryMatch ? summaryMatch[1].trim() : '彼此分享了生活中的点滴琐事。',
+          archiveKey: archiveKey,
+          rawChatCount: toArchiveMsgs.length
+        };
+
+        window.AppDB.save(archiveKey, toArchiveMsgs, function () {
+          window.AppDB.save('wx_chat_msgs_' + charId, bufferMsgs, function () {
+            try { localStorage.setItem('wx_chat_msgs_' + charId, JSON.stringify(bufferMsgs)); } catch(e){}
+            getCharMemories(charId, function (memories) {
+              memories.push(newMem);
+              saveCharMemories(charId, memories, function () {
+                if (callback) callback(newMem);
               });
             });
           });
-        })
-        .catch(function (err) {
-          if (callback) callback(null, '请求异常：' + (err.message || err));
         });
+      })
+      .catch(function (err) {
+        if (callback) callback(null, '请求异常：' + (err.message || err));
       });
     });
   }
 
-  // ============ 3. 对话轮数监控与提醒 ============
-  function checkTurnThreshold(charId) {
-    if (!charId || !window.AppDB) return;
-    getMemoryConfig(charId, function (memCfg) {
-      if (!memCfg.thresholdTurns || memCfg.thresholdTurns <= 0) return;
-      window.AppDB.get('wx_chat_msgs_' + charId, function (rawMsgs) {
-        var msgs = Array.isArray(rawMsgs) ? rawMsgs : [];
-        var validMsgs = msgs.filter(function (m) { return !m.isError && !m.isSystem; });
-        // 当积攒的消息达到设定轮数（一问一答为2条）
-        if (validMsgs.length >= memCfg.thresholdTurns * 2) {
-          if (window.AppNav) {
-            window.AppNav.showToast('✦ 累积对话已达' + memCfg.thresholdTurns + '轮，可前往记忆长廊归纳手账 ✦');
-          }
-        }
-      });
-    });
-  }
-
-  // ============ 4. 高定全屏记忆手账长廊页面 ============
+  // ============ 5. 高定全屏记忆手账长廊页面 (渲染手账书卡片) ============
   function openMemoryStage(charObj, userObj) {
     if (charObj) {
       doRenderStage(charObj, userObj);
@@ -325,37 +393,55 @@
       var html = '<div class="mem-timeline-scroll-wrap">';
 
       memories.slice().reverse().forEach(function (m, idx) {
-        html += '<div class="mem-trinity-card" data-mem-idx="' + idx + '">'
-          + '<div class="mem-route-col left">'
-          + '  <div class="mem-date-stamp">'
-          + '    <span class="stamp-month-day">' + esc(m.dateStr) + '</span>'
-          + '    <span class="stamp-sub-code">№ ' + pad2(memories.length - idx) + '</span>'
+        html += '<div class="snow-blue-ribbon-book" data-mem-idx="' + idx + '">'
+          // 1. 左侧书页：日期与事件
+          + '<div class="binder-page left">'
+          + '  <div class="page-hole-col top">'
+          + '    <div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div>'
           + '  </div>'
-          + '  <div class="mem-route-title"><span class="route-icon">✦</span> 行止与轨迹</div>'
-          + '  <div class="mem-track-para">' + esc(m.track) + '</div>'
-          + '</div>'
-
-          + '<div class="mem-route-spine">'
-          + '  <div class="spine-line top"></div>'
-          + '  <div class="spine-gem">❆</div>'
-          + '  <div class="spine-line bottom"></div>'
-          + '</div>'
-
-          + '<div class="mem-route-col mid">'
-          + '  <div class="mem-route-title"><span class="route-icon">☽</span> 心理想法与暗涌</div>'
-          + '  <div class="mem-thought-quote">“ ' + esc(m.thoughts) + ' ”</div>'
-          + '  <div class="mem-summary-box">'
-          + '    <span class="summary-label">共话回响：</span>'
-          + '    <span class="summary-text">' + esc(m.summary) + '</span>'
+          + '  <div class="page-hole-col bottom">'
+          + '    <div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div>'
+          + '  </div>'
+          + '  <div class="book-page-content">'
+          + '    <div class="book-header-row">'
+          + '      <span class="book-date-pill">' + esc(m.dateStr) + '</span>'
+          + '      <span class="book-serial-tag">№ ' + pad2(memories.length - idx) + '</span>'
+          + '    </div>'
+          + '    <div class="book-track-text"><span class="track-tag">事件 · </span>' + esc(m.track) + '</div>'
+          + '    <div class="book-foot-code">RECORD // L</div>'
           + '  </div>'
           + '</div>'
 
-          + '<div class="mem-route-col right">'
-          + '  <button class="mem-archive-anchor-btn" data-archive-key="' + esc(m.archiveKey || '') + '" data-mem-date="' + esc(m.dateStr) + '" type="button">'
-          + '    <div class="anchor-circle"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>'
-          + '    <span class="anchor-label">对话溯源</span>'
-          + '    <span class="anchor-count">' + (m.rawChatCount || 0) + ' 条</span>'
-          + '  </button>'
+          // 2. 中脊穿透交叉白丝带
+          + '<div class="binder-spine-area">'
+          + '  <div class="spine-line"></div>'
+          + '  <div class="ribbon-cluster top">'
+          + '    <div class="ribbon-bar cross-a"></div>'
+          + '    <div class="ribbon-bar cross-b"></div>'
+          + '    <div class="ribbon-bar straight"></div>'
+          + '  </div>'
+          + '  <div class="ribbon-cluster bottom">'
+          + '    <div class="ribbon-bar straight"></div>'
+          + '    <div class="ribbon-bar cross-a"></div>'
+          + '    <div class="ribbon-bar cross-b"></div>'
+          + '  </div>'
+          + '</div>'
+
+          // 3. 右侧书页：心声独白与溯源
+          + '<div class="binder-page right">'
+          + '  <div class="page-hole-col top">'
+          + '    <div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div>'
+          + '  </div>'
+          + '  <div class="page-hole-col bottom">'
+          + '    <div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div>'
+          + '  </div>'
+          + '  <div class="book-page-content">'
+          + '    <div class="book-thought-quote">“ ' + esc(m.thoughts) + ' ”</div>'
+          + '    <div class="book-bottom-deck">'
+          + '      <span class="book-summary-sub">共话：' + esc(m.summary) + '</span>'
+          + '      <button class="mem-archive-anchor-btn" data-archive-key="' + esc(m.archiveKey || '') + '" data-mem-date="' + esc(m.dateStr) + '" type="button">溯源 ➔</button>'
+          + '    </div>'
+          + '  </div>'
           + '</div>'
           + '</div>';
       });
@@ -376,14 +462,13 @@
     var backBtn = stage.querySelector('#memStageBackBtn');
     if (backBtn) backBtn.addEventListener('click', closeMemoryStage);
 
-    // 立即归纳
     var triggerBtn = stage.querySelector('#memTriggerSummaryBtn');
     if (triggerBtn) {
       triggerBtn.addEventListener('click', function () {
         if (window.AppDialog) {
           window.AppDialog.confirm({
             title: '立即归纳记忆',
-            desc: '角色将回顾前面积累的所有交谈与内心暗涌，精炼成一篇专属三栏手账，并归档原始记录。确定归纳吗？',
+            desc: '角色将回顾前面积累的所有交谈与内心暗涌，精炼成一篇专属手账书，并归档原始记录。确定归纳吗？',
             confirmText: '开始归纳',
             isDanger: false
           }, function () {
@@ -401,7 +486,6 @@
       });
     }
 
-    // 溯源抽屉
     var drawer = stage.querySelector('#memDialogueDrawer');
     var drawerMask = stage.querySelector('#memDrawerMask');
     var drawerCloseBtn = stage.querySelector('#drawerCloseBtn');
@@ -455,7 +539,6 @@
       }
     });
 
-    // 右滑返回手势
     var startX = 0, startY = 0, currentX = 0, isSwiping = false;
     stage.addEventListener('touchstart', function (e) {
       if (e.touches[0].clientX > 45) return;
@@ -491,11 +574,14 @@
   window.WxChatMemory = {
     open: openMemoryStage,
     getMemories: getCharMemories,
-    getPromptText: getMemoryPromptText,
+    getGatewayPrompt: buildGatewayPrompt,
     triggerSummary: executeMemorySummary,
-    checkTurns: checkTurnThreshold,
-    getConfig: getMemoryConfig,
-    saveConfig: saveMemoryConfig
+    getUserCognition: getUserCognition,
+    saveUserCognition: saveUserCognition,
+    getSelfCognition: getSelfCognition,
+    saveSelfCognition: saveSelfCognition,
+    getAlerts: getUnresolvedAlerts,
+    saveAlerts: saveUnresolvedAlerts
   };
 
 })();
