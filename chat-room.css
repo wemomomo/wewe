@@ -341,77 +341,190 @@
   align-items: flex-end;
 }
 
-/* 经典尖角统一朝上气泡 */
-.wx-msg-bubble-item {
-  position: relative;
-  padding: 10px 13px;
-  font-size: 15px;
-  line-height: 1.45;
-  color: #111111;
-  word-break: break-word;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
-  border-radius: 2px 14px 14px 14px !important;
+/* ═══ 气泡外层相对定位容器 ═══ */
+.wx-bubble-outer {
+  position: relative !important;
+  width: fit-content !important;
+  max-width: 100% !important;
 }
 
-/* 用户气泡 */
+/* ═══ 角色（左侧）：银灰色心核晕染 ═══ */
+.wx-msg-bubble-item {
+  position: relative !important;
+  padding: 11px 16px !important;
+  font-size: 14.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.55 !important;
+  width: fit-content !important;
+  min-width: 2em !important;
+  word-break: break-word !important;
+  border-radius: 18px !important;
+  border: none !important;
+  box-sizing: border-box !important;
+  color: #1e242c !important;
+  background: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(195, 204, 216, 0.85) 0%, rgba(222, 228, 236, 0.45) 45%, #ffffff 78%) !important;
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.95), 0 3px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ═══ 用户（右侧）：晴空雾蓝色心核晕染 ═══ */
 .wx-msg-group.user-side .wx-msg-bubble-item {
-  background: #111111;
-  color: #ffffff;
-  border: none;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
-  border-radius: 14px 2px 14px 14px !important;
+  color: #1a2b3c !important;
+  background: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(175, 210, 242, 0.72) 0%, rgba(212, 232, 252, 0.35) 45%, #ffffff 78%) !important;
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.95), 0 3px 12px rgba(70, 120, 180, 0.04) !important;
+}
+
+/* ═══ 像素小星云装饰层 ═══ */
+.rz8-dc {
+  position: absolute !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  image-rendering: pixelated !important;
+}
+
+/* 左侧（角色）：右上大星 ✦ + 左下小星 ✧ */
+.rz8-dc.rz8-bl-cloud {
+  bottom: -9px !important; 
+  left: -11px !important;
+  width: 22px !important; 
+  height: 18px !important;
+}
+.rz8-cloud-silver {
+  position: absolute !important;
+  top: 4px !important; 
+  left: 2px !important;
+  width: 2px !important; 
+  height: 2px !important;
+  background: transparent !important;
+  box-shadow:
+    4px 0px 0 #9ca8b8, 6px 0px 0 #9ca8b8, 8px 0px 0 #9ca8b8,
+    2px 2px 0 #9ca8b8, 4px 2px 0 #ffffff, 6px 2px 0 #ffffff, 8px 2px 0 #ffffff, 10px 2px 0 #9ca8b8,
+    0px 4px 0 #7e8b9d, 2px 4px 0 #ffffff, 4px 4px 0 #ffffff, 6px 4px 0 #ffffff,
+    8px 4px 0 #ffffff, 10px 4px 0 #ffffff, 12px 4px 0 #9ca8b8,
+    0px 6px 0 #7e8b9d, 2px 6px 0 #ffffff, 4px 6px 0 #ffffff, 6px 4px 0 #ffffff,
+    8px 6px 0 #ffffff, 10px 6px 0 #ffffff, 12px 6px 0 #9ca8b8,
+    2px 8px 0 #7e8b9d, 4px 8px 0 #7e8b9d, 6px 8px 0 #7e8b9d,
+    8px 8px 0 #7e8b9d, 10px 8px 0 #7e8b9d !important;
+}
+.rz8-star-silver-tr {
+  position: absolute !important;
+  top: 0px !important; 
+  right: 0px !important;
+  width: 2px !important; 
+  height: 2px !important;
+  background: #ffffff !important;
+  box-shadow:
+    0px -2px 0 #9ca8b8, 0px 2px 0 #9ca8b8,
+    -2px 0px 0 #9ca8b8, 2px 0px 0 #9ca8b8 !important;
+}
+.rz8-dot-silver-bl {
+  position: absolute !important;
+  bottom: 2px !important; 
+  left: 1px !important;
+  width: 2px !important; 
+  height: 2px !important;
+  background: #7e8b9d !important;
+}
+
+/* 右侧（用户）：灰调莫兰迪灰蓝白云 + 左上大星 ✦ + 右下小星 ✧ */
+.rz8-dc.rz8-br-cloud {
+  bottom: -11px !important; 
+  right: -13px !important;
+  width: 22px !important; 
+  height: 18px !important;
+}
+.rz8-cloud-blue-gray {
+  position: absolute !important;
+  top: 4px !important; 
+  left: 2px !important;
+  width: 2px !important; 
+  height: 2px !important;
+  background: transparent !important;
+  box-shadow:
+    4px 0px 0 #96a9bc, 6px 0px 0 #96a9bc, 8px 0px 0 #96a9bc,
+    2px 2px 0 #96a9bc, 4px 2px 0 #ffffff, 6px 2px 0 #ffffff, 8px 2px 0 #ffffff, 10px 2px 0 #96a9bc,
+    0px 4px 0 #778b9e, 2px 4px 0 #ffffff, 4px 4px 0 #ffffff, 6px 4px 0 #ffffff,
+    8px 4px 0 #ffffff, 10px 4px 0 #ffffff, 12px 4px 0 #96a9bc,
+    0px 6px 0 #778b9e, 2px 6px 0 #ffffff, 4px 6px 0 #ffffff, 6px 4px 0 #ffffff,
+    8px 6px 0 #ffffff, 10px 6px 0 #ffffff, 12px 6px 0 #96a9bc,
+    2px 8px 0 #778b9e, 4px 8px 0 #778b9e, 6px 8px 0 #778b9e,
+    8px 8px 0 #778b9e, 10px 8px 0 #778b9e !important;
+}
+.rz8-star-blue-gray-tl {
+  position: absolute !important;
+  top: 0px !important; 
+  left: 0px !important;
+  width: 2px !important; 
+  height: 2px !important;
+  background: #ffffff !important;
+  box-shadow:
+    0px -2px 0 #96a9bc, 0px 2px 0 #96a9bc,
+    -2px 0px 0 #96a9bc, 2px 0px 0 #96a9bc !important;
+}
+.rz8-dot-blue-gray-br {
+  position: absolute !important;
+  bottom: 2px !important; 
+  right: 1px !important;
+  width: 2px !important; 
+  height: 2px !important;
+  background: #778b9e !important;
 }
 
 /* 另起一行的双语翻译虚线排版 */
 .bilingual-newline-box {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   width: 100%;
 }
 .bilingual-main-text {
   width: 100%;
+  line-height: 1.45;
 }
 .bilingual-divider-dash {
   width: 100%;
   height: 0;
-  border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
-  margin: 1px 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.12); /* 浅雅虚线 */
+  margin: 2px 0;
 }
 .wx-msg-group.user-side .bilingual-divider-dash {
-  border-bottom-color: rgba(255, 255, 255, 0.25);
+  border-bottom-color: rgba(70, 120, 180, 0.2); /* 用户侧匹配雾蓝虚线 */
 }
 
+/* 角色侧英文翻译色 */
 .bilingual-trans-text {
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.4;
-  color: #444444;
+  color: #475569; /* 银灰雅致深色 */
+  opacity: 0.9;
 }
+/* 用户侧英文翻译色 */
 .wx-msg-group.user-side .bilingual-trans-text {
-  color: #d1d5db;
+  color: #2c4257; /* 晴空雾蓝深色，清晰可读 */
+  opacity: 0.9;
 }
 
-/* 英文字体专属样式类 */
+/* 英文字体专属样式类（全部强制正体 normal，绝不倾斜变形） */
 .font-caveat {
-  font-family: 'Caveat', cursive !important;
-  font-size: 17px !important;
+  font-family: 'Caveat', cursive, sans-serif !important;
+  font-style: normal !important; /* 💡 强制正体 */
+  font-size: 16.5px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.4px !important;
+  letter-spacing: 0.3px !important;
 }
 .font-pinyon {
-  font-family: 'Pinyon Script', cursive !important;
-  font-size: 19px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.8px !important;
-  line-height: 1.25 !important;
+  font-family: 'Pinyon Script', cursive, serif !important;
+  font-style: normal !important; /* 💡 强制正体 */
+  font-size: 17.5px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.5px !important;
+  line-height: 1.3 !important;
 }
 .font-alex {
-  font-family: 'Alex Brush', cursive !important;
-  font-size: 18px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.6px !important;
+  font-family: 'Alex Brush', cursive, serif !important;
+  font-style: normal !important; /* 💡 强制正体 */
+  font-size: 17px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.4px !important;
   line-height: 1.3 !important;
 }
 
