@@ -274,11 +274,9 @@
 
       if (r === 'assistant') {
         if (isLatestAssistant && m.voiceObj) {
-          // 最新一条 assistant 消息：附带完整文字心声
           var vo = m.voiceObj;
           c += '\n[心声: ' + vo.monologue + ' | 动作: ' + (vo.action || '') + ' | 现况: ' + (vo.wish || vo.reality || '') + (m.emotionTag ? ' | ' + m.emotionTag : '') + ']';
         } else if (m.emotionTag) {
-          // 早先的历史消息：只携带轻量数字量化标签 (A85/O60/T20)，极度省 Tokens！
           c += ' ' + m.emotionTag;
         }
       }
@@ -486,7 +484,7 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 双栏心声卡片（左:当前行止 | 右:现实切片(念头/环境/感知)）
+      // 5. 双栏心声卡片
       + '<div class="voice-transparent-wrap" id="wxCrVoiceModalWrap">'
       + '  <div class="voice-dossier-card" id="wxCrVoiceCard">'
       + '    <div class="card-tape-deco"></div>'
@@ -521,7 +519,7 @@
       + '  </div>'
       + '</div>'
 
-            // 6. 长按消息两行黑色悬浮菜单
+      // 6. 长按消息两行黑色悬浮菜单
       + '<div class="cr-ctx-menu-mask" id="wxCrCtxMask"></div>'
       + '<div class="cr-ctx-menu" id="wxCrCtxMenu" style="display:none;"></div>'
 
@@ -747,7 +745,7 @@
           formattedContent = formatBubbleContent(content, cfg);
         }
 
-                var bubbleClass = isSticker ? 'wx-msg-bubble-item is-sticker-bubble' : 'wx-msg-bubble-item';
+        var bubbleClass = isSticker ? 'wx-msg-bubble-item is-sticker-bubble' : 'wx-msg-bubble-item';
 
         var cloudDecoHtml = '';
         if (!isSticker) {
@@ -779,6 +777,8 @@
   function updateTypingUI(show) {
     var indicator = document.getElementById('wxCrTypingIndicator');
     var charSig = document.getElementById('wxCrCharSig');
+    var sendBtn = document.getElementById('wxCrSendBtn');
+
     if (indicator && charSig) {
       if (show) {
         indicator.classList.add('show');
@@ -786,6 +786,19 @@
       } else {
         indicator.classList.remove('show');
         charSig.style.display = 'block';
+      }
+    }
+
+    // 💡 发送与纯黑白停止状态切换
+    if (sendBtn) {
+      if (show) {
+        sendBtn.classList.add('is-stop-mode');
+        sendBtn.setAttribute('title', '停止生成');
+        sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#111111" stroke-width="2"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="#111111"/></svg>';
+      } else {
+        sendBtn.classList.remove('is-stop-mode');
+        sendBtn.setAttribute('title', '发送');
+        sendBtn.innerHTML = '<svg viewBox="0 0 64 64" fill="none"><path d="M52 12 L12 26 L30 32 L42 54 Z" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/></svg>';
       }
     }
   }
@@ -1071,7 +1084,6 @@
   var currentVoiceList = [];
   var currentVoicePageIdx = 0;
 
-    // 智能识别右栏类型（瞬息 / 感知 / 现况）
   function getRealityLabel(text) {
     if (!text) return '瞬息 TRANSIENT';
     var t = String(text);
@@ -1083,7 +1095,7 @@
     return '瞬息 TRANSIENT';
   }
 
-  var isSingleVoiceMode = false; // 标记是否为小爱心单条查看模式
+  var isSingleVoiceMode = false;
 
   function updateVoiceCardUI() {
     if (!currentVoiceList.length) return;
@@ -1100,7 +1112,6 @@
     stage.querySelector('#wxCrVoiceMonologueText').textContent = '“ ' + vo.monologue + ' ”';
     stage.querySelector('#wxCrVoiceActionText').textContent = vo.action || '正安静地看着手机屏幕。';
 
-    // 动态展示墨墨指定的瞬息 / 感知 / 现况
     var realityLabel = getRealityLabel(vo.wish || vo.reality);
     var realityTitleEl = stage.querySelector('#wxCrVoiceRealityTitle');
     if (realityTitleEl) realityTitleEl.textContent = realityLabel;
@@ -1112,11 +1123,9 @@
     var nextBtn = stage.querySelector('#wxCrVoiceNextBtn');
 
     if (isSingleVoiceMode) {
-      // 💡 小爱心单条模式：彻底隐藏左右翻页箭头
       if (prevBtn) prevBtn.style.display = 'none';
       if (nextBtn) nextBtn.style.display = 'none';
     } else {
-      // 💡 头像总集模式：展示左右翻页
       if (prevBtn) {
         prevBtn.style.display = 'block';
         prevBtn.style.opacity = (currentVoicePageIdx > 0) ? '1' : '0.3';
@@ -1127,7 +1136,7 @@
       }
     }
   }
-  
+
   function bindChatEvents(stage) {
     function closeChatRoom() {
       if (abortCtrl) abortCtrl.abort();
@@ -1148,7 +1157,7 @@
     var prevVoiceBtn = stage.querySelector('#wxCrVoicePrevBtn');
     var nextVoiceBtn = stage.querySelector('#wxCrVoiceNextBtn');
 
-        if (charHeadBtn) {
+    if (charHeadBtn) {
       charHeadBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         currentVoiceList = chatMessages.filter(function(m) { return m.voiceObj; });
@@ -1361,11 +1370,24 @@
       }, delayMs);
     }
 
-    sendBtn.addEventListener('click', doSendMessage);
+    // 💡 支持点击停止与发送切换
+    sendBtn.addEventListener('click', function() {
+      if (isStreaming) {
+        if (abortCtrl) {
+          abortCtrl.abort();
+          abortCtrl = null;
+        }
+        onStreamDone(streamPartialText, getCfg(currentChatChar.id));
+        if (window.AppNav) window.AppNav.showToast('已停止生成');
+        return;
+      }
+      doSendMessage();
+    });
+
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        doSendMessage();
+        if (!isStreaming) doSendMessage();
       }
     });
 
@@ -1459,7 +1481,7 @@
             if (window.AppNav) window.AppNav.showToast('✦ 已加入微信收藏 ✦');
           } else if (act === 'share') {
             if (window.AppNav) window.AppNav.showToast('✦ 消息转发功能已就绪 ✦');
-                  } else if (act === 'edit') {
+          } else if (act === 'edit') {
             var oldText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
             openExpandEditor('编辑消息内容', oldText, function(newText) {
               if (newText.trim()) {
@@ -1591,7 +1613,7 @@
     }
   }
 
-    var _expandEditorCallback = null;
+  var _expandEditorCallback = null;
   function openExpandEditor(title, initText, onDone) {
     var modal = document.getElementById('wxCrExpandModal');
     var titleEl = document.getElementById('wxCrExpTitle');
@@ -1645,5 +1667,3 @@
   };
 
 })();
-
-
