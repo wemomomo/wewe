@@ -14,7 +14,7 @@
   width: 100vw !important;
   height: 100vh !important;
   background: #ffffff !important;
-  z-index: 10 !important;
+  z-index: 20 !important;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -377,7 +377,7 @@
 .rz8-dc {
   position: absolute !important;
   pointer-events: none !important;
-  z-index: 10 !important;
+  z-index: 20 !important;
   image-rendering: pixelated !important;
 }
 
@@ -571,7 +571,7 @@
   justify-content: center;
   cursor: pointer;
   color: #111111;
-  z-index: 10;
+  z-index: 20;
   transition: transform 0.18s ease;
 }
 .voice-heart-trigger:active {
@@ -634,7 +634,7 @@
   position: fixed;
   inset: 0;
   background: transparent;
-  z-index: 12000;
+  z-index: 30;
   display: none;
 }
 .cr-ctx-menu-mask.show {
@@ -651,7 +651,7 @@
   flex-direction: column;
   gap: 6px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  z-index: 12001;
+  z-index: 30;
   transform: translate(-50%, -100%);
   margin-top: -12px;
   box-sizing: border-box;
@@ -708,7 +708,7 @@
   box-shadow: none !important;
   border-radius: 20px;
   padding: 10px 4px 6px;
-  z-index: 50;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -810,7 +810,7 @@
   padding: 0 12px calc(14px + var(--safe-bottom));
   flex-shrink: 0;
   position: relative;
-  z-index: 60;
+  z-index: 40;
 }
 
 .input-bar-wrap {
@@ -928,7 +928,7 @@
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  z-index: 100;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
