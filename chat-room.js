@@ -729,12 +729,24 @@
           formattedContent = formatBubbleContent(content, cfg);
         }
 
-        var bubbleClass = isSticker ? 'wx-msg-bubble-item is-sticker-bubble' : 'wx-msg-bubble-item';
+                var bubbleClass = isSticker ? 'wx-msg-bubble-item is-sticker-bubble' : 'wx-msg-bubble-item';
 
-        html += '<div class="' + bubbleClass + '" data-bubble-idx="' + globalIdx + '">'
+        var cloudDecoHtml = '';
+        if (!isSticker) {
+          if (isUser) {
+            cloudDecoHtml = '<div class="rz8-dc rz8-br-cloud"><div class="rz8-star-blue-gray-tl"></div><div class="rz8-cloud-blue-gray"></div><div class="rz8-dot-blue-gray-br"></div></div>';
+          } else {
+            cloudDecoHtml = '<div class="rz8-dc rz8-bl-cloud"><div class="rz8-star-silver-tr"></div><div class="rz8-cloud-silver"></div><div class="rz8-dot-silver-bl"></div></div>';
+          }
+        }
+
+        html += '<div class="wx-bubble-outer">'
+          + cloudDecoHtml
+          + '<div class="' + bubbleClass + '" data-bubble-idx="' + globalIdx + '">'
           + quoteHtml
           + formattedContent
           + heartHtml
+          + '</div>'
           + '</div>'
           + tailTimeHtml;
       });
