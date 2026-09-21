@@ -521,9 +521,27 @@
       + '  </div>'
       + '</div>'
 
-      // 6. 长按消息两行黑色悬浮菜单
+            // 6. 长按消息两行黑色悬浮菜单
       + '<div class="cr-ctx-menu-mask" id="wxCrCtxMask"></div>'
-      + '<div class="cr-ctx-menu" id="wxCrCtxMenu" style="display:none;"></div>';
+      + '<div class="cr-ctx-menu" id="wxCrCtxMenu" style="display:none;"></div>'
+
+      // 7. 手写板编辑弹窗
+      + '<div class="cr-expand-modal-mask" id="wxCrExpandModal">'
+      + '  <div class="cr-expand-modal-panel">'
+      + '    <div class="cr-expand-header">'
+      + '      <button class="cr-expand-back-btn" id="wxCrExpCancelBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
+      + '      <div class="cr-expand-title" id="wxCrExpTitle">深度手札编辑</div>'
+      + '      <button class="cr-expand-done-btn" id="wxCrExpDoneBtn" type="button">完成</button>'
+      + '    </div>'
+      + '    <div class="cr-expand-body">'
+      + '      <textarea class="cr-expand-textarea" id="wxCrExpTextarea" placeholder="在这里尽情书写..."></textarea>'
+      + '    </div>'
+      + '    <div class="cr-expand-footer">'
+      + '      <div class="cr-expand-count" id="wxCrExpCount">0 字</div>'
+      + '      <button class="cr-expand-clear-btn" id="wxCrExpClearBtn" type="button">清空文本</button>'
+      + '    </div>'
+      + '  </div>'
+      + '</div>';
 
     document.body.appendChild(stage);
 
@@ -1441,15 +1459,16 @@
             if (window.AppNav) window.AppNav.showToast('✦ 已加入微信收藏 ✦');
           } else if (act === 'share') {
             if (window.AppNav) window.AppNav.showToast('✦ 消息转发功能已就绪 ✦');
-          } else if (act === 'edit') {
+                  } else if (act === 'edit') {
             var oldText = targetMsg.cleanContent || targetMsg.content || targetMsg.text || '';
-            var newText = prompt('编辑这条消息内容：', oldText);
-            if (newText !== null && newText.trim()) {
-              targetMsg.content = newText.trim();
-              targetMsg.cleanContent = newText.trim();
-              saveChatMessages(currentChatChar.id);
-              renderMessages();
-            }
+            openExpandEditor('编辑消息内容', oldText, function(newText) {
+              if (newText.trim()) {
+                targetMsg.content = newText.trim();
+                targetMsg.cleanContent = newText.trim();
+                saveChatMessages(currentChatChar.id);
+                renderMessages();
+              }
+            });
           } else if (act === 'del') {
             var doDelete = function() {
               if (targetIdx >= 0) {
@@ -1571,6 +1590,54 @@
       window.AppDB.save('wx_chat_msgs_' + charId, chatMessages);
     }
   }
+
+    var _expandEditorCallback = null;
+  function openExpandEditor(title, initText, onDone) {
+    var modal = document.getElementById('wxCrExpandModal');
+    var titleEl = document.getElementById('wxCrExpTitle');
+    var ta = document.getElementById('wxCrExpTextarea');
+    var countEl = document.getElementById('wxCrExpCount');
+    if (!modal || !ta) return;
+
+    _expandEditorCallback = onDone;
+    if (titleEl) titleEl.textContent = title || '深度手札编辑';
+    ta.value = initText || '';
+    if (countEl) countEl.textContent = ta.value.length + ' 字';
+
+    modal.classList.add('show');
+    setTimeout(function() { ta.focus(); }, 200);
+
+    ta.oninput = function() {
+      if (countEl) countEl.textContent = this.value.length + ' 字';
+    };
+
+    var cancelBtn = document.getElementById('wxCrExpCancelBtn');
+    var doneBtn = document.getElementById('wxCrExpDoneBtn');
+    var clearBtn = document.getElementById('wxCrExpClearBtn');
+
+    if (cancelBtn) {
+      cancelBtn.onclick = function() {
+        modal.classList.remove('show');
+        _expandEditorCallback = null;
+      };
+    }
+    if (doneBtn) {
+      doneBtn.onclick = function() {
+        var val = ta.value;
+        modal.classList.remove('show');
+        if (_expandEditorCallback) _expandEditorCallback(val);
+        _expandEditorCallback = null;
+      };
+    }
+    if (clearBtn) {
+      clearBtn.onclick = function() {
+        ta.value = '';
+        if (countEl) countEl.textContent = '0 字';
+        ta.focus();
+      };
+    }
+  }
+  window.openCrExpandEditor = openExpandEditor;
 
   window.WxChatRoom = {
     open: openChatRoom,
