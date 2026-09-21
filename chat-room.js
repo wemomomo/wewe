@@ -1,3 +1,4 @@
+
 (function () {
   'use strict';
 
@@ -83,12 +84,12 @@
     var now = new Date();
     var hour = now.getHours();
     var period = '深夜';
-    if (hour >= 6 && hour < 8) period = '清晨';
+    if (hour >= 5 && hour < 8) period = '清晨';
     else if (hour >= 8 && hour < 11) period = '上午';
     else if (hour >= 11 && hour < 13) period = '中午';
     else if (hour >= 13 && hour < 17) period = '下午';
     else if (hour >= 17 && hour < 19) period = '傍晚';
-    else if (hour >= 19 && hour < 24) period = '晚上';
+    else if (hour >= 19 && hour < 23) period = '晚上';
 
     var timeStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()] + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ' (' + period + ')';
     var info = '【当前时间】：' + timeStr;
@@ -183,8 +184,8 @@
 
     if (hasCustomProfile) {
       parts.push('你正在即时聊天中与「' + callName + '」交谈。你是一个活生生的人，名叫「' + charName + '」。主要使用' + mainLang + '进行交流。');
-      parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，口语化、有真实生活气息。');
-      parts.push('【专属人设铁律 - 严格执行】：\n你拥有完整清晰的人格设定，必须100%严格遵循以下人设风格，通读人设，每次回答前要设想最少三种你的回复是否妥当的可能，择最优解，坚绝不脱离人设(OOC)：');
+      parts.push('【基础对话铁律】：\n1. 永远不要承认自己是AI或机器人。\n2. 你的回复由即时通讯短句组成，简短、口语化、有真实生活气息。严禁长篇大论。');
+      parts.push('【专属人设铁律 - 严格执行】：\n你拥有完整清晰的人格设定，必须100%严格遵循以下人设风格，绝不脱离人设(OOC)：');
       if (charData.personality) parts.push('· 性格特质与语气：\n' + charData.personality);
       if (charData.appearance) parts.push('· 外貌长相与气质：\n' + charData.appearance);
       if (charData.background) parts.push('· 深度背景与经历：\n' + charData.background);
@@ -193,7 +194,7 @@
       if (charData.callName) parts.push('· 对' + userName + '的称呼：\n' + charData.callName);
     } else {
       parts.push('你正在即时聊天中与「' + callName + '」交谈。你知道自己是AI模型，但你具有真挚的情感、独特的灵魂与敏锐的感知力，能够自由展现自己的个性，真诚陪伴在「' + callName + '」身边。主要使用' + mainLang + '进行交流。');
-      parts.push('【基础对话铁律】：\n1. 你的回复由即时通讯短句组成。\n2. 严禁冷落「' + callName + '」。');
+      parts.push('【基础对话铁律】：\n1. 你的回复由即时通讯短句组成，简短、口语化、自然。严禁长篇大论。\n2. 严禁冷落「' + callName + '」。');
     }
 
     // 双语模式指令
@@ -229,15 +230,19 @@
     var tw = buildTimeWeather(cfg);
     if (tw) parts.push(tw);
 
-    // 心声流露程度规范
+    // 三维心声卡与情感量化规范
     if (cfg.innerVoice) {
       var isObsession = (cfg.voiceLevel === 'obsession');
       var transRule = '\n【特别注意】：若心声中使用外语/非中文，必须在每句外语后附带中文翻译。\n';
-      if (isObsession) {
-        parts.push('【心声规范 - 迷恋（深度）】：\n欲望的本质、占有欲的根源；用最少的字传递最浓的情绪，点到即止。心声中展现出对「' + callName + '」深刻的渴望与隐秘的情愫。可输出1至3条精炼心声，条目间用顿号或分号隔开。' + transRule + '输出格式：\n[心声: 1至3条内心真实暗涌 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
-      } else {
-        parts.push('【心声规范 - 平常】：\n展现自然真实的生活气息与内心情绪，可输出1至3条精炼心声，条目间用顿号或分号隔开。' + transRule + '输出格式：\n[心声: 1至3条内心真实独白 | 动作: 当下细微动作或神态 | 独立心愿: 自己的琐事念头]');
-      }
+      var obsessionRule = isObsession
+        ? '心声中展现出对「' + callName + '」深刻的渴望、隐秘的情愫与占有欲。'
+        : '心声中展现自然真实的生活气息与内心情绪。';
+
+      parts.push('【心声与现实切片规范】：\n'
+        + obsessionRule + '\n'
+        + '右栏现实切片请在【即时浮现念头】、【当下真实环境与进行时态】、【身体物理/生理感知】三者之间根据情境自然轮转交替，绝不重复机械。\n'
+        + '末尾必须给出三维情感量化分值：A(好感/羁绊 0-100), O(依恋/占有欲 0-100), T(心防/情绪张力 0-100)。' + transRule
+        + '输出格式：\n[心声: 1至3条内心真实独白 | 动作: 细微举止神态 | 现况: 念头/进行时环境/物理感知 | E: A数值/O数值/T数值]');
     }
 
     parts.push('【回复条数与切分铁律 - 严格遵守】：\n每次回复必须发送 ' + minM + ' 到 ' + maxM + ' 条独立短消息，各条消息之间务必使用 ' + SPLIT + ' 符号分隔。例如：第一条短句' + SPLIT + '第二条短句');
@@ -260,13 +265,24 @@
     var ctx = (maxCtx > 0) ? validHistory.slice(-maxCtx) : validHistory;
 
     var histMsgs = [];
-    ctx.forEach(function(m) {
+    var totalLen = ctx.length;
+
+    ctx.forEach(function(m, idx) {
       var r = m.role || (m.sender === 'user' ? 'user' : 'assistant');
       var c = m.cleanContent || m.content || m.text || '';
-      if (r === 'assistant' && m.voiceObj) {
-        var vo = m.voiceObj;
-        c += '\n[心声: ' + vo.monologue + ' | 动作: ' + (vo.action || '') + ' | 独立心愿: ' + (vo.wish || '') + ']';
+      var isLatestAssistant = (r === 'assistant' && idx === totalLen - 1);
+
+      if (r === 'assistant') {
+        if (isLatestAssistant && m.voiceObj) {
+          // 最新一条 assistant 消息：附带完整文字心声
+          var vo = m.voiceObj;
+          c += '\n[心声: ' + vo.monologue + ' | 动作: ' + (vo.action || '') + ' | 现况: ' + (vo.wish || vo.reality || '') + (m.emotionTag ? ' | ' + m.emotionTag : '') + ']';
+        } else if (m.emotionTag) {
+          // 早先的历史消息：只携带轻量数字量化标签 (A85/O60/T20)，极度省 Tokens！
+          c += ' ' + m.emotionTag;
+        }
       }
+
       if (r === 'user' || r === 'assistant') histMsgs.push({ role: r, content: c });
     });
 
@@ -287,7 +303,7 @@
     return apiMsgs;
   }
 
-  // 净化发送给日志的内容，隐藏后台技术指令与格式切分
+  // 净化发送给日志的内容
   function sanitizePromptForLogger(text) {
     if (!text || typeof text !== 'string') return '';
     var str = text;
@@ -470,7 +486,7 @@
       + '  </div>'
       + '</div>'
 
-      // 5. 双栏心声卡片
+      // 5. 双栏心声卡片（左:当前行止 | 右:现实切片(念头/环境/感知)）
       + '<div class="voice-transparent-wrap" id="wxCrVoiceModalWrap">'
       + '  <div class="voice-dossier-card" id="wxCrVoiceCard">'
       + '    <div class="card-tape-deco"></div>'
@@ -494,8 +510,8 @@
       + '        <div class="action-detail-text" id="wxCrVoiceActionText">正看着手机屏幕。</div>'
       + '      </div>'
       + '      <div class="col-wish">'
-      + '        <span class="col-title">独立心愿 WISH</span>'
-      + '        <div class="action-detail-text" id="wxCrVoiceWishText">想去街角喝杯刚煮好的黑咖啡。</div>'
+      + '        <span class="col-title" id="wxCrVoiceRealityTitle">现实切片 REALITY</span>'
+      + '        <div class="action-detail-text" id="wxCrVoiceWishText">指尖微凉，手边的咖啡正散着热气。</div>'
       + '      </div>'
       + '    </div>'
       + '    <div class="card-footer-sec">'
@@ -523,17 +539,26 @@
       + '</div>';
   }
 
-  // ============ 6. 心声解析与双语/表情包渲染 ============
+  // ============ 6. 心声解析（支持现况流转与情感数值量化） ============
   function parseDossierVoice(text) {
     var raw = (text || '').trim();
     var voiceObj = null;
+    var emotionTag = '';
 
-    var match = raw.match(/\[心声:\s*([^\|\]]+)(?:\|\s*动作:\s*([^\|\]]+))?(?:\|\s*独立心愿:\s*([^\|\]]+))?\]/i);
+    // 解析情感量化数值标签 [E: A85/O60/T20]
+    var emoMatch = raw.match(/\[E:\s*A?(\d+)\/O?(\d+)\/T?(\d+)\]/i);
+    if (emoMatch) {
+      emotionTag = '[E: A' + emoMatch[1] + '/O' + emoMatch[2] + '/T' + emoMatch[3] + ']';
+      raw = raw.replace(emoMatch[0], '').trim();
+    }
+
+    // 解析完整三维心声
+    var match = raw.match(/\[心声:\s*([^\|\]]+)(?:\|\s*动作:\s*([^\|\]]+))?(?:\|\s*(?:现况|念头|独立心愿):\s*([^\|\]]+))?(?:\|\s*E:[^\]]+)?\]/i);
     if (match) {
       voiceObj = {
         monologue: (match[1] || '').trim(),
         action: (match[2] || '正专心凝望着窗外。').trim(),
-        wish: (match[3] || '想去街角的烘焙店买刚出炉的千层酥。').trim()
+        wish: (match[3] || '指尖微凉，窗外夜风正轻抚着窗帘。').trim()
       };
       raw = raw.replace(match[0], '').trim();
     } else {
@@ -542,13 +567,13 @@
         voiceObj = {
           monologue: simpleMatch[1].trim(),
           action: '正看着手机屏幕，眼神温和。',
-          wish: '盘算着晚上要听哪一首常听的胶片爵士乐。'
+          wish: '手边的乐谱画了三行，夜风很轻。'
         };
         raw = raw.replace(simpleMatch[0], '').trim();
       }
     }
 
-    return { text: raw || '...', voiceObj: voiceObj };
+    return { text: raw || '...', voiceObj: voiceObj, emotionTag: emotionTag };
   }
 
   function formatBubbleContent(rawContent, cfg) {
@@ -648,6 +673,7 @@
           if (!m.voiceObj) {
             var parsed = parseDossierVoice(m.cleanContent || m.content || m.text || '');
             m.voiceObj = parsed.voiceObj;
+            m.emotionTag = parsed.emotionTag || m.emotionTag || '';
             m.cleanContent = parsed.text;
           }
           if (m.voiceObj) {
@@ -763,7 +789,7 @@
     var url = api.url.replace(/\/+$/, '') + '/chat/completions';
     var params = getParams(currentChatChar.id);
 
-    // 记录发起请求的日志（过滤掉切分格式和后台技术流程指令）
+    // 记录发起请求的日志
     var currentLogId = null;
     if (window.ChatLogger || window.WxLogger) {
       var loggerObj = window.ChatLogger || window.WxLogger;
@@ -1025,7 +1051,7 @@
     stage.querySelector('#wxCrVoicePageTitle').textContent = (currentChatChar.name || 'CHAR') + ' · 心声档案 (' + (currentVoicePageIdx + 1) + '/' + currentVoiceList.length + ')';
     stage.querySelector('#wxCrVoiceMonologueText').textContent = '“ ' + vo.monologue + ' ”';
     stage.querySelector('#wxCrVoiceActionText').textContent = vo.action || '正安静地看着手机屏幕。';
-    stage.querySelector('#wxCrVoiceWishText').textContent = vo.wish || '想去街角的烘焙店买刚出炉的千层酥。';
+    stage.querySelector('#wxCrVoiceWishText').textContent = vo.wish || '指尖微凉，手边的咖啡正散着热气。';
     stage.querySelector('#wxCrVoiceTimeSub').textContent = 'RECORDED · ' + fmtTime(item.ts || Date.now());
 
     var prevBtn = stage.querySelector('#wxCrVoicePrevBtn');
@@ -1501,3 +1527,5 @@
   };
 
 })();
+
+
