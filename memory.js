@@ -2,21 +2,47 @@
 (function () {
   'use strict';
 
-  var MEM_KEY_PREFIX = 'wx_char_memories_';
-  var ARCHIVE_KEY_PREFIX = 'wx_chat_archive_';
   var USER_COGNITION_PREFIX = 'wx_user_cognition_';
   var SELF_COGNITION_PREFIX = 'wx_self_cognition_';
   var UNRESOLVED_ALERT_PREFIX = 'wx_unresolved_alerts_';
+  var ARCHIVE_KEY_PREFIX = 'wx_chat_archive_';
 
-  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-  function esc(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
+  function esc(str) {
+    return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
+  }
 
   function getTodayDateStr(dateObj) {
     var d = dateObj || new Date();
-    return d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate());
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    return d.getFullYear() + '.' + (m < 10 ? '0' + m : m) + '.' + (day < 10 ? '0' + day : day);
   }
 
-  // ============ 1. AppDB 安全读取当前角色 ============
+  // 11 大 User 画像板块分类
+  var USER_BLOCK_DEFS = [
+    { key: 'likes', label: '喜好', subLabel: 'PREFERENCES' },
+    { key: 'habits', label: '习惯', subLabel: 'HABITS' },
+    { key: 'personality', label: '性格', subLabel: 'CHARACTER' },
+    { key: 'appearance', label: '形象', subLabel: 'APPEARANCE' },
+    { key: 'dislikes', label: '厌恶', subLabel: 'DISLIKES' },
+    { key: 'catchphrase', label: '口头禅', subLabel: 'PHRASES' },
+    { key: 'secrets', label: '秘密', subLabel: 'SECRETS' },
+    { key: 'social', label: '人际', subLabel: 'RELATIONS' },
+    { key: 'past', label: '过往', subLabel: 'PAST' },
+    { key: 'daily', label: '日常', subLabel: 'DAILY' },
+    { key: 'other', label: '其他', subLabel: 'OTHER' }
+  ];
+
+  // 5 大角色自我认知与羁绊板块
+  var SELF_BLOCK_DEFS = [
+    { key: 'promises', label: '承诺', subLabel: 'PROMISES' },
+    { key: 'wishes', label: '心愿', subLabel: 'WISHES' },
+    { key: 'mood', label: '心境', subLabel: 'MOOD' },
+    { key: 'events', label: '事件', subLabel: 'EVENTS' },
+    { key: 'secrets', label: '隐秘', subLabel: 'INNER THOUGHTS' }
+  ];
+
+  // ============ 1. AppDB 当前角色读取 ============
   function fetchCurrentActiveChar(callback) {
     function doFetch() {
       if (!window.AppDB) {
@@ -56,47 +82,53 @@
     }
   }
 
-  // ============ 2. 结构化认知库 (User画像 + 自我心事 + 悬念雷达) ============
+  // ============ 2. 结构化独立板块数据读写 (纯 AppDB) ============
   function getUserCognition(charId, callback) {
-    var def = {
-      appearance: '',  // 形象
-      personality: '', // 性格
-      likes: '',       // 喜好
-      dislikes: '',    // 厌恶
-      habits: '',      // 习惯
-      catchphrase: '', // 口头禅
-      social: '',      // 人际关系
-      past: '',        // 过往经历
-      secrets: '',     // 秘密
-      daily: '',       // 日常
-      other: ''        // 其他
-    };
+    var def = {};
+    USER_BLOCK_DEFS.forEach(function (b) { def[b.key] = []; });
+
     if (!window.AppDB) { if (callback) callback(def); return; }
     window.AppDB.get(USER_COGNITION_PREFIX + charId, function (val) {
-      callback(Object.assign({}, def, val || {}));
+      var res = Object.assign({}, def);
+      if (val && typeof val === 'object') {
+        USER_BLOCK_DEFS.forEach(function (b) {
+          if (Array.isArray(val[b.key])) res[b.key] = val[b.key];
+          else if (typeof val[b.key] === 'string' && val[b.key].trim()) {
+            res[b.key] = val[b.key].split(/；|;/).map(function(s){ return s.trim(); }).filter(Boolean);
+          }
+        });
+      }
+      callback(res);
     });
   }
 
   function saveUserCognition(charId, data, callback) {
     if (window.AppDB) window.AppDB.save(USER_COGNITION_PREFIX + charId, data, callback);
+    else if (callback) callback();
   }
 
   function getSelfCognition(charId, callback) {
-    var def = {
-      mood: '',      // 心境变化
-      events: '',    // 重要事件
-      promises: '',  // 承诺
-      wishes: '',    // 想做的事
-      secrets: ''    // 隐秘不方便描述
-    };
+    var def = {};
+    SELF_BLOCK_DEFS.forEach(function (b) { def[b.key] = []; });
+
     if (!window.AppDB) { if (callback) callback(def); return; }
     window.AppDB.get(SELF_COGNITION_PREFIX + charId, function (val) {
-      callback(Object.assign({}, def, val || {}));
+      var res = Object.assign({}, def);
+      if (val && typeof val === 'object') {
+        SELF_BLOCK_DEFS.forEach(function (b) {
+          if (Array.isArray(val[b.key])) res[b.key] = val[b.key];
+          else if (typeof val[b.key] === 'string' && val[b.key].trim()) {
+            res[b.key] = val[b.key].split(/；|;/).map(function(s){ return s.trim(); }).filter(Boolean);
+          }
+        });
+      }
+      callback(res);
     });
   }
 
   function saveSelfCognition(charId, data, callback) {
     if (window.AppDB) window.AppDB.save(SELF_COGNITION_PREFIX + charId, data, callback);
+    else if (callback) callback();
   }
 
   function getUnresolvedAlerts(charId, callback) {
@@ -108,86 +140,57 @@
 
   function saveUnresolvedAlerts(charId, list, callback) {
     if (window.AppDB) window.AppDB.save(UNRESOLVED_ALERT_PREFIX + charId, list, callback);
+    else if (callback) callback();
   }
 
-  function getCharMemories(charId, callback) {
-    if (!window.AppDB) { if (callback) callback([]); return; }
-    window.AppDB.get(MEM_KEY_PREFIX + charId, function (val) {
-      callback(Array.isArray(val) ? val : []);
-    });
-  }
-
-  function saveCharMemories(charId, list, callback) {
-    if (window.AppDB) window.AppDB.save(MEM_KEY_PREFIX + charId, list, callback);
-  }
-
-  // ============ 3. 【核心】记忆网关 (Memory Gateway) 上下文调度引擎 ============
+  // ============ 3. 记忆网关：组装发给 AI 的高浓度精炼包 ============
   function buildGatewayPrompt(charId, callback) {
     getUserCognition(charId, function (uCog) {
       getSelfCognition(charId, function (sCog) {
         getUnresolvedAlerts(charId, function (alerts) {
-          getCharMemories(charId, function (memories) {
-            var parts = [];
+          var parts = [];
 
-            // A. User 画像观察日记
-            var uParts = [];
-            if (uCog.appearance) uParts.push('· 外在形象: ' + uCog.appearance);
-            if (uCog.personality) uParts.push('· 性格特点: ' + uCog.personality);
-            if (uCog.likes) uParts.push('· 偏好喜好: ' + uCog.likes);
-            if (uCog.dislikes) uParts.push('· 讨厌厌恶: ' + uCog.dislikes);
-            if (uCog.habits) uParts.push('· 生活习惯: ' + uCog.habits);
-            if (uCog.catchphrase) uParts.push('· 常用口头禅: ' + uCog.catchphrase);
-            if (uCog.social) uParts.push('· 人际关系: ' + uCog.social);
-            if (uCog.past) uParts.push('· 听过的过往: ' + uCog.past);
-            if (uCog.secrets) uParts.push('· 了解的秘密: ' + uCog.secrets);
-            if (uCog.daily) uParts.push('· 日常近况: ' + uCog.daily);
-            if (uCog.other) uParts.push('· 其他琐碎印象: ' + uCog.other);
-
-            if (uParts.length) {
-              parts.push('【我对User的观察画像与认知（根据交流随时更新）】：\n' + uParts.join('\n'));
+          // A. User 11大画像字典
+          var uLines = [];
+          USER_BLOCK_DEFS.forEach(function (b) {
+            var items = uCog[b.key];
+            if (Array.isArray(items) && items.length) {
+              uLines.push('· [' + b.label + ']: ' + items.join('；'));
             }
-
-            // B. 角色自我心事簿
-            var sParts = [];
-            if (sCog.mood) sParts.push('· 近期心境: ' + sCog.mood);
-            if (sCog.events) sParts.push('· 共同经历的里程碑: ' + sCog.events);
-            if (sCog.promises) sParts.push('· 许下的承诺: ' + sCog.promises);
-            if (sCog.wishes) sParts.push('· 想要一起做的事: ' + sCog.wishes);
-            if (sCog.secrets) sParts.push('· 不便明说的隐秘念头: ' + sCog.secrets);
-
-            if (sParts.length) {
-              parts.push('【我自己的内心羁绊与心事】：\n' + sParts.join('\n'));
-            }
-
-            // C. 悬念与情绪警报
-            if (alerts.length) {
-              var activeAlerts = alerts.filter(function (a) { return !a.resolved; });
-              if (activeAlerts.length) {
-                var aText = activeAlerts.map(function (a) { return '· ⚠️ ' + a.text + ' (记录时间: ' + a.date + ')'; }).join('\n');
-                parts.push('【悬而未决的事项与情绪反常警报（时刻挂念并寻机问候）】：\n' + aText);
-              }
-            }
-
-            // D. 近期 3 篇手账日记
-            if (memories.length) {
-              var recentMems = memories.slice(-3);
-              var mText = recentMems.map(function (m) {
-                return '✦ ' + m.dateStr + ' ✦\n· 事件: ' + m.track + '\n· 心声: ' + m.thoughts + '\n· 共话: ' + m.summary;
-              }).join('\n\n');
-              parts.push('【近期手账回忆录】：\n' + mText);
-            }
-
-            // E. 动态感知与记忆补充指令
-            parts.push('【记忆补充指令】：你在交流中需时刻敏锐关注对方。若本次聊天中对方透露了新的个人细节（喜好/习惯/秘密等）、或产生了新承诺/未决悬念，请在回复末尾附带更新指令，格式如：\n`[UPDATE_USER: 喜好 +1 喜欢抹茶冰淇淋]` 或 `[ALERT: 对方今天心情低落未解决]`');
-
-            callback(parts.join('\n\n'));
           });
+          if (uLines.length) {
+            parts.push('【我对User的观察画像与认知字典（根据交流随时更新）】：\n' + uLines.join('\n'));
+          }
+
+          // B. 角色自我5大羁绊心事
+          var sLines = [];
+          SELF_BLOCK_DEFS.forEach(function (b) {
+            var items = sCog[b.key];
+            if (Array.isArray(items) && items.length) {
+              sLines.push('· [' + b.label + ']: ' + items.join('；'));
+            }
+          });
+          if (sLines.length) {
+            parts.push('【我自己的内心羁绊与心事册】：\n' + sLines.join('\n'));
+          }
+
+          // C. 悬念与情绪警报
+          var activeAlerts = alerts.filter(function (a) { return !a.resolved; });
+          if (activeAlerts.length) {
+            var aText = activeAlerts.map(function (a) { return '· ⚠️ ' + a.text + ' (记录于: ' + a.date + ')'; }).join('\n');
+            parts.push('【悬而未决的事项与情绪反常警报（时刻挂念并寻机问候）】：\n' + aText);
+          }
+
+          // D. 精准板块补充指令
+          parts.push('【板块认知补充铁律】：在交流中敏锐捕捉对方信息。若本次聊天中对方透露了新的具体事实或产生新承诺，请在回复末尾附带精准板块更新标签，格式如：\n`[COG_USER: 喜好 + 喜欢吃草莓蛋糕]` 或 `[COG_SELF: 承诺 + 答应陪她看初雪]` 或 `[ALERT: 墨墨胃疼未见好转]`（如无新信息则绝不输出多余标签）。');
+
+          callback(parts.join('\n\n'));
         });
       });
     });
   }
 
-  // ============ 4. 记忆总结与认知自动更新引擎 ============
+  // ============ 4. 记忆总结与认知自动分拣落库 ============
   function executeMemorySummary(charId, charData, userData, callback) {
     if (!charId || !window.AppDB) return;
 
@@ -221,12 +224,10 @@
         return sender + ': ' + txt;
       }).join('\n');
 
-      var systemPrompt = '你现在是「' + charName + '」。请回顾你刚才与「' + userName + '」所经历的这段对话及你当时的内心活动，在你的私人手账中写下一篇高光手账日记，并同步更新你对「' + userName + '」的认知。\n'
+      var systemPrompt = '你现在是「' + charName + '」。请回顾你刚才与「' + userName + '」所经历的这段对话及你当时的内心活动，分门别类提炼对「' + userName + '」的新认知和自己产生的新羁绊与心事。\n'
         + '【输出格式规范 - 严格遵守】：\n'
-        + '[重要事件]: 提炼总结这段时间发生的关键事件或核心话题（如无特殊大事则用一两句话简短概括）。\n'
-        + '[内心想法]: 写下对话过程中，对「' + userName + '」产生的触动、真实心声暗涌或值得珍藏的念头。\n'
-        + '[今日共话]: 简短概括你们两人主要聊了哪些事情、达成了什么约定或发生了什么趣事。\n'
-        + '[USER新认知]: (若有新发现则填写，格式如: 喜好-喜欢抹茶; 习惯-习惯熬夜。若无则填 无)\n'
+        + '[USER板块更新]: (分门别类填写，支持板块: 喜好/习惯/性格/形象/厌恶/口头禅/秘密/人际/过往/日常/其他。格式如: 喜好: 喜欢抹茶; 习惯: 习惯晚睡。若无新发现则填 无)\n'
+        + '[SELF板块更新]: (支持板块: 承诺/心愿/心境/事件/隐秘。格式如: 承诺: 答应带她去海边; 心愿: 想陪她吃抹茶冰淇淋。若无则填 无)\n'
         + '[未决悬念警报]: (若对方有情绪反常、生病、或未完结的事情则填写，若无则填 无)';
 
       var api = window.WxChatSettings ? window.WxChatSettings.getActiveApi(charId) : null;
@@ -245,7 +246,7 @@
           model: api.model,
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: '【待归纳提炼的对话与心理记录】：\n' + chatDigest }
+            { role: 'user', content: '【待归纳提炼的对话记录】：\n' + chatDigest }
           ],
           temperature: 0.7
         })
@@ -258,21 +259,51 @@
           return;
         }
 
-        var trackMatch = resContent.match(/\[重要事件\][:：\s]*([\s\S]*?)(?=\[内心想法\]|$)/i);
-        var thoughtsMatch = resContent.match(/\[内心想法\][:：\s]*([\s\S]*?)(?=\[今日共话\]|$)/i);
-        var summaryMatch = resContent.match(/\[今日共话\][:：\s]*([\s\S]*?)(?=\[USER新认知\]|$)/i);
-        var uCogMatch = resContent.match(/\[USER新认知\][:：\s]*([\s\S]*?)(?=\[未决悬念警报\]|$)/i);
+        var uUpdateMatch = resContent.match(/\[USER板块更新\][:：\s]*([\s\S]*?)(?=\[SELF板块更新\]|$)/i);
+        var sUpdateMatch = resContent.match(/\[SELF板块更新\][:：\s]*([\s\S]*?)(?=\[未决悬念警报\]|$)/i);
         var alertMatch = resContent.match(/\[未决悬念警报\][:：\s]*([\s\S]*?)$/i);
 
-        // A. 自动更新 USER 认知库
-        if (uCogMatch && uCogMatch[1] && uCogMatch[1].trim() !== '无') {
+        // A. 分拣入 User 板块
+        if (uUpdateMatch && uUpdateMatch[1] && uUpdateMatch[1].trim() !== '无') {
           getUserCognition(charId, function (uCog) {
-            uCog.daily = (uCog.daily ? uCog.daily + '；' : '') + uCogMatch[1].trim();
+            var rawPairs = uUpdateMatch[1].trim().split(/；|;|\n/);
+            rawPairs.forEach(function (pair) {
+              var p = pair.split(/[:：]/);
+              if (p.length >= 2) {
+                var labelName = p[0].trim();
+                var val = p.slice(1).join(':').trim();
+                var matchedDef = USER_BLOCK_DEFS.find(function (b) { return b.label === labelName; });
+                if (matchedDef && val && val !== '无') {
+                  if (!Array.isArray(uCog[matchedDef.key])) uCog[matchedDef.key] = [];
+                  if (uCog[matchedDef.key].indexOf(val) === -1) uCog[matchedDef.key].push(val);
+                }
+              }
+            });
             saveUserCognition(charId, uCog);
           });
         }
 
-        // B. 自动更新悬念警报
+        // B. 分拣入 Self 板块
+        if (sUpdateMatch && sUpdateMatch[1] && sUpdateMatch[1].trim() !== '无') {
+          getSelfCognition(charId, function (sCog) {
+            var rawPairs = sUpdateMatch[1].trim().split(/；|;|\n/);
+            rawPairs.forEach(function (pair) {
+              var p = pair.split(/[:：]/);
+              if (p.length >= 2) {
+                var labelName = p[0].trim();
+                var val = p.slice(1).join(':').trim();
+                var matchedDef = SELF_BLOCK_DEFS.find(function (b) { return b.label === labelName; });
+                if (matchedDef && val && val !== '无') {
+                  if (!Array.isArray(sCog[matchedDef.key])) sCog[matchedDef.key] = [];
+                  if (sCog[matchedDef.key].indexOf(val) === -1) sCog[matchedDef.key].push(val);
+                }
+              }
+            });
+            saveSelfCognition(charId, sCog);
+          });
+        }
+
+        // C. 更新悬念警报
         if (alertMatch && alertMatch[1] && alertMatch[1].trim() !== '无') {
           getUnresolvedAlerts(charId, function (alerts) {
             alerts.unshift({
@@ -285,28 +316,12 @@
           });
         }
 
+        // 归档旧消息，保留缓冲
         var archiveKey = ARCHIVE_KEY_PREFIX + charId + '_' + Date.now();
-        var newMem = {
-          id: 'mem_' + charId + '_' + Date.now(),
-          charId: charId,
-          dateStr: getTodayDateStr(),
-          timestamp: Date.now(),
-          track: trackMatch ? trackMatch[1].trim() : '度过了一段平静温和的时光。',
-          thoughts: thoughtsMatch ? thoughtsMatch[1].trim() : '关于刚才的交谈，心中泛起许多细腻的情感。',
-          summary: summaryMatch ? summaryMatch[1].trim() : '彼此分享了生活中的点滴琐事。',
-          archiveKey: archiveKey,
-          rawChatCount: toArchiveMsgs.length
-        };
-
         window.AppDB.save(archiveKey, toArchiveMsgs, function () {
           window.AppDB.save('wx_chat_msgs_' + charId, bufferMsgs, function () {
             try { localStorage.setItem('wx_chat_msgs_' + charId, JSON.stringify(bufferMsgs)); } catch(e){}
-            getCharMemories(charId, function (memories) {
-              memories.push(newMem);
-              saveCharMemories(charId, memories, function () {
-                if (callback) callback(newMem);
-              });
-            });
+            if (callback) callback({ success: true });
           });
         });
       })
@@ -316,7 +331,10 @@
     });
   }
 
-  // ============ 5. 高定全屏记忆手账长廊页面 (渲染手账书卡片) ============
+  // ============ 5. 记忆手账舞台与索引交互 ============
+  var activeUserKey = 'likes';   // 当前选中的 User 索引分类
+  var activeSelfKey = 'promises'; // 当前选中的 Self 索引分类
+
   function openMemoryStage(charObj, userObj) {
     if (charObj) {
       doRenderStage(charObj, userObj);
@@ -340,114 +358,325 @@
     stage.id = 'wxMemoryStage';
 
     stage.innerHTML = ''
+      // 1. 顶栏
       + '<div class="mem-stage-header">'
       + '  <div class="mem-head-left">'
       + '    <button class="mem-native-back" id="memStageBackBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>'
       + '    <div class="mem-title-group">'
-      + '      <span class="mem-script-tag">~ Memories & Dossier ~</span>'
-      + '      <h1 class="mem-main-title">' + esc(activeChar.name || 'Character') + ' · 记忆长廊</h1>'
+      + '      <span class="mem-script-tag">~ Sanctuary Mind & Dossier ~</span>'
+      + '      <h1 class="mem-main-title">' + esc(activeChar.name || 'Character') + ' · 记忆手账</h1>'
       + '    </div>'
       + '  </div>'
       + '  <div class="mem-head-right">'
-      + '    <button class="mem-trigger-summary-btn" id="memTriggerSummaryBtn" type="button" title="立即总结前面对话并归纳手账">'
+      + '    <button class="mem-trigger-summary-btn" id="memTriggerSummaryBtn" type="button" title="立即归纳对话至记忆库">'
       + '      <span class="mem-btn-icon">❆</span>'
       + '      <span>立即归纳</span>'
       + '    </button>'
       + '  </div>'
       + '</div>'
 
-      + '<div class="mem-stage-body" id="memStageBody"></div>'
-
-      + '<div class="mem-dialogue-drawer-mask" id="memDrawerMask"></div>'
-      + '<div class="mem-dialogue-drawer" id="memDialogueDrawer">'
-      + '  <div class="drawer-header-bar">'
-      + '    <div class="drawer-title-col">'
-      + '      <span class="drawer-sub-tag">CONVERSATION ARCHIVE</span>'
-      + '      <span class="drawer-date-title" id="drawerDateTitle">往昔对话溯源</span>'
-      + '    </div>'
-      + '    <button class="drawer-close-btn" id="drawerCloseBtn" type="button">✕</button>'
-      + '  </div>'
-      + '  <div class="drawer-dialogue-list" id="drawerDialogueList"></div>'
-      + '</div>';
+      // 2. 主体手账书展馆
+      + '<div class="mem-stage-body" id="memStageBody"></div>';
 
     document.body.appendChild(stage);
 
-    renderMemoryTimeline(stage, activeChar);
+    renderMemoryBook(stage, activeChar);
     bindStageEvents(stage, activeChar, userObj);
   }
 
-  function renderMemoryTimeline(stage, charData) {
+  function renderMemoryBook(stage, charData) {
     var body = stage.querySelector('#memStageBody');
     if (!body) return;
 
-    getCharMemories(charData.id, function (memories) {
-      if (!memories.length) {
-        body.innerHTML = '<div class="mem-empty-stage">'
-          + '<div class="mem-empty-crystal">❆</div>'
-          + '<div class="mem-empty-title">尚未凝结往昔记忆</div>'
-          + '<p class="mem-empty-desc">记忆由角色与你共同书写。平日交谈不受阻隔；随时点击右上角「立即归纳」，角色便会将此前对话凝炼为三栏手账，长久珍藏。</p>'
-          + '</div>';
-        return;
-      }
+    getUserCognition(charData.id, function (uCog) {
+      getSelfCognition(charData.id, function (sCog) {
+        getUnresolvedAlerts(charData.id, function (alerts) {
 
-      var html = '<div class="mem-timeline-scroll-wrap">';
+          // 生成左侧 User 分类书签标签
+          var userTabsHtml = USER_BLOCK_DEFS.map(function (b) {
+            var count = (uCog[b.key] && uCog[b.key].length) ? uCog[b.key].length : 0;
+            var isActive = (b.key === activeUserKey);
+            return '<button class="mem-index-tab' + (isActive ? ' active' : '') + '" data-user-tab="' + b.key + '" type="button">'
+              + '§ ' + b.label + ' (' + count + ')'
+              + '</button>';
+          }).join('');
 
-      memories.slice().reverse().forEach(function (m, idx) {
-        html += '<div class="snow-blue-ribbon-book" data-mem-idx="' + idx + '">'
-          // 1. 左侧书页：日期与事件
-          + '<div class="binder-page left">'
-          + '  <div class="page-hole-col top">'
-          + '    <div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div>'
-          + '  </div>'
-          + '  <div class="page-hole-col bottom">'
-          + '    <div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div>'
-          + '  </div>'
-          + '  <div class="book-page-content">'
-          + '    <div class="book-header-row">'
-          + '      <span class="book-date-pill">' + esc(m.dateStr) + '</span>'
-          + '      <span class="book-serial-tag">№ ' + pad2(memories.length - idx) + '</span>'
-          + '    </div>'
-          + '    <div class="book-track-text"><span class="track-tag">事件 · </span>' + esc(m.track) + '</div>'
-          + '    <div class="book-foot-code">RECORD // L</div>'
-          + '  </div>'
-          + '</div>'
+          // 生成右侧 Self 分类书签标签
+          var selfTabsHtml = SELF_BLOCK_DEFS.map(function (b) {
+            var count = (sCog[b.key] && sCog[b.key].length) ? sCog[b.key].length : 0;
+            var isActive = (b.key === activeSelfKey);
+            return '<button class="mem-index-tab self-tab' + (isActive ? ' active' : '') + '" data-self-tab="' + b.key + '" type="button">'
+              + '§ ' + b.label + ' (' + count + ')'
+              + '</button>';
+          }).join('');
 
-          // 2. 中脊穿透交叉白丝带
-          + '<div class="binder-spine-area">'
-          + '  <div class="spine-line"></div>'
-          + '  <div class="ribbon-cluster top">'
-          + '    <div class="ribbon-bar cross-a"></div>'
-          + '    <div class="ribbon-bar cross-b"></div>'
-          + '    <div class="ribbon-bar straight"></div>'
-          + '  </div>'
-          + '  <div class="ribbon-cluster bottom">'
-          + '    <div class="ribbon-bar straight"></div>'
-          + '    <div class="ribbon-bar cross-a"></div>'
-          + '    <div class="ribbon-bar cross-b"></div>'
-          + '  </div>'
-          + '</div>'
+          // 悬念警报书签
+          var alertCount = alerts.filter(function (a) { return !a.resolved; }).length;
+          var alertTabHtml = '<button class="mem-index-tab alert-tab' + (activeSelfKey === 'alerts' ? ' active' : '') + '" data-self-tab="alerts" type="button">'
+            + '⚠️ 悬念 (' + alertCount + ')'
+            + '</button>';
 
-          // 3. 右侧书页：心声独白与溯源
-          + '<div class="binder-page right">'
-          + '  <div class="page-hole-col top">'
-          + '    <div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div>'
-          + '  </div>'
-          + '  <div class="page-hole-col bottom">'
-          + '    <div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div>'
-          + '  </div>'
-          + '  <div class="book-page-content">'
-          + '    <div class="book-thought-quote">“ ' + esc(m.thoughts) + ' ”</div>'
-          + '    <div class="book-bottom-deck">'
-          + '      <span class="book-summary-sub">共话：' + esc(m.summary) + '</span>'
-          + '      <button class="mem-archive-anchor-btn" data-archive-key="' + esc(m.archiveKey || '') + '" data-mem-date="' + esc(m.dateStr) + '" type="button">溯源 ➔</button>'
-          + '    </div>'
-          + '  </div>'
-          + '</div>'
-          + '</div>';
+          // 当前左页条目
+          var curUserDef = USER_BLOCK_DEFS.find(function (b) { return b.key === activeUserKey; }) || USER_BLOCK_DEFS[0];
+          var curUserItems = uCog[curUserDef.key] || [];
+
+          var userItemsHtml = '';
+          if (!curUserItems.length) {
+            userItemsHtml = '<div class="mem-item-empty-tip">暂无观察记录，交流中将自动捕捉积累</div>';
+          } else {
+            userItemsHtml = curUserItems.map(function (it, idx) {
+              return '<div class="mem-record-row">'
+                + '<span class="mem-record-bullet">·</span>'
+                + '<span class="mem-record-text">' + esc(it) + '</span>'
+                + '<span class="mem-record-del-x" data-del-uitem="' + curUserDef.key + '" data-item-idx="' + idx + '" title="删除此条">×</span>'
+                + '</div>';
+            }).join('');
+          }
+
+          // 当前右页条目
+          var rightContentHtml = '';
+          var curSelfDef = null;
+
+          if (activeSelfKey === 'alerts') {
+            // 右页显示悬念雷达
+            if (!alerts.length) {
+              rightContentHtml = '<div class="mem-item-empty-tip">当前一切安心如常，暂无未决悬念</div>';
+            } else {
+              rightContentHtml = alerts.map(function (a, idx) {
+                var isRes = !!a.resolved;
+                return '<div class="mem-alert-record-row' + (isRes ? ' resolved' : '') + '">'
+                  + '<div class="alert-record-info">'
+                  + '  <span class="alert-date-mini">' + esc(a.date) + '</span>'
+                  + '  <span class="alert-text-mini">' + esc(a.text) + '</span>'
+                  + '</div>'
+                  + '<div class="alert-record-actions">'
+                  + '  <span class="alert-act-btn toggle" data-toggle-alert="' + idx + '">' + (isRes ? '重新挂起' : '完成') + '</span>'
+                  + '  <span class="alert-act-btn del" data-del-alert="' + idx + '">×</span>'
+                  + '</div>'
+                  + '</div>';
+              }).join('');
+            }
+          } else {
+            curSelfDef = SELF_BLOCK_DEFS.find(function (b) { return b.key === activeSelfKey; }) || SELF_BLOCK_DEFS[0];
+            var curSelfItems = sCog[curSelfDef.key] || [];
+
+            if (!curSelfItems.length) {
+              rightContentHtml = '<div class="mem-item-empty-tip">暂无记录，角色将在触动时写下</div>';
+            } else {
+              rightContentHtml = curSelfItems.map(function (it, idx) {
+                return '<div class="mem-record-row self-side">'
+                  + '<span class="mem-record-bullet">·</span>'
+                  + '<span class="mem-record-text">' + esc(it) + '</span>'
+                  + '<span class="mem-record-del-x" data-del-sitem="' + curSelfDef.key + '" data-item-idx="' + idx + '" title="删除此条">×</span>'
+                  + '</div>';
+              }).join('');
+            }
+          }
+
+          var html = '<div class="mem-book-wrapper">'
+            // 顶部索引书签组
+            + '<div class="mem-index-tabs-shelf">'
+            + '  <div class="tabs-group-row user-group">'
+            + '    <span class="tabs-group-lead">USER画像:</span>'
+            + '    <div class="tabs-scroll-container">' + userTabsHtml + '</div>'
+            + '  </div>'
+            + '  <div class="tabs-group-row self-group">'
+            + '    <span class="tabs-group-lead">角色心事:</span>'
+            + '    <div class="tabs-scroll-container">' + selfTabsHtml + alertTabHtml + '</div>'
+            + '  </div>'
+            + '</div>'
+
+            // 手账书主体
+            + '<div class="snow-blue-ribbon-book">'
+            // 1. 左页：User 观察画像
+            + '  <div class="binder-page left">'
+            + '    <div class="page-hole-col top"><div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div></div>'
+            + '    <div class="page-hole-col bottom"><div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div></div>'
+            + '    <div class="book-page-content">'
+            + '      <div class="book-page-head">'
+            + '        <div class="page-head-title-col">'
+            + '          <span class="page-sec-name">§ ' + curUserDef.label + ' · 观察认知</span>'
+            + '          <span class="page-sec-sub">' + curUserDef.subLabel + '</span>'
+            + '        </div>'
+            + '        <button class="page-add-item-btn" data-add-uitem="' + curUserDef.key + '" data-block-title="' + curUserDef.label + '" type="button">+ 补充</button>'
+            + '      </div>'
+            + '      <div class="book-items-list">' + userItemsHtml + '</div>'
+            + '      <div class="book-page-foot-code">DOSSIER // L · P.01</div>'
+            + '    </div>'
+            + '  </div>'
+
+            // 2. 中脊穿透交叉白丝带
+            + '  <div class="binder-spine-area">'
+            + '    <div class="spine-line"></div>'
+            + '    <div class="ribbon-cluster top">'
+            + '      <div class="ribbon-bar cross-a"></div>'
+            + '      <div class="ribbon-bar cross-b"></div>'
+            + '      <div class="ribbon-bar straight"></div>'
+            + '    </div>'
+            + '    <div class="ribbon-cluster bottom">'
+            + '      <div class="ribbon-bar straight"></div>'
+            + '      <div class="ribbon-bar cross-a"></div>'
+            + '      <div class="ribbon-bar cross-b"></div>'
+            + '    </div>'
+            + '  </div>'
+
+            // 3. 右页：角色心事羁绊与悬念
+            + '  <div class="binder-page right">'
+            + '    <div class="page-hole-col top"><div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div></div>'
+            + '    <div class="page-hole-col bottom"><div class="hole-dot"></div><div class="hole-dot"></div><div class="hole-dot"></div></div>'
+            + '    <div class="book-page-content">'
+            + '      <div class="book-page-head">'
+            + '        <div class="page-head-title-col">'
+            + '          <span class="page-sec-name">' + (activeSelfKey === 'alerts' ? '⚠️ 悬念与情绪雷达' : ('§ ' + (curSelfDef ? curSelfDef.label : '') + ' · 羁绊心事')) + '</span>'
+            + '          <span class="page-sec-sub">' + (activeSelfKey === 'alerts' ? 'UNRESOLVED ALERTS' : (curSelfDef ? curSelfDef.subLabel : '')) + '</span>'
+            + '        </div>'
+            + (activeSelfKey === 'alerts'
+                ? '<button class="page-add-item-btn" id="btnAddAlertManual" type="button">+ 记录悬念</button>'
+                : '<button class="page-add-item-btn" data-add-sitem="' + (curSelfDef ? curSelfDef.key : '') + '" data-block-title="' + (curSelfDef ? curSelfDef.label : '') + '" type="button">+ 补充</button>'
+              )
+            + '      </div>'
+            + '      <div class="book-items-list">' + rightContentHtml + '</div>'
+            + '      <div class="book-page-foot-code">BOND // R · P.02</div>'
+            + '    </div>'
+            + '  </div>'
+            + '</div>'
+            + '</div>';
+
+          body.innerHTML = html;
+          bindBookActions(stage, charData, uCog, sCog, alerts);
+        });
       });
+    });
+  }
 
-      html += '</div>';
-      body.innerHTML = html;
+  // ============ 6. 事件绑定与增删改 ============
+  function bindBookActions(stage, charData, uCog, sCog, alerts) {
+    // 切换左页 User 书签
+    stage.querySelectorAll('[data-user-tab]').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        activeUserKey = this.dataset.userTab;
+        renderMemoryBook(stage, charData);
+      });
+    });
+
+    // 切换右页 Self / Alert 书签
+    stage.querySelectorAll('[data-self-tab]').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        activeSelfKey = this.dataset.selfTab;
+        renderMemoryBook(stage, charData);
+      });
+    });
+
+    // 左页补充条目
+    var addUBtn = stage.querySelector('[data-add-uitem]');
+    if (addUBtn) {
+      addUBtn.addEventListener('click', function () {
+        var key = this.dataset.addUitem;
+        var bTitle = this.dataset.blockTitle;
+        var txt = prompt('向【' + bTitle + '】认知板块补充一条内容：');
+        if (txt && txt.trim()) {
+          if (!Array.isArray(uCog[key])) uCog[key] = [];
+          uCog[key].push(txt.trim());
+          saveUserCognition(charData.id, uCog, function () {
+            renderMemoryBook(stage, charData);
+            if (window.AppNav) window.AppNav.showToast('已补充至【' + bTitle + '】');
+          });
+        }
+      });
+    }
+
+    // 左页删除条目
+    stage.querySelectorAll('[data-del-uitem]').forEach(function (delBtn) {
+      delBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var key = this.dataset.delUitem;
+        var idx = parseInt(this.dataset.itemIdx, 10);
+        if (Array.isArray(uCog[key])) {
+          uCog[key].splice(idx, 1);
+          saveUserCognition(charData.id, uCog, function () {
+            renderMemoryBook(stage, charData);
+          });
+        }
+      });
+    });
+
+    // 右页补充心事条目
+    var addSBtn = stage.querySelector('[data-add-sitem]');
+    if (addSBtn) {
+      addSBtn.addEventListener('click', function () {
+        var key = this.dataset.addSitem;
+        var bTitle = this.dataset.blockTitle;
+        var txt = prompt('向【' + bTitle + '】心事板块补充一条内容：');
+        if (txt && txt.trim()) {
+          if (!Array.isArray(sCog[key])) sCog[key] = [];
+          sCog[key].push(txt.trim());
+          saveSelfCognition(charData.id, sCog, function () {
+            renderMemoryBook(stage, charData);
+            if (window.AppNav) window.AppNav.showToast('已补充至【' + bTitle + '】');
+          });
+        }
+      });
+    }
+
+    // 右页删除心事条目
+    stage.querySelectorAll('[data-del-sitem]').forEach(function (delBtn) {
+      delBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var key = this.dataset.delSitem;
+        var idx = parseInt(this.dataset.itemIdx, 10);
+        if (Array.isArray(sCog[key])) {
+          sCog[key].splice(idx, 1);
+          saveSelfCognition(charData.id, sCog, function () {
+            renderMemoryBook(stage, charData);
+          });
+        }
+      });
+    });
+
+    // 右页手动添加悬念
+    var addAlertBtn = stage.querySelector('#btnAddAlertManual');
+    if (addAlertBtn) {
+      addAlertBtn.addEventListener('click', function () {
+        var txt = prompt('记录一条未决悬念或情绪警报：');
+        if (txt && txt.trim()) {
+          alerts.unshift({
+            id: 'alt_' + Date.now(),
+            date: getTodayDateStr(),
+            text: txt.trim(),
+            resolved: false
+          });
+          saveUnresolvedAlerts(charData.id, alerts, function () {
+            renderMemoryBook(stage, charData);
+            if (window.AppNav) window.AppNav.showToast('已记录悬念');
+          });
+        }
+      });
+    }
+
+    // 悬念完成切换
+    stage.querySelectorAll('[data-toggle-alert]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var idx = parseInt(this.dataset.toggleAlert, 10);
+        if (alerts[idx]) {
+          alerts[idx].resolved = !alerts[idx].resolved;
+          saveUnresolvedAlerts(charData.id, alerts, function () {
+            renderMemoryBook(stage, charData);
+          });
+        }
+      });
+    });
+
+    // 悬念删除
+    stage.querySelectorAll('[data-del-alert]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var idx = parseInt(this.dataset.delAlert, 10);
+        alerts.splice(idx, 1);
+        saveUnresolvedAlerts(charData.id, alerts, function () {
+          renderMemoryBook(stage, charData);
+        });
+      });
     });
   }
 
@@ -462,21 +691,22 @@
     var backBtn = stage.querySelector('#memStageBackBtn');
     if (backBtn) backBtn.addEventListener('click', closeMemoryStage);
 
+    // 立即归纳
     var triggerBtn = stage.querySelector('#memTriggerSummaryBtn');
     if (triggerBtn) {
       triggerBtn.addEventListener('click', function () {
         if (window.AppDialog) {
           window.AppDialog.confirm({
-            title: '立即归纳记忆',
-            desc: '角色将回顾前面积累的所有交谈与内心暗涌，精炼成一篇专属手账书，并归档原始记录。确定归纳吗？',
+            title: '立即归纳认知与手账',
+            desc: '角色将回顾刚才的对话与心声，自动分拣更新 User 认知板块与自我心事册。确定归纳吗？',
             confirmText: '开始归纳',
             isDanger: false
           }, function () {
-            if (window.AppNav) window.AppNav.showToast('角色正在静心回想并撰写手账...');
-            executeMemorySummary(charData.id, charData, userObj, function (newMem, errMsg) {
-              if (newMem) {
-                renderMemoryTimeline(stage, charData);
-                if (window.AppNav) window.AppNav.showToast('✦ 回忆已化为手账凝结在长廊中 ✦');
+            if (window.AppNav) window.AppNav.showToast('角色正在静心回想并整理手账...');
+            executeMemorySummary(charData.id, charData, userObj, function (res, errMsg) {
+              if (res && res.success) {
+                renderMemoryBook(stage, charData);
+                if (window.AppNav) window.AppNav.showToast('✦ 认知板块与手账已同步归纳积累 ✦');
               } else {
                 if (window.AppNav) window.AppNav.showToast(errMsg || '归纳未能完成');
               }
@@ -486,59 +716,7 @@
       });
     }
 
-    var drawer = stage.querySelector('#memDialogueDrawer');
-    var drawerMask = stage.querySelector('#memDrawerMask');
-    var drawerCloseBtn = stage.querySelector('#drawerCloseBtn');
-    var drawerTitle = stage.querySelector('#drawerDateTitle');
-    var drawerList = stage.querySelector('#drawerDialogueList');
-
-    function closeDrawer() {
-      if (drawer) drawer.classList.remove('show');
-      if (drawerMask) drawerMask.classList.remove('show');
-    }
-
-    if (drawerCloseBtn) drawerCloseBtn.addEventListener('click', closeDrawer);
-    if (drawerMask) drawerMask.addEventListener('click', closeDrawer);
-
-    stage.addEventListener('click', function (e) {
-      var anchorBtn = e.target.closest('[data-archive-key]');
-      if (anchorBtn) {
-        e.stopPropagation();
-        var archKey = anchorBtn.dataset.archiveKey;
-        var dateStr = anchorBtn.dataset.memDate;
-
-        if (!archKey || !window.AppDB) {
-          if (window.AppNav) window.AppNav.showToast('该条记录暂无详细对话镜像');
-          return;
-        }
-
-        window.AppDB.get(archKey, function (val) {
-          var msgs = Array.isArray(val) ? val : [];
-          drawerTitle.textContent = (dateStr || '往昔') + ' 对话溯源 (' + msgs.length + '条)';
-
-          if (!msgs.length) {
-            drawerList.innerHTML = '<div style="padding:40px 16px;text-align:center;color:#8e8e93;font-size:12px;">该篇手账对应的详细会话已精炼封存</div>';
-          } else {
-            drawerList.innerHTML = msgs.map(function (m) {
-              var isUser = (m.role === 'user' || m.sender === 'user');
-              var txt = m.cleanContent || m.content || m.text || '';
-              var voiceHtml = m.voiceObj ? '<div class="drawer-voice-quote">💭 心声: ' + esc(m.voiceObj.monologue) + '</div>' : '';
-
-              return '<div class="drawer-msg-row' + (isUser ? ' is-user' : '') + '">'
-                + '  <div class="drawer-msg-bubble">'
-                +      esc(txt)
-                +      voiceHtml
-                + '  </div>'
-                + '</div>';
-            }).join('');
-          }
-
-          drawer.classList.add('show');
-          drawerMask.classList.add('show');
-        });
-      }
-    });
-
+    // 右滑返回手势
     var startX = 0, startY = 0, currentX = 0, isSwiping = false;
     stage.addEventListener('touchstart', function (e) {
       if (e.touches[0].clientX > 45) return;
@@ -573,7 +751,6 @@
 
   window.WxChatMemory = {
     open: openMemoryStage,
-    getMemories: getCharMemories,
     getGatewayPrompt: buildGatewayPrompt,
     triggerSummary: executeMemorySummary,
     getUserCognition: getUserCognition,
