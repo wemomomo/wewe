@@ -825,10 +825,11 @@
 
 .input-bar-wrap {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
+  align-items: flex-end; /* 💡 输入框长高时，两旁按钮沉在底部对齐 */
+  gap: 6px;              /* 💡 紧凑间隙，把更多空间让给输入框 */
+  min-height: 44px;
   background: transparent;
+  padding-bottom: 2px;
 }
 
 .pure-icon-btn {
@@ -855,20 +856,25 @@
   fill: none;
 }
 
+/* 胶囊条：加长并随多行自动撑高 */
 .input-capsule-glass {
   flex: 1;
-  min-height: 40px;
-  background: #f8f8fa;        /* 浅灰背景 */
-  border: 1px solid #e5e5ea;  /* 灰色边框 */
-  border-radius: 20px;
-  padding: 0 14px;
+  min-height: 38px;
+  max-height: 120px;
+  background: #f8f8fa;
+  border: 1px solid #e5e5ea;
+  border-radius: 19px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
-  border: 0.5px solid rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
 }
 
+/* 自适应多行文本域 */
 .input-field-inner {
   width: 100%;
+  height: 22px;
+  max-height: 100px;
   border: none;
   background: transparent;
   outline: none;
@@ -876,17 +882,26 @@
   color: #111111;
   font-family: inherit;
   resize: none;
-  line-height: 1.4;
+  line-height: 22px;
   padding: 0;
   margin: 0;
+  box-sizing: border-box;
+  -webkit-user-select: text;
+  user-select: text;
+  overflow-y: auto;
+}
+.input-field-inner::-webkit-scrollbar {
+  display: none;
 }
 .input-field-inner::placeholder {
   color: #8e8e93;
 }
 
+/* 加号按钮：往右微调，与发送键紧密呼应 */
 .pure-plus-trigger {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 38px;
+  margin-left: 2px; /* 💡 往右挪一点 */
   background: transparent;
   border: none;
   display: flex;
@@ -902,8 +917,8 @@
   transform: rotate(45deg);
 }
 .pure-plus-trigger svg {
-  width: 28px !important;
-  height: 28px !important;
+  width: 26px !important;
+  height: 26px !important;
   stroke: currentColor;
   stroke-width: 2.2;
   fill: none;
