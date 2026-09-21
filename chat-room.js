@@ -464,14 +464,14 @@
       + '  </div>'
       + '</div>'
 
-      // 4. 底部输入控制条
+            // 4. 底部输入控制条
       + '<div class="chat-footer-clean">'
       + '  <div class="input-bar-wrap">'
       + '    <button class="pure-icon-btn" id="wxCrVoiceBtn" type="button" title="语音输入">'
       + '      <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="18" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>'
       + '    </button>'
       + '    <div class="input-capsule-glass">'
-      + '      <input class="input-field-inner" id="wxCrInput" type="text" placeholder="">'
+      + '      <textarea class="input-field-inner" id="wxCrInput" rows="1" placeholder=""></textarea>'
       + '    </div>'
       + '    <button class="pure-plus-trigger" id="wxCrPlusBtn" type="button" title="更多功能">'
       + '      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
@@ -1305,9 +1305,18 @@
     var input = stage.querySelector('#wxCrInput');
     var sendBtn = stage.querySelector('#wxCrSendBtn');
 
-    if (input) {
+       if (input) {
+      function adjustInputHeight() {
+        input.style.height = 'auto';
+        var newH = Math.min(input.scrollHeight, 110);
+        input.style.height = Math.max(22, newH) + 'px';
+      }
       input.addEventListener('focus', function() { isInputIdle = false; resetIdleTimer(); });
-      input.addEventListener('input', function() { isInputIdle = false; resetIdleTimer(); });
+      input.addEventListener('input', function() { 
+        isInputIdle = false; 
+        resetIdleTimer(); 
+        adjustInputHeight(); 
+      });
       input.addEventListener('blur', function() { isInputIdle = true; checkIdleQueue(); });
     }
 
@@ -1343,7 +1352,8 @@
       }
 
       chatMessages.push(newMsg);
-      input.value = '';
+            input.value = '';
+      input.style.height = '22px'; /* 💡 发送后恢复小高度 */
       saveChatMessages(currentChatChar.id);
       renderMessages();
 
