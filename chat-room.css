@@ -258,7 +258,10 @@
   gap: 16px;
   position: relative;
   box-sizing: border-box;
-  background: #ffffff !important;
+  background-color: #ffffff; /* 💡 改用 background-color，无背景图时显示纯白 */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .wx-cr-body::-webkit-scrollbar {
