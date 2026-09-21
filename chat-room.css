@@ -359,21 +359,24 @@
   font-weight: 500 !important;
   line-height: 1.55 !important;
   width: fit-content !important;
+  max-width: 100% !important;
   min-width: 2em !important;
   word-break: break-word !important;
   border-radius: 18px !important;
   border: none !important;
   box-sizing: border-box !important;
   color: #1e242c !important;
-  background: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(195, 204, 216, 0.85) 0%, rgba(222, 228, 236, 0.45) 45%, #ffffff 78%) !important;
-  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.95), 0 3px 12px rgba(0, 0, 0, 0.04) !important;
+  background-color: #ffffff !important; /* 💡 100% 纯白实底，绝不透出背景 */
+  background-image: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(195, 204, 216, 0.85) 0%, rgba(222, 228, 236, 0.45) 45%, #ffffff 85%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* ═══ 用户（右侧）：晴空雾蓝色心核晕染 ═══ */
+/* ═══ 用户（右侧）：纯白实底 + 晴空雾蓝色心核晕染 ═══ */
 .wx-msg-group.user-side .wx-msg-bubble-item {
   color: #1a2b3c !important;
-  background: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(175, 210, 242, 0.72) 0%, rgba(212, 232, 252, 0.35) 45%, #ffffff 78%) !important;
-  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.95), 0 3px 12px rgba(70, 120, 180, 0.04) !important;
+  background-color: #ffffff !important; /* 💡 100% 纯白实底，绝不透出背景 */
+  background-image: radial-gradient(ellipse 75% 65% at 50% 50%, rgba(175, 210, 242, 0.72) 0%, rgba(212, 232, 252, 0.35) 45%, #ffffff 85%) !important;
+  box-shadow: 0 2px 8px rgba(70, 120, 180, 0.08) !important;
 }
 
 /* ═══ 像素小星云装饰层 ═══ */
@@ -482,28 +485,30 @@
 .bilingual-main-text {
   width: 100%;
   line-height: 1.45;
+  color: inherit !important; /* 100% 纯实色 */
 }
 .bilingual-divider-dash {
   width: 100%;
   height: 0;
-  border-bottom: 1px dashed rgba(0, 0, 0, 0.12); /* 浅雅虚线 */
-  margin: 2px 0;
+  border-bottom: 1px dashed rgba(100, 116, 139, 0.25) !important; /* 扎实清晰的虚线 */
+  margin: 3px 0;
 }
 .wx-msg-group.user-side .bilingual-divider-dash {
-  border-bottom-color: rgba(70, 120, 180, 0.2); /* 用户侧匹配雾蓝虚线 */
+  border-bottom-color: rgba(70, 120, 180, 0.3) !important;
 }
 
-/* 角色侧英文翻译色 */
+/* 角色侧英文翻译色：100% 实色，绝不透光 */
 .bilingual-trans-text {
   font-size: 13.5px;
   line-height: 1.4;
-  color: #475569; /* 银灰雅致深色 */
-  opacity: 0.9;
+  color: #334155 !important; /* 扎实的深冷灰蓝实色 */
+  opacity: 1 !important;     /* 💡 彻底去掉半透明 */
 }
-/* 用户侧英文翻译色 */
+
+/* 用户侧英文翻译色：100% 实色，绝不透光 */
 .wx-msg-group.user-side .bilingual-trans-text {
-  color: #2c4257; /* 晴空雾蓝深色，清晰可读 */
-  opacity: 0.9;
+  color: #1e293b !important; /* 扎实的深蓝黑实色 */
+  opacity: 1 !important;     /* 💡 彻底去掉半透明 */
 }
 
 /* 英文字体专属样式类（全部强制正体 normal，绝不倾斜变形） */
