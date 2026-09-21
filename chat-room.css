@@ -848,7 +848,8 @@
 .input-capsule-glass {
   flex: 1;
   min-height: 40px;
-  background: #e0e7f1 !important;
+  background: #f8f8fa;        /* 浅灰背景 */
+  border: 1px solid #e5e5ea;  /* 灰色边框 */
   border-radius: 20px;
   padding: 0 14px;
   display: flex;
