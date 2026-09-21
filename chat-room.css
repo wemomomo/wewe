@@ -13,7 +13,10 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: #ffffff !important;
+  background-color: #ffffff; /* 💡 无背景图时为纯白，有背景图时由JS全屏铺满 */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   z-index: 20 !important;
   display: flex;
   flex-direction: column;
@@ -58,7 +61,9 @@
   position: relative;
   height: calc(56px + var(--safe-top));
   padding-top: var(--safe-top);
-  background: transparent;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -258,10 +263,7 @@
   gap: 16px;
   position: relative;
   box-sizing: border-box;
-  background-color: #ffffff; /* 💡 改用 background-color，无背景图时显示纯白 */
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background: transparent !important; /* 💡 彻底透明 */
 }
 
 .wx-cr-body::-webkit-scrollbar {
