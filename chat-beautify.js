@@ -95,25 +95,24 @@
       + '<div class="settings-bottom-spacer"></div>';
   }
 
-  function applyBeautify(stage, currentChar) {
+    function applyBeautify(stage, currentChar) {
     if (!stage || !currentChar) return;
     var cfg = getBeautifyCfg(currentChar.id);
-    var chatBody = stage.querySelector('#wxCrBody');
-    if (!chatBody) return;
 
     if (cfg.chatBg) {
-      chatBody.style.backgroundImage = 'url(\'' + cfg.chatBg + '\')';
-      chatBody.style.backgroundSize = 'cover';
-      chatBody.style.backgroundPosition = 'center';
+      stage.style.backgroundImage = 'url(\'' + cfg.chatBg + '\')';
+      stage.style.backgroundSize = 'cover';
+      stage.style.backgroundPosition = 'center';
     } else {
-      chatBody.style.backgroundImage = 'none';
+      stage.style.backgroundImage = 'none';
+      stage.style.backgroundColor = '#ffffff';
     }
 
     stage.querySelectorAll('.wx-msg-bubble-item').forEach(function(b) {
       if (b.classList.contains('is-sticker-bubble')) return;
       b.style.fontSize = (cfg.fontSize || 15) + 'px';
       if (!b.closest('.user-side')) {
-        b.style.background = 'rgba(255, 255, 255, ' + (cfg.bubbleOpacity || 1) + ')';
+        b.style.opacity = (cfg.bubbleOpacity !== undefined ? cfg.bubbleOpacity : 1);
       }
     });
   }
