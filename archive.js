@@ -710,9 +710,8 @@
       + '<div class="ruled-item"><span class="ruled-label">身高</span><input type="text" class="ruled-input" id="fieldHeight" value="' + esc(cur.height) + '" placeholder=""></div>'
       + '<div class="ruled-item"><span class="ruled-label">生日</span><input type="text" class="ruled-input" id="fieldBirthday" value="' + esc(cur.birthday) + '" placeholder=""></div>'
       + '<div class="ruled-item"><span class="ruled-label">星座</span><input type="text" class="ruled-input" id="fieldZodiac" value="' + esc(cur.zodiac) + '" placeholder=""></div>'
-      + (!isUser ? (
+            + (!isUser ? (
           '<div class="ruled-item"><span class="ruled-label">对User称呼</span><input type="text" class="ruled-input" id="fieldUserCall" value="' + esc(cur.userCall || '') + '" placeholder=""></div>'
-        + '<div class="ruled-item"><span class="ruled-label">与User关系</span><input type="text" class="ruled-input" id="fieldUserRel" value="' + esc(cur.userRel || '') + '" placeholder=""></div>'
         + '<div class="ruled-item"><span class="ruled-label">微信号</span><div class="ruled-input-with-action"><input type="text" class="ruled-input" id="fieldWxId" value="' + esc(cur.wxid || '') + '" placeholder=""><button class="ruled-refresh-btn" id="btnRefCharWx" type="button" title="随机生成微信号"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></button></div></div>'
         + '<div class="ruled-item"><span class="ruled-label">手机号</span><div class="ruled-input-with-action"><input type="text" class="ruled-input" id="fieldPhone" value="' + esc(cur.phone || '') + '" placeholder=""><button class="ruled-refresh-btn" id="btnRefCharPhone" type="button" title="随机生成手机号"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></button></div></div>'
       ) : '')
@@ -888,10 +887,8 @@
       target.background = document.getElementById('fieldBackground').value;
       
       // 👇 新增角色专属字段保存：
-      var elCall = document.getElementById('fieldUserCall');
+            var elCall = document.getElementById('fieldUserCall');
       if (elCall) target.userCall = elCall.value || '';
-      var elRel = document.getElementById('fieldUserRel');
-      if (elRel) target.userRel = elRel.value || '';
       var elWx = document.getElementById('fieldWxId');
       if (elWx) target.wxid = elWx.value || '';
       var elPhone = document.getElementById('fieldPhone');
