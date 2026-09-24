@@ -198,13 +198,62 @@
   pointer-events: none !important;
 }
 
+/* =========================================================
+   设置卡片底部按钮组（取消 & 保存设定）- 完美避让版
+========================================================= */
+.wx-cr-set-body {
+  padding-bottom: 28px !important; /* 💡 给上方滑动内容留出充足距离，绝不再撞到底部按钮 */
+}
+
 .sanctuary-bottom-deck {
-  width: 100% !important;
-  height: 18px !important;
-  min-height: 18px !important;
-  background: transparent !important;
+  position: relative !important;
+  z-index: 10 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 14px 18px calc(14px + var(--safe-bottom)) !important;
+  border-top: 1px dashed rgba(20, 22, 25, 0.12) !important;
+  background: #ffffff !important;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04) !important; /* 优雅微光阴影分隔 */
   flex-shrink: 0 !important;
-  pointer-events: none !important;
+  box-sizing: border-box !important;
+}
+
+.settings-footer-btn {
+  flex: 1 !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  letter-spacing: 1px !important;
+  transition: all 0.18s ease !important;
+  box-sizing: border-box !important;
+}
+
+.settings-footer-btn.cancel {
+  background: #f4f4f6 !important;
+  color: #666668 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.settings-footer-btn.cancel:active {
+  background: #e8e8ea !important;
+  transform: scale(0.97) !important;
+}
+
+.settings-footer-btn.save {
+  background: #1a1c22 !important;
+  color: #ffffff !important;
+  border: 1px solid #111111 !important;
+  box-shadow: 0 4px 14px rgba(26, 28, 34, 0.25) !important;
+}
+.settings-footer-btn.save:active {
+  background: #000000 !important;
+  transform: scale(0.97) !important;
 }
 
 /* =========================================================
